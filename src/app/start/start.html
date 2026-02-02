@@ -1,5 +1,5 @@
   
-  <body>
+  <body (document:pointermove)="onPointerMove($event)" (document:pointerup)="endDrag($event)">
     <img src="assets/imgs/pixil-frame-0.png" alt="bend-images" border="0">
    
     <div class="controls-row">
@@ -15,13 +15,13 @@
 
       <div class="button-holder">
         <a class="start" routerLink="/game">Start</a>
-        <a class="start" routerLink="/">Settings</a>
-        <a class="start" routerLink="/">Credits</a>
+        <button class="settings" type="button" (click)="openSettings()">Settings</button>
+        <button class="credits" type="button" (click)="openCredits()">Credits</button>
       </div>
 
       <div class="Store">
         <div class="store-header">
-          <h4 class="store-title">Store:</h4>
+          <h4 class="store-title">Store</h4>
           <div class="currency">0 <span class="coin">◈</span></div>
         </div>
         <div class="divider"></div>
@@ -30,4 +30,32 @@
         </div>
       </div>
     </div>
+    
+    <!-- Settings overlay -->
+    <div class="settings-backdrop" *ngIf="showSettings" (click)="closeSettings()">
+      <div class="settings-modal" [ngStyle]="modalStyle" (click)="$event.stopPropagation()">
+        <div class="settings-header" (pointerdown)="startDrag($event)">
+          <h3>Settings</h3>
+          <button class="close-btn" (click)="closeSettings()">✕</button>
+        </div>
+        <div class="settings-body">
+          <h4>Controls</h4>
+          <p>Controls section coming soon.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Credits overlay -->
+    <div class="credits-backdrop" *ngIf="showCredits" (click)="closeCredits()">
+      <div class="credits-modal" [ngStyle]="creditsModalStyle" (click)="$event.stopPropagation()">
+        <div class="credits-header" (pointerdown)="startDragCredits($event)">
+          <h3>Credits</h3>
+          <button class="close-btn" (click)="closeCredits()">✕</button>
+        </div>
+        <div class="credits-body">
+          <p>Credits content goes here.</p>
+        </div>
+      </div>
+    </div>
+
     </body>

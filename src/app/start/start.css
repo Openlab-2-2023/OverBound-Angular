@@ -24,13 +24,13 @@ img {
 
 .button-holder {
   display: flex;
-  gap: 20px;
+  gap: 10px;
   justify-content: center;
   width: 100%;
   max-width:300px;
   border: 2px solid transparent;
   border-radius: 12px;
-  padding: 12px;
+  padding: 7px;
   background-color: transparent;
   background-image: linear-gradient(transparent, transparent), linear-gradient(90deg, #ff5a00 10%, #ff8a00 40%, #004cff 60%, #0066ff 90%);
   background-origin: padding-box, border-box;
@@ -39,7 +39,12 @@ img {
   animation: borderGradient 4s linear infinite;
 }
 
-.start {
+.start,
+.settings,
+.credits,
+a.start,
+button.settings,
+button.credits {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -51,7 +56,11 @@ img {
   width: 220px;
   height: 100px;
   text-decoration: none;
-  font-size: 50px;
+  font-size: 40px;
+  font-family: "Pixelify Sans", sans-serif;
+  line-height: 1;
+  box-sizing: border-box;
+  text-align: center;
   padding: 10px;
   font-weight: 500;
   transition: color 0.3s, transform 0.3s;
@@ -60,17 +69,40 @@ img {
   position: relative;
   z-index: 1;
   overflow: visible;
+
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  outline: none;
+  background-clip: padding-box;
 }
 
-.start:hover {
+.start:hover,
+.settings:hover,
+.credits:hover,
+a.start:hover,
+button.settings:hover,
+button.credits:hover {
   transform: scale(1.03);
   background: black;
   -webkit-background-clip: initial;
   -webkit-text-fill-color: initial;
 }
 
+.start:focus,
+.settings:focus,
+.credits:focus,
+a.start:focus,
+button.settings:focus,
+button.credits:focus { outline: none; }
+
 /* animated border around buttons using a pseudo-element */
-.start::before {
+.start::before,
+.settings::before,
+.credits::before,
+a.start::before,
+button.settings::before,
+button.credits::before {
   content: "";
   position: absolute;
   inset: -3px;
@@ -85,7 +117,17 @@ img {
 
 /* keep button text gradient on hover while preserving animated border */
 .start .text-gradient,
-.start:hover .text-gradient {
+.start:hover .text-gradient,
+.settings .text-gradient,
+.settings:hover .text-gradient,
+.credits .text-gradient,
+.credits:hover .text-gradient,
+a.start .text-gradient,
+a.start:hover .text-gradient,
+button.settings .text-gradient,
+button.settings:hover .text-gradient,
+button.credits .text-gradient,
+button.credits:hover .text-gradient {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -188,3 +230,71 @@ h1, p { margin: 0; padding: 0; }
 }
 
 .leader-content { width: 100%; }
+
+/* Settings modal */
+.settings-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  z-index: 1100;
+}
+
+.settings-modal {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: 640px;
+  max-width: calc(100% - 48px);
+  height: 480px;
+  background: rgba(10,10,10,0.98);
+  border-radius: 10px;
+  border: 2px solid rgba(255,255,255,0.06);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+  color: #fff;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  z-index: 1150;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  cursor: grab;
+  user-select: none;
+}
+
+.settings-header:active { cursor: grabbing; }
+
+.settings-header h3 { margin: 0; font-size: 20px; }
+
+.close-btn {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 18px;
+  width: 36px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.close-btn:hover { background: rgba(255,255,255,0.02); }
+
+.settings-body { padding: 16px; font-size: 16px; color: #ddd; }
+
+/* Credits modal (same visuals as settings) */
+.credits-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: flex-start; justify-content: center; z-index: 1100; }
+.credits-modal { position: fixed; left: 50%; top: 50%; width: 640px; max-width: calc(100% - 48px); height: 480px; background: rgba(10,10,10,0.98); border-radius: 10px; border: 2px solid rgba(255,255,255,0.06); box-shadow: 0 10px 40px rgba(0,0,0,0.6); color: #fff; overflow: hidden; display: flex; flex-direction: column; z-index: 1150; }
+.credits-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02)); border-bottom: 1px solid rgba(255,255,255,0.03); cursor: grab; user-select: none; }
+.credits-header:active { cursor: grabbing; }
+.credits-header h3 { margin: 0; font-size: 20px; }
+.credits-body { padding: 16px; font-size: 16px; color: #ddd; }
