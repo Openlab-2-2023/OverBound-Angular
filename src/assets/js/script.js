@@ -17,30 +17,52 @@ console.log('level:', window.level);
 
 
   function animate() {
-    window.requestAnimationFrame(animate);
+    // Fixed-step update (physics) at 60 FPS, render as often as possible
+    let last = 0;
+    let accumulator = 0;
+    const step = 1000 / 60; // ms per physics update
 
-    background.draw();
-    collisionBlocks.forEach((CollisionBlock) => CollisionBlock.draw());
-    portals.forEach((portal) => portal.draw());
-    animals.forEach((animal) => animal.draw());
-    risks.forEach((risk) => risk.draw());
-    clouds.forEach((cloud) => cloud.draw());
+    function animateFrame(timestamp) {
+      window.requestAnimationFrame(animateFrame);
 
-    player.velocity.x = 0;
-    player.playerMovement();
-    kolagen.draw();
-    kolagen.refill();
-    player.draw();
-    player.update();
-    player.detectCloud();
-    player.detectRisk();
-    player.textAppear();
+      if (!last) last = timestamp;
+      const delta = timestamp - last;
+      last = timestamp;
 
-    c.save();
-    c.globalAlpha = overlay.opacity;
-    c.fillStyle = "black";
-    c.fillRect(0, 0, canvas.width, canvas.height);
-    c.restore();
+      accumulator += delta;
+
+      while (accumulator >= step) {
+        // physics / game-state updates (fixed timestep)
+        player.velocity.x = 0;
+        player.playerMovement();
+        player.update();
+        player.detectCloud();
+        player.detectRisk();
+        kolagen.refill();
+
+        accumulator -= step;
+      }
+
+      // rendering (can run at display frame rate)
+      background.draw();
+      collisionBlocks.forEach((CollisionBlock) => CollisionBlock.draw());
+      portals.forEach((portal) => portal.draw());
+      animals.forEach((animal) => animal.draw());
+      risks.forEach((risk) => risk.draw());
+      clouds.forEach((cloud) => cloud.draw());
+
+      kolagen.draw();
+      player.draw();
+      player.textAppear();
+
+      c.save();
+      c.globalAlpha = overlay.opacity;
+      c.fillStyle = "black";
+      c.fillRect(0, 0, canvas.width, canvas.height);
+      c.restore();
+    }
+
+    window.requestAnimationFrame(animateFrame);
   }
 
   animate();

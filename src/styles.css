@@ -15,7 +15,12 @@ body {
   
   overflow-x: hidden;
   padding: 20px 0;
-  padding-top: 80px;
+  
+}
+
+/* Hide scrollbars completely */
+html, body {
+  overflow: hidden;
 }
 
 
@@ -32,13 +37,14 @@ img {
 
 .button-holder {
   display: flex;
-  gap: 40px;
+  flex-direction: column;
+  gap: 20px;
   margin-bottom: 50px;
+  align-items: center;
   justify-content: center;
   width: 100%;
-  max-width: 700px;
+  max-width: 360px; /* narrow container so buttons stack nicely */
   padding: 0 20px;
-  
 }
 
 
@@ -201,4 +207,40 @@ h1, p {
   margin-left: 15px;
   font-size: 25px;
   color: white;
+}
+
+/* Make the Angular root element behave like a normal full-page body */
+app-root {
+  display: block;
+  min-height: 100vh; /* fill viewport height */
+  width: 100%;
+}
+
+/* Ensure routed views can fill the root without unexpected shrinking */
+app-root > * {
+  box-sizing: border-box;
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Prevent scrolling when Start or Game views are active */
+app-start, app-game {
+  position: fixed;
+  inset: 0; /* top:0; right:0; bottom:0; left:0 */
+  display: block;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  z-index: 9999;
+  background: transparent;
+}
+
+/* Move game content down a bit so it isn't flush with the top */
+app-game .wrap {
+  margin-top: 40px;
+}
+
+/* Move keybinds down so they're not flush with the top as well */
+app-game .keybinds {
+  margin-top: 40px;
 }
