@@ -892,7 +892,7 @@ let levels = {
   },
   11: {
     init: () => {
-      window.location.href = 'endscreen.html'
+      window.goToEndScreen();
   },
 }
 
