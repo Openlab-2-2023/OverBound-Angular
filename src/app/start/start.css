@@ -248,7 +248,7 @@ h1, p { margin: 0; padding: 0; }
   padding: 10px 12px;
   background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));
   border-bottom: 1px solid rgba(255,255,255,0.03);
-  cursor: grab;
+  cursor: default;
   user-select: none;
 }
 
@@ -272,32 +272,30 @@ h1, p { margin: 0; padding: 0; }
 .settings-body { padding: 16px; font-size: 16px; color: #ddd; }
 
 /* Credits modal (same visuals as settings) */
-.credits-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: flex-start; justify-content: center; z-index: 1100;padding-top: 40px; /* PRIDAJ TOTO */
-    box-sizing: border-box; /* PRIDAJ TOTO */ }
-.credits-modal { position: fixed; left: 50%; top: 50%; width: 640px; max-width: calc(100% - 48px); height: 480px; background: rgba(10,10,10,0.98); border-radius: 10px; border: 2px solid rgba(255,255,255,0.06); box-shadow: 0 10px 40px rgba(0,0,0,0.6); color: #fff; overflow: hidden; display: flex; flex-direction: column; z-index: 1150; max-height: calc(100vh - 80px); }
-.credits-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02)); border-bottom: 1px solid rgba(255,255,255,0.03); cursor: grab; user-select: none; }
-.credits-header:active { cursor: grabbing; }
+.credits-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: flex-start; justify-content: center; z-index: 1100; }
+.credits-modal { position: fixed; left: 50%; top: 20%; width: 640px; max-width: calc(100% - 48px); height: 480px; background: rgba(10,10,10,0.98); border-radius: 10px; border: 2px solid rgba(255,255,255,0.06); box-shadow: 0 10px 40px rgba(0,0,0,0.6); color: #fff; overflow: hidden; display: flex; flex-direction: column; z-index: 1150; max-height: calc(100vh - 80px); }
+.credits-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02)); border-bottom: 1px solid rgba(255,255,255,0.03); cursor: default ; user-select: none; }
+.credits-header:active { cursor: default !important;   }
 .credits-header h3 { margin: 0; font-size: 20px; }
 .credits-body {display:  flex; padding: 40px; font-size: 16px; color: #ddd;justify-content: center; align-items: center;overflow-y: auto; }
 
 .Credits {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  display: block;
+  text-align: center;
   background: rgba(0, 0, 0, 0.85);
   border: 4px solid rgb(255, 255, 255);
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.25);
   color: white;
   padding: 40px 60px;
-  
+  cursor: default ;
   width: 480px;
   max-width: 90vw;
-  height: 600px;
+  height: auto;
   gap: 12px;
   font-weight: 500;
   user-select: none;
+  margin-top: 160px;
 }
 
 .Credits h1 { font-size: 55px; margin-bottom: 24px; letter-spacing: 3px; text-transform: uppercase; font-weight: 700; color: rgb(74, 61, 255); text-shadow: 0 2px 8px #000; }

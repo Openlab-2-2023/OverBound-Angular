@@ -1,5 +1,5 @@
   
-  <body (document:pointermove)="onPointerMove($event)" (document:pointerup)="endDrag($event)">
+  <body>
     <img src="assets/imgs/pixil-frame-0.png" alt="bend-images" border="0">
    
     <div class="controls-row">
@@ -34,7 +34,7 @@
     <!-- Settings overlay -->
     <div class="settings-backdrop" *ngIf="showSettings" (click)="closeSettings()">
       <div class="settings-modal" [ngStyle]="modalStyle" (click)="$event.stopPropagation()">
-        <div class="settings-header" (pointerdown)="startDrag($event)">
+        <div class="settings-header">
           <h3>Settings</h3>
           <button class="close-btn" (click)="closeSettings()">✕</button>
         </div>
@@ -56,13 +56,13 @@
     <!-- Credits overlay -->
     <div class="credits-backdrop" *ngIf="showCredits" (click)="closeCredits()">
       <div class="credits-modal" [ngStyle]="creditsModalStyle" (click)="$event.stopPropagation()">
-        <div class="credits-header" (pointerdown)="startDragCredits($event)">
+        <div class="credits-header">
           <h3>Credits</h3>
           <button class="close-btn" (click)="closeCredits()">✕</button>
         </div>
         <div class="credits-body">
           <div class="Credits">
-        <h1>Credits</h1>
+        <h1>Credits:</h1>
         <h3>Hlavny developer:</h3>
         <p>Samuel Bojko</p>
         <h3>Graphic designer:</h3>
