@@ -1,7 +1,8 @@
 <body>
-    <img src="assets/imgs/pixil-frame-0.png" alt="bend-images" border="0">
-   
-    <div class="controls-row">
+  <div class="content-wrapper" #contentWrapper>
+    <img class="nadpis" src="assets/imgs/pixil-frame-0.png" alt="bend-images" border="0">
+
+    <div class="controls-row" #controlsRow>
       <div class="LeaderBoard">
         <div class="leader-header">
           <h4 class="leader-title">Leaderboard</h4>
@@ -13,7 +14,7 @@
       </div>
 
       <div class="button-holder">
-        <a class="start" routerLink="/game">Start</a>
+        <a class="start" #startBtn (click)="startGame($event)">Start</a>
         <button class="settings" type="button" (click)="openSettings()">Settings</button>
         <button class="credits" type="button" (click)="openCredits()">Credits</button>
       </div>
@@ -29,54 +30,60 @@
         </div>
       </div>
     </div>
-    
-    <!-- Settings overlay -->
-    @if (showSettings) {
-      <div class="settings-backdrop" (click)="closeSettings()">
-        <div class="settings-modal" [ngStyle]="modalStyle" (click)="$event.stopPropagation()">
-          <div class="settings-header">
-            <h3>Settings</h3>
-            <button class="close-btn" (click)="closeSettings()">✕</button>
-          </div>
-          <div class="settings-body">
-            <h4>Controls</h4>
-            <div class="keybinds">
-              <p>Key bindings:</p>
-              <p>A,D - MOVE</p>
-              <p>W/SPACE - JUMP</p> 
-              <p>S - CROUCH</p>
-              <p>S + W/SPACE - SUPER JUMP</p>
-              <p>O - DASH</p>
-              <p>E - ENTER PORTAL</p>
-            </div>
+  </div>
+
+  <!-- Black fade overlay -->
+  <div class="black-overlay" #blackOverlay></div>
+
+  <!-- Settings overlay -->
+  @if (showSettings()) {
+    <div class="settings-backdrop" (click)="closeSettings()">
+      <div class="settings-modal" [ngStyle]="modalStyle" (click)="$event.stopPropagation()">
+        <div class="settings-header">
+          <h3>Settings</h3>
+          <button class="close-btn" (click)="closeSettings()">✕</button>
+        </div>
+        <div class="settings-body">
+          <h4>Controls</h4>
+          <div class="keybinds">
+            <p>Key bindings:</p>
+            <p>A,D - MOVE</p>
+            <p>W/SPACE - JUMP</p> 
+            <p>S - CROUCH</p>
+            <p>S + W/SPACE - SUPER JUMP</p>
+            <p>O - DASH</p>
+            <p>E - ENTER PORTAL</p>
           </div>
         </div>
       </div>
-    }
+    </div>
+  }
 
-    <!-- Credits overlay -->
-    @if (showCredits) {
-      <div class="credits-backdrop" (click)="closeCredits()">
-        <div class="credits-modal" [ngStyle]="creditsModalStyle" (click)="$event.stopPropagation()">
-          <div class="credits-header">
-            <h3>Credits</h3>
-            <button class="close-btn" (click)="closeCredits()">✕</button>
-          </div>
-          <div class="credits-body">
-            <div class="Credits">
-              <h1>Credits:</h1>
-              <h3>Hlavny developer:</h3>
-              <p>Samuel Bojko</p>
-              <h3>Graphic designer:</h3>
-              <p>Sebastián Kubinec</p>
-              <h3>Special thanks to:</h3>
-              <p>Marcel: (aj ked sme tvoje napady nevyužili (┬┬﹏┬┬) )</p>
-              <p>Marek: (náš approved tester)</p>
-              <h3>Thanks for playing our game !!!</h3>
-            </div>
+  <!-- Credits overlay -->
+  @if (showCredits()) {
+    <div class="credits-backdrop" (click)="closeCredits()">
+      <div class="credits-modal" [ngStyle]="creditsModalStyle" (click)="$event.stopPropagation()">
+        <div class="credits-header">
+          <h3>Credits</h3>
+          <button class="close-btn" (click)="closeCredits()">✕</button>
+        </div>
+        <div class="credits-body">
+          <div class="Credits">
+            <h1>Credits:</h1>
+            <h3>Hlavny developer:</h3>
+            <p>Samuel Bojko</p>
+            <h3>Graphic designer:</h3>
+            <p>Sebastián Kubinec</p>
+            <h3>Homepage Art:</h3>
+            <p>Claudia Prencipeová</p>
+            <p>(CVP)</p>
+            <h3>Special thanks to:</h3>
+            <p>Marcel</p>
+            <p>Marek</p>
+            <h3>Thanks for playing our game !!!</h3>
           </div>
         </div>
       </div>
-    }
-
+    </div>
+  }
 </body>

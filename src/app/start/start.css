@@ -1,8 +1,16 @@
-
+/* KOMPLETNÝ OPRAVENÝ CSS - S TVOJOUBMI POŽIADAVKAMI */
 html, body {
+  height: 100%;  /* PRIDANÉ */
   margin: 0;
   background-color: rgb(0, 0, 0);
   font-family: "Pixelify Sans", sans-serif;
+  /* OBNOVENÝ BACKGROUND ako bolo predtým */
+  background-image: url('/assets/imgs/game.png');
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: cover;
+  background-attachment: fixed;
+  overflow-x: hidden;
 }
 
 body {
@@ -10,15 +18,15 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  overflow-x: hidden;
   padding: 20px 0;
 }
 
-img {
+/* OPRAVA 1: OBRÁZOK V STREDE */
+.nadpis {
   width: 80%;
   max-width: 800px;
   max-height: 500px;
-  margin: 20px 0 30px 0;
+  margin: 20px auto 30px auto;  /* AUTO = CENTRUM */
   display: block;
 }
 
@@ -67,9 +75,8 @@ button.credits {
   cursor: pointer;
   user-select: none;
   position: relative;
-  z-index: 1;
+  z-index: 10;  /* ZVÝŠENÉ Z-INDEX */
   overflow: visible;
-
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
@@ -83,10 +90,11 @@ button.credits {
 a.start:hover,
 button.settings:hover,
 button.credits:hover {
-  transform: scale(1.03);
+  transform: scale(1.05);  /* ZVÝŠENÉ PRE EFEKT */
   background: black;
   -webkit-background-clip: initial;
   -webkit-text-fill-color: initial;
+  z-index: 20;  /* START VŽDY NA VRCHOL */
 }
 
 .start:focus,
@@ -94,9 +102,10 @@ button.credits:hover {
 .credits:focus,
 a.start:focus,
 button.settings:focus,
-button.credits:focus { outline: none; }
+button.credits:focus { 
+  outline: none; 
+}
 
-/* animated border around buttons using a pseudo-element */
 .start::before,
 .settings::before,
 .credits::before,
@@ -108,31 +117,10 @@ button.credits::before {
   inset: -3px;
   border-radius: 12px;
   background: linear-gradient(90deg, #ff5a00 10%, #ff8a00 40%, #004cff 60%, #0066ff 90%);
-  z-index: 0;
+  z-index: -1;  /* POD BUTTONOM */
   background-size: 200% 200%;
   opacity: 0;
 }
-
-
-
-/* keep button text gradient on hover while preserving animated border */
-.start .text-gradient,
-.start:hover .text-gradient,
-.settings .text-gradient,
-.settings:hover .text-gradient,
-.credits .text-gradient,
-.credits:hover .text-gradient,
-a.start .text-gradient,
-a.start:hover .text-gradient,
-button.settings .text-gradient,
-button.settings:hover .text-gradient,
-button.credits .text-gradient,
-button.credits:hover .text-gradient {
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-
 
 h1, p { margin: 0; padding: 0; }
 
@@ -140,7 +128,6 @@ h1, p { margin: 0; padding: 0; }
 .Credits { animation: fadeInUp 1s ease forwards; }
 
 .wrap { display: flex; align-items: center; justify-content: center; margin-left: 150px; }
-
 .difficulty b { color: white; font-size: 25px; cursor: pointer; margin-left: 20px; }
 .difficulty p { margin: 0px; font-size: 30px; font-weight: bold; margin-left: 10px; color: white; }
 .difficulty { background-color: black; display: flex; flex-direction: column; font-family: 'jersey 10'; height: 100px; width: 220px; margin-bottom: 100px; margin-top: 30px; }
@@ -151,14 +138,48 @@ h1, p { margin: 0; padding: 0; }
 .keybinds p:nth-child(1) { margin: 0px; font-size: 30px; margin-left: 10px; color: white; }
 .keybinds p{ margin-left: 15px; font-size: 25px; color: white; }
 
-/* Controls row: left = LeaderBoard, center = buttons, right = Store */
-.controls-row { display: grid; grid-template-columns: 320px 1fr 360px; align-items: start; width: 100%; max-width: 1280px; column-gap: 120px; margin-top: 20px; padding: 0 28px; }
+/* CONTROLS ROW S HOVER EFEKTOM */
+.controls-row { 
+  display: grid; 
+  grid-template-columns: 320px 1fr 360px; 
+  align-items: start; 
+  width: 100%; 
+  max-width: 1280px; 
+  column-gap: 120px; 
+  margin-top: 20px; 
+  padding: 0 28px;
+}
 
-.LeaderBoard { width: 100%; max-width: 320px; justify-self: start; background-color: #000; color: white; padding: 28px; border-radius: 14px; border: 2px solid transparent; min-height: 420px; max-height: 70vh; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,0.45); background-image: linear-gradient(#000, #000), linear-gradient(90deg, #ff5a00 10%, #ff8a00 40%, #004cff 60%, #0066ff 90%); background-origin: padding-box, border-box; background-clip: padding-box, border-box; background-size: 100% 100%, 200% 200%; animation: borderGradient 4s linear infinite; }
+.LeaderBoard { 
+  width: 100%; 
+  max-width: 320px; 
+  justify-self: start; 
+  background-color: #000; 
+  color: white; 
+  padding: 28px; 
+  border-radius: 14px; 
+  border: 2px solid transparent; 
+  min-height: 420px; 
+  max-height: 70vh; 
+  overflow-y: auto; 
+  box-shadow: 0 8px 24px rgba(0,0,0,0.45); 
+  background-image: linear-gradient(#000, #000), linear-gradient(90deg, #ff5a00 10%, #ff8a00 40%, #004cff 60%, #0066ff 90%); 
+  background-origin: padding-box, border-box; 
+  background-clip: padding-box, border-box; 
+  background-size: 100% 100%, 200% 200%; 
+  animation: borderGradient 4s linear infinite; 
+  opacity: 1;
+  transition: opacity 0.5s ease;  /* HOVER EFEKT */
+  z-index: 1;
+}
 
-.button-holder { justify-self: center; align-self: center; width: auto; }
+.button-holder { 
+  justify-self: center; 
+  align-self: center; 
+  width: auto; 
+  z-index: 10;  /* START VŽDY NA VRCHOL */
+}
 
-/* Store panel */
 .Store {
   width: 100%;
   max-width: 360px;
@@ -180,6 +201,17 @@ h1, p { margin: 0; padding: 0; }
   background-clip: padding-box, border-box;
   background-size: 100% 100%, 200% 200%;
   animation: borderGradient 4s linear infinite;
+  opacity: 1;
+  transition: opacity 0.5s ease;  /* HOVER EFEKT */
+  z-index: 1;
+}
+
+/* HOVER EFEKT - iba LeaderBoard + Store zmiznú */
+.start:hover ~ .LeaderBoard,
+.start:hover ~ .Store,
+.start:hover + .LeaderBoard,
+.start:hover + .Store {
+  opacity: 0 !important;
 }
 
 .store-header { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
@@ -195,7 +227,6 @@ h1, p { margin: 0; padding: 0; }
   100% { background-position: 0% 50%; }
 }
 
-/* Leaderboard header to match Store style */
 .leader-header {
   width: 100%;
   display: flex;
@@ -211,7 +242,6 @@ h1, p { margin: 0; padding: 0; }
 
 .leader-content { width: 100%; }
 
-/* Settings modal */
 .settings-backdrop {
   position: fixed;
   inset: 0;
@@ -252,8 +282,6 @@ h1, p { margin: 0; padding: 0; }
   user-select: none;
 }
 
-.settings-header:active { cursor: grabbing; }
-
 .settings-header h3 { margin: 0; font-size: 20px; }
 
 .close-btn {
@@ -271,13 +299,11 @@ h1, p { margin: 0; padding: 0; }
 
 .settings-body { padding: 16px; font-size: 16px; color: #ddd; }
 
-/* Credits modal (same visuals as settings) */
 .credits-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: flex-start; justify-content: center; z-index: 1100; }
 .credits-modal { position: fixed; left: 50%; top: 20%; width: 640px; max-width: calc(100% - 48px); height: 480px; background: rgba(10,10,10,0.98); border-radius: 10px; border: 2px solid rgba(255,255,255,0.06); box-shadow: 0 10px 40px rgba(0,0,0,0.6); color: #fff; overflow: hidden; display: flex; flex-direction: column; z-index: 1150; max-height: calc(100vh - 80px); }
-.credits-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02)); border-bottom: 1px solid rgba(255,255,255,0.03); cursor: default ; user-select: none; }
-.credits-header:active { cursor: default !important;   }
+.credits-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02)); border-bottom: 1px solid rgba(255,255,255,0.03); cursor: default; user-select: none; }
 .credits-header h3 { margin: 0; font-size: 20px; }
-.credits-body {display:  flex; padding: 40px; font-size: 16px; color: #ddd;justify-content: center; align-items: center;overflow-y: auto; }
+.credits-body { display: flex; padding: 40px; font-size: 16px; color: #ddd; justify-content: center; align-items: center; overflow-y: auto; }
 
 .Credits {
   display: block;
@@ -288,7 +314,7 @@ h1, p { margin: 0; padding: 0; }
   box-shadow: 0 8px 24px rgba(0,0,0,0.25);
   color: white;
   padding: 40px 60px;
-  cursor: default ;
+  cursor: default;
   width: 480px;
   max-width: 90vw;
   height: auto;
@@ -300,4 +326,4 @@ h1, p { margin: 0; padding: 0; }
 
 .Credits h1 { font-size: 55px; margin-bottom: 24px; letter-spacing: 3px; text-transform: uppercase; font-weight: 700; color: rgb(74, 61, 255); text-shadow: 0 2px 8px #000; }
 .Credits h3 { font-size: 28px; margin: 18px 0 6px 0; font-weight: 600; color: #87ceeb; text-shadow: 0 1px 4px #000; }
-.Credits p { font-size: 22px; margin: 0 0 8px 0; color: #fff; font-weight: 400; text-shadow: 0 1px 2px #000;  }
+.Credits p { font-size: 22px; margin: 0 0 8px 0; color: #fff; font-weight: 400; text-shadow: 0 1px 2px #000; }

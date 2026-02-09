@@ -1,73 +1,54 @@
-import { Component, OnInit } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, signal, ViewChild, ElementRef } from '@angular/core';
+import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-start',
-  imports: [RouterLink, CommonModule],
   standalone: true,
+  imports: [CommonModule],
   templateUrl: './start.html',
   styleUrl: './start.css',
 })
-export class Start implements OnInit {
-  showSettings = false;
- // dragging = false;
-  modalX = 0;
-  modalY = 0;
-  offsetX = 0;
-  offsetY = 0;
-  showCredits = false;
- // c_dragging = false;
-  c_modalX = 0;
-  c_modalY = 0;
-  c_offsetX = 0;
-  c_offsetY = 0;
+export class Start {
+  showSettings = signal(false);
+  showCredits = signal(false);
 
-  ngOnInit(): void {
-    // initialize modal centered
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    const modalW = 420;
-    const modalH = 300;
-    this.modalX = Math.max(24, (w - modalW) / 2);
-    this.modalY = Math.max(24, (h - modalH) / 2);
-    // credits modal slightly lower/right by default
-    //this.c_modalX = Math.max(24, (w - modalW) / 2 + 40);
-    //this.c_modalY = Math.max(24, (h - modalH) / 2 + 40);
+  @ViewChild('contentWrapper') contentWrapper!: ElementRef;
+  @ViewChild('blackOverlay') blackOverlay!: ElementRef;
+
+  constructor(private router: Router) {}
+
+  startGame(event: Event) {
+    event.preventDefault();
+
+    this.showSettings.set(false);
+    this.showCredits.set(false);
+
+    // 1️⃣ fade UI
+    this.contentWrapper.nativeElement.classList.add('fade-ui');
+
+    // 2️⃣ fade black
+    setTimeout(() => {
+      this.blackOverlay.nativeElement.classList.add('active');
+    }, 2200);
+
+    // 3️⃣ navigate to game
+    setTimeout(() => {
+      this.router.navigate(['/game']);
+    }, 3600);
   }
 
-  openSettings() {
-    this.showSettings = true;
-  }
+  openSettings() { this.showSettings.set(true); }
+  closeSettings() { this.showSettings.set(false); }
 
-  closeSettings() {
-    this.showSettings = false;
-   // this.dragging = false;
-  }
+  openCredits() { this.showCredits.set(true); }
+  closeCredits() { this.showCredits.set(false); }
 
-  openCredits() {
-    this.showCredits = true;
-  }
-
-  closeCredits() {
-    this.showCredits = false;
-   // this.c_dragging = false;
-  }
   get modalStyle() {
-    return {
-      left: '50%',
-      top: '50%',
-      transform: 'translate(-50%,-50%)'
-    };
+    return { left: '50%', top: '50%', transform: 'translate(-50%, -50%)' };
   }
 
   get creditsModalStyle() {
-    return {
-        left: "50%",
-        top: "50%",
-        transform: 'translate(-50%,-50%)',
-        position: 'fixed'
-      };
+    return { left: '50%', top: '50%', transform: 'translate(-50%, -50%)' };
   }
-
 }
