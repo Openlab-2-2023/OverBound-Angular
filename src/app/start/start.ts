@@ -19,25 +19,29 @@ export class Start {
   constructor(private router: Router) {}
 
   startGame(event: Event) {
-    event.preventDefault();
+  event.preventDefault();
 
-    this.showSettings.set(false);
-    this.showCredits.set(false);
+  this.showSettings.set(false);
+  this.showCredits.set(false);
 
-    // 1️⃣ fade UI
-    this.contentWrapper.nativeElement.classList.add('fade-ui');
+  // 1️⃣ fade UI (prvky postupne zmiznú)
+  this.contentWrapper.nativeElement.classList.add('fade-ui');
 
-    // 2️⃣ fade black
-    setTimeout(() => {
-      this.blackOverlay.nativeElement.classList.add('active');
-    }, 2200);
+  
+  const fadeDelay = 3750;   // 3,5 sekundy
+  const fadeDuration = 1500; // 1 sekunda
 
-    // 3️⃣ navigate to game
+  
+  setTimeout(() => {
+    this.blackOverlay.nativeElement.classList.add('active');
+
+    
     setTimeout(() => {
       this.router.navigate(['/game']);
-    }, 3600);
-  }
+    }, fadeDuration);
 
+  }, fadeDelay);
+}
   openSettings() { this.showSettings.set(true); }
   closeSettings() { this.showSettings.set(false); }
 

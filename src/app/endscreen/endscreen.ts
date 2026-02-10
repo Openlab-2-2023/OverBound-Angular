@@ -1,11 +1,22 @@
 import { Component } from '@angular/core';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-endscreen',
-  imports: [],
-  templateUrl: './endscreen.html',
-  styleUrl: './endscreen.css',
+  templateUrl: './endscreen.html', // alebo .component.html ak máš takto
+  styleUrls: ['./endscreen.css']
 })
-export class Endscreen {
+export class Endscreen {  // názov triedy musí sedieť s tým, čo importuješ v routách
 
+  constructor(private router: Router) {}
+
+  replayGame() {
+    // naviguje späť na hru
+    this.router.navigate(['/game']);
+  }
+
+  goToMenu() {
+    // naviguje na menu (Start komponent)
+    this.router.navigate(['']);
+  }
 }
