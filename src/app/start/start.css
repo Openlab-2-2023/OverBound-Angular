@@ -1,10 +1,10 @@
-/* KOMPLETNÝ OPRAVENÝ CSS - S TVOJOUBMI POŽIADAVKAMI */
+
 html, body {
   height: 100%;  /* PRIDANÉ */
   margin: 0;
   background-color: rgb(0, 0, 0);
   font-family: "Pixelify Sans", sans-serif;
-  /* OBNOVENÝ BACKGROUND ako bolo predtým */
+  
   background-image: url('/assets/imgs/game.png');
   background-repeat: no-repeat;
   background-position: center center;
@@ -21,7 +21,7 @@ body {
   padding: 20px 0;
 }
 
-/* OPRAVA 1: OBRÁZOK V STREDE */
+
 .nadpis {
   width: 80%;
   max-width: 800px;
@@ -85,18 +85,14 @@ button.credits {
 }
 
 .start:hover,
-.settings:hover,
-.credits:hover,
 a.start:hover,
-button.settings:hover,
-button.credits:hover {
-  transform: scale(1.05);  /* ZVÝŠENÉ PRE EFEKT */
-  background: black;
-  -webkit-background-clip: initial;
-  -webkit-text-fill-color: initial;
-  z-index: 20;  /* START VŽDY NA VRCHOL */
+button.start:hover {
+  transform: scale(1.05);
+  opacity: 1 !important;
+  color: white !important;
+  background-color: black;
+  z-index: 10;
 }
-
 .start:focus,
 .settings:focus,
 .credits:focus,
@@ -138,7 +134,7 @@ h1, p { margin: 0; padding: 0; }
 .keybinds p:nth-child(1) { margin: 0px; font-size: 30px; margin-left: 10px; color: white; }
 .keybinds p{ margin-left: 15px; font-size: 25px; color: white; }
 
-/* CONTROLS ROW S HOVER EFEKTOM */
+
 .controls-row { 
   display: grid; 
   grid-template-columns: 320px 1fr 360px; 
@@ -169,7 +165,7 @@ h1, p { margin: 0; padding: 0; }
   background-size: 100% 100%, 200% 200%; 
   animation: borderGradient 4s linear infinite; 
   opacity: 1;
-  transition: opacity 0.5s ease;  /* HOVER EFEKT */
+  transition: opacity 0.5s ease;  
   z-index: 1;
 }
 
@@ -177,7 +173,7 @@ h1, p { margin: 0; padding: 0; }
   justify-self: center; 
   align-self: center; 
   width: auto; 
-  z-index: 10;  /* START VŽDY NA VRCHOL */
+  z-index: 10;  
 }
 
 .Store {
@@ -207,12 +203,13 @@ h1, p { margin: 0; padding: 0; }
 }
 
 /* HOVER EFEKT - iba LeaderBoard + Store zmiznú */
-.start:hover ~ .LeaderBoard,
+/*   .start:hover ~ .LeaderBoard,
 .start:hover ~ .Store,
 .start:hover + .LeaderBoard,
 .start:hover + .Store {
   opacity: 0 !important;
 }
+*/
 
 .store-header { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .store-title { margin: 0; font-size: 30px; color: #fff; }
@@ -327,3 +324,63 @@ h1, p { margin: 0; padding: 0; }
 .Credits h1 { font-size: 55px; margin-bottom: 24px; letter-spacing: 3px; text-transform: uppercase; font-weight: 700; color: rgb(74, 61, 255); text-shadow: 0 2px 8px #000; }
 .Credits h3 { font-size: 28px; margin: 18px 0 6px 0; font-weight: 600; color: #87ceeb; text-shadow: 0 1px 4px #000; }
 .Credits p { font-size: 22px; margin: 0 0 8px 0; color: #fff; font-weight: 400; text-shadow: 0 1px 2px #000; }
+
+
+.fade-ui .LeaderBoard,
+.fade-ui .Store,
+.fade-ui .nadpis,
+.fade-ui .controls-row,
+.fade-ui .wrap,
+.fade-ui .difficulty,
+.fade-ui .keybinds {
+  opacity: 0;
+  transition: opacity 2s ease;
+}
+
+
+.fade-ui .start,
+.fade-ui a.start,
+.fade-ui button.start {
+  opacity: 1 !important;
+  z-index: 9999;
+}
+
+.start,
+.start *,
+a.start,
+a.start *,
+button.start,
+button.start * {
+  color: white !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  mix-blend-mode: normal !important;
+  -webkit-text-fill-color: white !important;
+  background-clip: border-box !important;
+  -webkit-background-clip: border-box !important;
+}
+
+.settings:hover,
+.credits:hover,
+a.settings:hover,
+a.credits:hover,
+button.settings:hover,
+button.credits:hover {
+  transform: scale(1.05);
+  transition: transform 0.25s ease;
+}
+
+
+
+.fade-ui .LeaderBoard,
+.fade-ui .Store,
+.fade-ui .nadpis,
+.fade-ui .controls-row,
+.fade-ui .wrap,
+.fade-ui .difficulty,
+.fade-ui .keybinds,
+.fade-ui .settings,
+.fade-ui .credits {
+  pointer-events: none;
+  cursor: default;
+}
