@@ -45,7 +45,7 @@ window.addEventListener("keydown", (event) => {
       
       if(keys.s.pressed && player.velocity.y == 0 && kolagen.kolagenbar <= -28) {
         if(currentDifficulty === 'normal') {
-          player.velocity.y = -22;
+          player.velocity.y = -60;
           kolagen.kolagenbar = kolagen.kolagenbar + 28;
         } else {
           player.velocity.y = -20;
@@ -57,7 +57,7 @@ window.addEventListener("keydown", (event) => {
       //maly jump
       if(player.velocity.y == 0 && kolagen.kolagenbar <= -14) {
         if(currentDifficulty === 'normal') {
-          player.velocity.y = -16;
+          player.velocity.y = -50;
           kolagen.kolagenbar = kolagen.kolagenbar + 14;
         } else {
           player.velocity.y = -17;

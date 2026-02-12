@@ -13,24 +13,29 @@ const kolagen = new Kolagen()
 let level = 1
 let levels = {
   1: { 
+    tileCount: 77,
     init: () => {
-      console.log('level init start');
       background = new Sprite({
         position: {
           x: 0,
           y: 0,
         },
-
-      //obrazok levelu
-      imageSrc: '/assets/sprites/levels/level1.png',//position sa meni + cesta
+        
+      imageSrc: '/assets/sprites/levels/maketa.png',
+      
 
       });
-      
-      parsedCollisions = level1Collisions.Parse2D();
+      const zoom = 0.4
+
+      c.translate(0 , -1000)
+      c.scale(zoom, zoom)
+
+
+      parsedCollisions = level1Collisions.Parse2D(levels[1].tileCount);
       collisionBlocks = parsedCollisions.createObjectsFrom2D(); 
       player.collisionBlocks = collisionBlocks
-      player.position.x = 150
-      player.position.y = 250//position sa meni
+      player.position.x = 100
+      player.position.y = 3000//position sa meni
       portals = [
         new Sprite ({
           position: {
@@ -71,18 +76,17 @@ let levels = {
       clouds = [
         new Sprite ({
           position: {
-            x:500,
-            y:300
+            x:1200,
+            y:600
           },
           imageSrc: '',
-          frameRate: 6,
-          frameBuffer: 8,
-          loop:true
+          frameRate: 5,
+          frameBuffer: 13,
+          loop:true,
+          
         })
       ]
-      console.log('background after init:', background);
     }
-    
   },
 
   2: {

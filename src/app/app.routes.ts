@@ -6,9 +6,8 @@ export const routes: Routes = [
 
     { path: '', component: Start },
   { path: 'game', component: GameComponent },
-  {
-  path: 'end',
+  {path: 'end',
   loadComponent: () =>
     import('./endscreen/endscreen').then(m => m.Endscreen),
-}
+  }
 ];
