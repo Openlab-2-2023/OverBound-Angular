@@ -1,5 +1,5 @@
 class Sprite {
-  constructor ({position,frameRate = 1, imageSrc, animations, loop, lastDirection, frameBuffer = 14,
+  constructor ({position,frameRate = 1,width,height, imageSrc, animations, loop, lastDirection, frameBuffer = 14,
     levelSpawnPosition = {
     x:0,
     y:0
@@ -22,6 +22,7 @@ class Sprite {
     this.lastDirection = lastDirection
     this.currentAnimation
     this.levelSpawnPosition = levelSpawnPosition
+    
     
 
     if(this.animations) {

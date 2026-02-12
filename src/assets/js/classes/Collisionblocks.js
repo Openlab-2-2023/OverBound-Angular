@@ -1,8 +1,8 @@
 class CollisionBlock {
   constructor( {position} ) {
     this.position = position
-    this.width = 32,
-    this.height = 32  
+    this.width = 120 ,
+    this.height = 120 
   }
 
   draw() {
@@ -11,14 +11,13 @@ class CollisionBlock {
   }
 }
 
-Array.prototype.Parse2D = function() {
-  let rows = []
-  for(let i = 0; i < this.length; i+= 32 ) {
-    rows.push(this.slice(i, i + 32))
-    
+Array.prototype.Parse2D = function(tileCount) {
+  const rows = [];
+  for (let i = 0; i < this.length; i += tileCount) {
+    rows.push(this.slice(i, i + tileCount));
   }
-  return rows
-}
+  return rows;
+};
 
 Array.prototype.createObjectsFrom2D = function() {
   const objects = []
@@ -28,8 +27,8 @@ Array.prototype.createObjectsFrom2D = function() {
         objects.push(
           new CollisionBlock({
             position: {
-              x: x * 32,
-              y: y * 32
+              x: x * 120 ,
+              y: y * 120
             }
         }))
       }
