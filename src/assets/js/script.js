@@ -1,4 +1,12 @@
+
 var canvas, c, t;
+var camera = {
+    position: {
+      x:0,
+      y:0
+    }
+  }
+
 function startGame() {
   canvas = window.canvas;
 
@@ -18,10 +26,25 @@ function startGame() {
   window.levels[window.level].init();
 
   
+  
+  // c.scale(0.4,0.4)
+  // c.translate(Math.abs(camera.position.x),-2400)
+  
 
 
   function animate() {
     window.requestAnimationFrame(animate);
+
+    c.setTransform(1, 0, 0, 1, 0, 0); // reset transform
+
+    player.updateCamera();
+
+    c.scale(0.4,0.4)
+      c.translate(-camera.position.x, -camera.position.y)
+
+
+    
+    console.log(player.position.y)
 
     
     background.draw();
@@ -30,8 +53,9 @@ function startGame() {
     animals.forEach((animal) => animal.draw());
     risks.forEach((risk) => risk.draw());
     clouds.forEach((cloud) => cloud.draw());
-    //player.updateCamerabox()
-    //player.shouldPanCamToLeft()
+    // player.updateCamerabox()
+    // player.shouldPanCamToLeft()
+    // player.shouldPanCamUp()
     player.velocity.x = 0;
     player.playerMovement();
     kolagen.draw();
@@ -42,7 +66,7 @@ function startGame() {
     player.detectRisk();
     player.textAppear();
 
-
+// console.log(player.velocity.x)
 
     c.save();
     c.globalAlpha = overlay.opacity;

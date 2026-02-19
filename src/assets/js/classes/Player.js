@@ -29,10 +29,35 @@ class Player extends Sprite  {
 
     this.collisionBlocks = collisionBlocks
 
-    
-
-    
   }
+
+  updateCamera() {
+  if (player.position.x >= 2200 && player.position.x <= 6370) {
+    camera.position.x = player.position.x - canvas.width - 240;
+  }
+   else if(player.position.x >= 6370) {
+    camera.position.x = 4200
+  }
+   else {
+    camera.position.x = 0;
+  }
+  // console.log(this.position.x)
+
+  
+  const followStartY = 3650;
+
+  if (player.position.y < followStartY && player.position.y > 980) {
+    
+    camera.position.y = player.position.y - canvas.height;
+  } 
+   else if(player.position.y < 980 ) {
+    camera.position.y = -50
+   }
+   else {
+    
+    camera.position.y = followStartY - canvas.height;
+  }
+}
 
 
   // updateCamerabox(){
@@ -42,7 +67,7 @@ class Player extends Sprite  {
   //       y: this.position.y - 1000
   //     },
 
-  //     width:4000,
+  //     width:4300,
   //     height:2000
   //   }
 
@@ -54,24 +79,44 @@ class Player extends Sprite  {
   // shouldPanCamToLeft() {
   //   const cameraBoxRightSide = this.camerabox.position.x + this.camerabox.width
 
-  //   if(cameraBoxRightSide >= 4400) {
-
+  //   if(cameraBoxRightSide >= 4700 && cameraBoxRightSide <= 9240  ) {
   //     c.translate(-this.velocity.x,0)
+  //   }
+
+  //   console.log('camerapos:', this.camerabox.position.x + 1800)
+  //   console.log('playerpos:', this.position.x)
+
+
+  // }
+
+
+  // checkForHorizontalCanvas() {
+  //   if(this.cameraBoxRightSide.position.x >= 9240) {
+  //     this.velocity.x = 0
+  //   }
+  // }
+
+  //   shouldPanCamUp() {
+  //   const cameraBoxUpSide = this.camerabox.position.y + this.camerabox.height
+  //   console.log(cameraBoxUpSide)
+  //   if(cameraBoxUpSide <= 4600 ) {
+
+  //     c.translate(0,-this.velocity.y)
   //   }
 
   // }
 
   update() {
-    //c.fillStyle = "rgba(255,0,0,0.5)"
+  //   c.fillStyle = "rgba(0,255,0,0.0)"
   //   c.fillRect(
   // this.camerabox.position.x,
   // this.camerabox.position.y,
   // this.camerabox.width,
   // this.camerabox.height
+  //   )
 
-
-// console.log('camerax:', this.camerabox.position.x);
-// console.log('cameray:', this.camerabox.position.y);
+  // console.log('camerax:', this.camerabox.position.x)
+  // console.log('cameray:', this.camerabox.position.y);
 
 
   
@@ -81,6 +126,7 @@ class Player extends Sprite  {
     this.applyGravity()
     this.updateHitBox()
     this.checkForVerticalCollisions()
+    
     
   }
 
@@ -121,12 +167,14 @@ class Player extends Sprite  {
         this.hitbox.position.y <= collisionBlock.position.y + collisionBlock.height
       ) {
         if(this.velocity.x < 0) {
+          this.velocity.x = 0
           const offset = this.hitbox.position.x - this.position.x
           this.position.x = collisionBlock.position.x + collisionBlock.width - offset + 0.01
           break
         }
 
         if(this.velocity.x > 0) {
+          this.velocity.x = 0
           const offset = this.hitbox.position.x - this.position.x + this.hitbox.width
           this.position.x = collisionBlock.position.x - offset - 0.01
           break
@@ -174,7 +222,6 @@ playerMovement() {
     if(currentDifficulty === 'normal') {
       if (keys.d.pressed) {
       this.movePlayer(15, 'runRight', 'right');
-      //player.shouldPanCamToLeft()
       if(keys.o.pressed) {
         this.dash()
           if(!player.velocity.x == 0) {
