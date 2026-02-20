@@ -60,66 +60,8 @@ class Player extends Sprite  {
 }
 
 
-  // updateCamerabox(){
-  //   this.camerabox = {
-  //     position: {
-  //       x: this.position.x -1800,
-  //       y: this.position.y - 1000
-  //     },
 
-  //     width:4300,
-  //     height:2000
-  //   }
-
-    
-
-  // }
-  
-
-  // shouldPanCamToLeft() {
-  //   const cameraBoxRightSide = this.camerabox.position.x + this.camerabox.width
-
-  //   if(cameraBoxRightSide >= 4700 && cameraBoxRightSide <= 9240  ) {
-  //     c.translate(-this.velocity.x,0)
-  //   }
-
-  //   console.log('camerapos:', this.camerabox.position.x + 1800)
-  //   console.log('playerpos:', this.position.x)
-
-
-  // }
-
-
-  // checkForHorizontalCanvas() {
-  //   if(this.cameraBoxRightSide.position.x >= 9240) {
-  //     this.velocity.x = 0
-  //   }
-  // }
-
-  //   shouldPanCamUp() {
-  //   const cameraBoxUpSide = this.camerabox.position.y + this.camerabox.height
-  //   console.log(cameraBoxUpSide)
-  //   if(cameraBoxUpSide <= 4600 ) {
-
-  //     c.translate(0,-this.velocity.y)
-  //   }
-
-  // }
-
-  update() {
-  //   c.fillStyle = "rgba(0,255,0,0.0)"
-  //   c.fillRect(
-  // this.camerabox.position.x,
-  // this.camerabox.position.y,
-  // this.camerabox.width,
-  // this.camerabox.height
-  //   )
-
-  // console.log('camerax:', this.camerabox.position.x)
-  // console.log('cameray:', this.camerabox.position.y);
-
-
-  
+  update() {  
     this.position.x += this.velocity.x
     this.updateHitBox()
     this.checkForHorizontalCollisions()
