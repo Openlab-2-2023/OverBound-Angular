@@ -106,3 +106,9 @@ button.credits::before {
   background-size: 100% 100%, 200% 200%;
   animation: borderGradient 4s linear infinite;
 }
+.button-holder { 
+  justify-self: center; 
+  align-self: center; 
+  width: auto; 
+  z-index: 10;  
+}

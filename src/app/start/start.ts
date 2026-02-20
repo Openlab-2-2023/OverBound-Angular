@@ -24,12 +24,11 @@ export class Start {
   this.showSettings.set(false);
   this.showCredits.set(false);
 
-  // 1️⃣ fade UI (prvky postupne zmiznú)
   this.contentWrapper.nativeElement.classList.add('fade-ui');
 
   
-  const fadeDelay = 3750;   // 3,5 sekundy
-  const fadeDuration = 1500; // 1 sekunda
+  const fadeDelay = 3750;  
+  const fadeDuration = 1500; 
 
   
   setTimeout(() => {

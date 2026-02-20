@@ -3,10 +3,10 @@ import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-endscreen',
-  templateUrl: './endscreen.html', // alebo .component.html ak máš takto
+  templateUrl: './endscreen.html', 
   styleUrls: ['./endscreen.css']
 })
-export class Endscreen {  // názov triedy musí sedieť s tým, čo importuješ v routách
+export class Endscreen {  
 
   constructor(private router: Router) {}
 

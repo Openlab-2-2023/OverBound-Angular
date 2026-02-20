@@ -124,9 +124,6 @@ h1, p { margin: 0; padding: 0; }
 .Credits { animation: fadeInUp 1s ease forwards; }
 
 .wrap { display: flex; align-items: center; justify-content: center; margin-left: 150px; }
-.difficulty b { color: white; font-size: 25px; cursor: pointer; margin-left: 20px; }
-.difficulty p { margin: 0px; font-size: 30px; font-weight: bold; margin-left: 10px; color: white; }
-.difficulty { background-color: black; display: flex; flex-direction: column; font-family: 'jersey 10'; height: 100px; width: 220px; margin-bottom: 100px; margin-top: 30px; }
 
 .container { display: flex; flex-direction: row; }
 .keybinds { width: 260px; height: 200px; }
