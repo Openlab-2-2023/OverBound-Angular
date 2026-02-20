@@ -29,58 +29,46 @@ class Player extends Sprite  {
 
     this.collisionBlocks = collisionBlocks
 
-    
-
-    
   }
 
+  updateCamera() {
+  if (player.position.x >= 2200 && player.position.x <= 6370) {
+    camera.position.x = player.position.x - canvas.width - 240;
+  }
+   else if(player.position.x >= 6370) {
+    camera.position.x = 4200
+  }
+   else {
+    camera.position.x = 0;
+  }
+  // console.log(this.position.x)
 
-  // updateCamerabox(){
-  //   this.camerabox = {
-  //     position: {
-  //       x: this.position.x -1800,
-  //       y: this.position.y - 1000
-  //     },
+  
+  const followStartY = 3650;
 
-  //     width:4000,
-  //     height:2000
-  //   }
-
+  if (player.position.y < followStartY && player.position.y > 980) {
     
-
-  // }
-  
-
-  // shouldPanCamToLeft() {
-  //   const cameraBoxRightSide = this.camerabox.position.x + this.camerabox.width
-
-  //   if(cameraBoxRightSide >= 4400) {
-
-  //     c.translate(-this.velocity.x,0)
-  //   }
-
-  // }
-
-  update() {
-    //c.fillStyle = "rgba(255,0,0,0.5)"
-  //   c.fillRect(
-  // this.camerabox.position.x,
-  // this.camerabox.position.y,
-  // this.camerabox.width,
-  // this.camerabox.height
+    camera.position.y = player.position.y - canvas.height;
+  } 
+   else if(player.position.y < 980 ) {
+    camera.position.y = -50
+   }
+   else {
+    
+    camera.position.y = followStartY - canvas.height;
+  }
+}
 
 
-// console.log('camerax:', this.camerabox.position.x);
-// console.log('cameray:', this.camerabox.position.y);
 
-
-  
+  update() {  
     this.position.x += this.velocity.x
     this.updateHitBox()
     this.checkForHorizontalCollisions()
     this.applyGravity()
     this.updateHitBox()
     this.checkForVerticalCollisions()
+    
     
   }
 
@@ -121,12 +109,14 @@ class Player extends Sprite  {
         this.hitbox.position.y <= collisionBlock.position.y + collisionBlock.height
       ) {
         if(this.velocity.x < 0) {
+          this.velocity.x = 0
           const offset = this.hitbox.position.x - this.position.x
           this.position.x = collisionBlock.position.x + collisionBlock.width - offset + 0.01
           break
         }
 
         if(this.velocity.x > 0) {
+          this.velocity.x = 0
           const offset = this.hitbox.position.x - this.position.x + this.hitbox.width
           this.position.x = collisionBlock.position.x - offset - 0.01
           break
@@ -174,7 +164,6 @@ playerMovement() {
     if(currentDifficulty === 'normal') {
       if (keys.d.pressed) {
       this.movePlayer(15, 'runRight', 'right');
-      //player.shouldPanCamToLeft()
       if(keys.o.pressed) {
         this.dash()
           if(!player.velocity.x == 0) {

@@ -25,17 +25,17 @@ let levels = {
       
 
       });
-      const zoom = 0.4
+      // const zoom = 0.4
 
-      c.translate(0 , -1000)
-      c.scale(zoom, zoom)
+      // c.translate(0 , -1000)
+      // c.scale(zoom, zoom)
 
 
       parsedCollisions = level1Collisions.Parse2D(levels[1].tileCount);
       collisionBlocks = parsedCollisions.createObjectsFrom2D(); 
       player.collisionBlocks = collisionBlocks
       player.position.x = 100
-      player.position.y = 3000//position sa meni
+      player.position.y = 4000//position sa meni
       portals = [
         new Sprite ({
           position: {
