@@ -37,6 +37,7 @@ body {
   justify-content: center;
   gap: 30px;
   width: 100%;
+  position: relative;
 }
 .button-holder {
   display: flex;
@@ -142,7 +143,7 @@ h1, p { margin: 0; padding: 0; }
 
 .controls-row { 
   display: grid; 
-  grid-template-columns: 320px 1fr 360px; 
+  grid-template-columns: 360px 1fr 360px; 
   align-items: start; 
   width: 100%; 
   max-width: 1280px; 
@@ -153,7 +154,7 @@ h1, p { margin: 0; padding: 0; }
 
 .LeaderBoard { 
   width: 100%; 
-  max-width: 320px; 
+  max-width: 360px; 
   justify-self: start; 
   background-color: #000; 
   color: white; 
@@ -181,6 +182,67 @@ h1, p { margin: 0; padding: 0; }
   z-index: 10;  
 }
 
+/* Top-right menu: place the login/register/account buttons in the upper-right corner */
+.top-right-menu {
+  position: absolute;
+  top: 8px;
+  right: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: flex-end;
+  width: auto;
+  max-width: none;
+  padding: 6px;
+  background: transparent;
+  z-index: 60;
+  
+}
+
+/* Make top-right buttons match the control-row buttons' size and border */
+.top-right-menu .settings,
+.top-right-menu .credits,
+.top-right-menu button.settings,
+.top-right-menu button.credits {
+  width: 220px;
+  height: 100px;
+  font-size: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* two-layer background: inner black panel + outer colorful border */
+  background-image: linear-gradient(black, black), linear-gradient(90deg, #ff5a00 10%, #ff8a00 40%, #004cff 60%, #0066ff 90%);
+  background-origin: padding-box, border-box;
+  background-clip: padding-box, border-box;
+}
+
+/* Ensure inner button visuals match control-row buttons */
+.top-right-menu .settings,
+.top-right-menu .credits,
+.top-right-menu a.start,
+.top-right-menu button.settings,
+.top-right-menu button.credits {
+  background: black;
+  color: white;
+  border: none;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  position: relative;
+  overflow: visible;
+  background-clip: padding-box;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+.top-right-menu .settings::before,
+.top-right-menu .credits::before,
+.top-right-menu button.settings::before,
+.top-right-menu button.credits::before {
+  /* keep pseudo hidden to avoid duplicate visuals when using two-layer background */
+  opacity: 0;
+}
+
 .Store {
   width: 100%;
   max-width: 360px;
@@ -206,15 +268,6 @@ h1, p { margin: 0; padding: 0; }
   transition: opacity 0.5s ease;  /* HOVER EFEKT */
   z-index: 1;
 }
-
-/* HOVER EFEKT - iba LeaderBoard + Store zmiznú */
-/*   .start:hover ~ .LeaderBoard,
-.start:hover ~ .Store,
-.start:hover + .LeaderBoard,
-.start:hover + .Store {
-  opacity: 0 !important;
-}
-*/
 
 .store-header { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .store-title { margin: 0; font-size: 30px; color: #fff; }
@@ -348,6 +401,37 @@ h1, p { margin: 0; padding: 0; }
 .fade-ui button.start {
   opacity: 1 !important;
   z-index: 9999;
+}
+
+/* Fade the top-right auth buttons together with the rest of the UI */
+.fade-ui .top-right-menu {
+  opacity: 0;
+  transition: opacity 2s ease;
+  pointer-events: none;
+}
+
+.fade-ui .top-right-menu .settings,
+.fade-ui .top-right-menu .credits,
+.fade-ui .top-right-menu button.settings,
+.fade-ui .top-right-menu button.credits {
+  opacity: 0;
+  transform: scale(.98);
+}
+
+/* Ensure top-right menu matches the same fade behavior as other elements */
+.top-right-menu,
+.top-right-menu * {
+  opacity: 1;
+  transition: opacity 2s ease, transform 0.25s ease;
+}
+
+/* When fade-ui is active, gently translate the buttons like the other UI */
+.fade-ui .top-right-menu .settings,
+.fade-ui .top-right-menu .credits,
+.fade-ui .top-right-menu button.settings,
+.fade-ui .top-right-menu button.credits {
+  transform: translateY(8px);
+  transition: opacity 2s ease, transform 2s ease;
 }
 
 .start,

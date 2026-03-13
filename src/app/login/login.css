@@ -1,0 +1,64 @@
+:root{
+	--panel-bg: rgba(30,30,30,0.94);
+	--accent: linear-gradient(90deg, #ff7a20 10%, #ff9a40 40%, #2f6bff 60%, #5f8dff 90%);
+}
+
+.login-wrapper{ display:flex; align-items:center; justify-content:center; padding:40px 20px; }
+.login-box{
+	width: 720px;
+	max-width: calc(100% - 40px);
+	background: var(--panel-bg);
+	border-radius: 14px;
+	padding: 32px 36px;
+	box-shadow: none;
+	border: 2px solid transparent;
+	background-image: linear-gradient(rgba(0,0,0,0.04), rgba(0,0,0,0.04)), var(--accent);
+	background-origin: padding-box, border-box;
+	background-clip: padding-box, border-box;
+	font-family: "Pixelify Sans", sans-serif;
+	color: #fff;
+}
+.login-controls{ display:flex; gap:12px; margin-bottom:18px; justify-content:center }
+.login-controls button{ padding:12px 18px; border-radius:12px; background:#141414; color:#fff; border:none; cursor:pointer; font-weight:700; font-family: "Pixelify Sans", sans-serif; max-width:240px; min-width:160px }
+.login-controls button.active{ transform: translateY(-1px); box-shadow: 0 6px 14px rgba(0,0,0,0.15) }
+.login-box form{ display:flex; flex-direction:column; gap:14px }
+.login-box label{ color:#ddd; font-weight:700; font-size:15px; font-family: "Pixelify Sans", sans-serif }
+.login-box input{ width:100%; padding:14px 16px; border-radius:12px; border:1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.035); color:#fff; font-size:18px; font-family: "Pixelify Sans", sans-serif; box-shadow: none; }
+.login-box .actions{ display:block; margin-top:12px }
+.login-box .actions .submit-btn{ display:block; margin:0 auto; width:260px; padding:14px 18px; border-radius:12px; border:none; cursor:pointer; background:linear-gradient(90deg,#2f6bff,#5f8dff); color:#fff; font-family: "Pixelify Sans", sans-serif }
+
+/* thin grey divider between fields */
+.login-box .field-divider{
+	height: 1px;
+	background: rgba(255,255,255,0.12);
+	margin: 8px 0 8px 0;
+	width: 100%;
+}
+
+.login-box .field{ display:flex; flex-direction:column; gap:6px }
+
+.login-box .back-btn{
+	display:block;
+	margin:12px auto 0 auto;
+	padding:8px 12px;
+	background: transparent;
+	border: 1px solid rgba(255,255,255,0.08);
+	color: #fff;
+	border-radius: 10px;
+	cursor: pointer;
+}
+.login-box .message{ color:#ffb3b3; font-weight:700 }
+
+/* title larger */
+.login-box .title{ font-size:26px; font-weight:800; color:#fff; margin-bottom:8px; text-align:left }
+
+/* small screens */
+@media (max-width:480px){
+	.login-box{ width: 92%; padding:16px }
+	.top-right-menu{ display:none }
+}
+
+/* wrap form content in a styled container */
+.login-wrapper .login-controls + form{ width:100% }
+
+.login-box .title{ color:#fff; font-size:20px; margin-bottom:6px }

@@ -1,1 +1,80 @@
-<p>account-details works!</p>
+<div class="account-details">
+	@if (user) {
+		<div class="account-card">
+			<h2>Account</h2>
+
+			<div class="profile-row">
+				<div class="avatar-wrapper">
+					<img class="avatar" [src]="profilePreview || user?.photoURL || 'assets/pfps'" alt="Profile">
+					<label class="avatar-edit" title="Change profile picture">
+						<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+						<input type="file" accept="image/*" (change)="onFileSelected($event)" />
+					</label>
+				</div>
+
+				<div class="profile-info">
+					<div class="name-row">
+						<div class="name-display">
+							@if (!editingName) {
+								<h3 class="display-name">{{ user?.displayName || 'Player' }}</h3>
+							} @else {
+								<input class="name-input" [(ngModel)]="nameValue" placeholder="Enter name" />
+							}
+						</div>
+						<div class="name-actions">
+							@if (!editingName) {
+								<button class="icon-btn" (click)="startEditName()" title="Edit name">✎</button>
+							} @else {
+								<button class="save-btn" (click)="saveName()">Save</button>
+								<button class="cancel-btn" (click)="cancelEditName()">Cancel</button>
+							}
+						</div>
+					</div>
+
+					<div class="account-info">
+						<p><strong>Email:</strong> {{ user.email }}</p>
+						<p><strong>Role:</strong> {{ user.role }}</p>
+						<p class="gold"><strong>Gold:</strong> {{ user.gold || 0 }} <span class="coin">◈</span></p>
+					</div>
+				</div>
+			</div>
+
+			<div class="divider"></div>
+
+			<div class="password-section">
+				<h4>Change Password</h4>
+				<div class="password-row">
+					<input type="password" [(ngModel)]="currentPassword" placeholder="Current password" />
+					<input type="password" [(ngModel)]="newPassword" placeholder="New password" />
+					<input type="password" [(ngModel)]="confirmPassword" placeholder="Confirm new password" />
+					<button class="primary" (click)="changePassword()">Change Password</button>
+				</div>
+			</div>
+
+			<div class="divider"></div>
+
+			<div class="inventory-section">
+				<h4>Inventory</h4>
+				<div *ngIf="inventory && inventory.length > 0" class="inventory-grid">
+					<div class="inv-item" *ngFor="let it of inventory">
+						<div class="inv-icon">{{ it.icon }}</div>
+						<div class="inv-name">{{ it.name }}</div>
+						<button class="equip-btn" [class.equipped]="it.equipped" (click)="toggleEquip(it)">{{ it.equipped ? 'Unequip' : 'Equip' }}</button>
+					</div>
+				</div>
+				<div *ngIf="!inventory || inventory.length === 0" class="empty-inventory">
+					No items yet — visit the Store to buy items for gold.
+				</div>
+			</div>
+
+			<div class="account-actions">
+				<button class="logout" (click)="logout()">Logout</button>
+				<button class="back-btn" (click)="goBack()">Back</button>
+			</div>
+		</div>
+	} @else {
+		<div class="account-card empty">
+			<p>You are not logged in.</p>
+		</div>
+	}
+</div>

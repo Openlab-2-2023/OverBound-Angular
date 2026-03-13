@@ -2,6 +2,15 @@
   <div class="content-wrapper" #contentWrapper>
     <img class="nadpis" src="assets/imgs/pixil-frame-0.png" alt="bend-images" border="0">
 
+    <div class="top-right-menu">
+      @if (!isLoggedIn()) {
+        <button class="settings" type="button" (click)="goToLogin('login')">Login</button>
+        
+      } @else {
+        <button class="settings" type="button" (click)="goToAccount()">Account</button>
+      }
+    </div>
+
     <div class="controls-row" #controlsRow>
 
       <div class="Leaderboard-wrapper">
