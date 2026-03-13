@@ -194,8 +194,15 @@ h1, p { margin: 0; padding: 0; }
   width: auto;
   max-width: none;
   padding: 6px;
-  background: transparent;
   z-index: 60;
+  border-radius: 8px;
+  background-color: transparent;
+  background-image: linear-gradient(transparent, transparent), linear-gradient(90deg, #ff5a00 10%, #ff8a00 40%, #004cff 60%, #0066ff 90%);
+  background-origin: padding-box, border-box;
+  background-clip: padding-box, border-box;
+  background-size: 100% 100%, 200% 200%;
+  animation: borderGradient 4s linear infinite;
+
   
 }
 
@@ -212,9 +219,7 @@ h1, p { margin: 0; padding: 0; }
   align-items: center;
   justify-content: center;
   /* two-layer background: inner black panel + outer colorful border */
-  background-image: linear-gradient(black, black), linear-gradient(90deg, #ff5a00 10%, #ff8a00 40%, #004cff 60%, #0066ff 90%);
-  background-origin: padding-box, border-box;
-  background-clip: padding-box, border-box;
+  
 }
 
 /* Ensure inner button visuals match control-row buttons */
@@ -241,6 +246,44 @@ h1, p { margin: 0; padding: 0; }
 .top-right-menu button.credits::before {
   /* keep pseudo hidden to avoid duplicate visuals when using two-layer background */
   opacity: 0;
+}
+.login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: black;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  width: 220px;
+  height: 100px;
+  text-decoration: none;
+  font-size: 40px;
+  font-family: "Pixelify Sans", sans-serif;
+  line-height: 1;
+  box-sizing: border-box;
+  text-align: center;
+  padding: 10px;
+  font-weight: 500;
+  transition: color 0.3s, transform 0.3s;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  z-index: 10;  /* ZVÝŠENÉ Z-INDEX */
+  overflow: visible;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  outline: none;
+  background-clip: padding-box;
+}
+.login:hover {
+  transform: scale(1.03);
+  opacity: 1 !important;
+  color: white !important;
+  background-color: black;
+  z-index: 10;
 }
 
 .Store {

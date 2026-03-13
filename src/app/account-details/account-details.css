@@ -21,6 +21,7 @@
 	background-image: linear-gradient(#000,#000), linear-gradient(90deg, #ff7a20 8%, #ff9a40 35%, #2f6bff 65%, #5f8dff 92%);
 	background-origin: padding-box, border-box;
 	background-clip: padding-box, border-box;
+	animation: borderGradient 4s linear infinite;
 	box-sizing: border-box;
 	text-align: center;
 	margin: 0 auto;

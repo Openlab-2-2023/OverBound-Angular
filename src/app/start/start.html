@@ -4,10 +4,10 @@
 
     <div class="top-right-menu">
       @if (!isLoggedIn()) {
-        <button class="settings" type="button" (click)="goToLogin('login')">Login</button>
+        <button class="login" type="button" (click)="goToLogin('login')">Login</button>
         
       } @else {
-        <button class="settings" type="button" (click)="goToAccount()">Account</button>
+        <button class="login" type="button" (click)="goToAccount()">Account</button>
       }
     </div>
 
