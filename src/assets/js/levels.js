@@ -5,6 +5,9 @@ let portals
 let animals
 let risks
 let clouds
+let npcs;
+let enemies;
+// let camera1
 
 const overlay = {
   opacity: 0
@@ -21,26 +24,48 @@ let levels = {
           y: 0,
         },
         
-      imageSrc: '/assets/sprites/levels/maketa.png',
+      imageSrc: '/assets/sprites/levels/room1.png',
       
 
       });
-      // const zoom = 0.4
-
-      // c.translate(0 , -1000)
-      // c.scale(zoom, zoom)
-
-
       parsedCollisions = level1Collisions.Parse2D(levels[1].tileCount);
       collisionBlocks = parsedCollisions.createObjectsFrom2D(); 
       player.collisionBlocks = collisionBlocks
-      player.position.x = 100
+      player.position.x = 2000
       player.position.y = 4000//position sa meni
+      npcs = [
+        new NPC({
+          position: { x: 3000, y: 4459 },
+          imageSrc: '/assets/sprites/character/idle.png',
+          frameRate: 4,
+          frameBuffer: 14,
+          loop: true,
+          collisionBlocks: collisionBlocks,
+        })
+      ]
+
+      enemies = [
+        new Enemy({
+          position: { x: 5700, y: 4000 },
+          imageSrc: enemyConfig.imageSrc,
+          frameRate: enemyConfig.frameRate,
+          frameBuffer: enemyConfig.frameBuffer,
+          loop: enemyConfig.loop,
+          animations: enemyConfig.animations,
+          collisionBlocks: collisionBlocks,
+          patrolCenterX: 5700,
+          patrolRange: 1000,
+          patrolDirection: 1,
+          patrolSpeed: 5
+        })
+      ]
+      
+
       portals = [
         new Sprite ({
           position: {
-            x:920,
-            y:80
+            x:9200,
+            y:4600
           },
           imageSrc: '/assets/sprites/other/portal.png',//position sa meni + cesta
           frameRate: 6,
@@ -90,7 +115,9 @@ let levels = {
   },
 
   2: {
+    tileCount: 77,
     init: () => {
+      
       background = new Sprite({
         position: {
           x: 0,
@@ -99,18 +126,29 @@ let levels = {
       
         
       //obrazok levelu
-        imageSrc: "/assets/sprites/levels/level2.png",
+        imageSrc: "/assets/sprites/levels/room2.png",
       });
       
-      parsedCollisions = level2Collisions.Parse2D();
+      parsedCollisions = level2Collisions.Parse2D(levels[1].tileCount);
       collisionBlocks = parsedCollisions.createObjectsFrom2D(); 
       player.collisionBlocks = collisionBlocks
-      player.position.x = 50
-      player.position.y = 350
+      player.position.x = 2000
+      player.position.y = 4000
       player.levelSpawnPosition = {
         x:50,
         y:350
       }
+
+      npcs = [
+        new NPC({
+          position: { x: 3000, y: 4459 },
+          imageSrc: '',
+          frameRate: 4,
+          frameBuffer: 14,
+          loop: true,
+          collisionBlocks: collisionBlocks
+        })
+      ]
       portals = [
         new Sprite ({
           position: {
@@ -121,6 +159,22 @@ let levels = {
           frameRate: 6,
           frameBuffer: 8,
           loop:true
+        })
+      ]
+
+      enemies = [
+        new Enemy({
+          position: { x: 5700, y: 4000 },
+          imageSrc: '',
+          frameRate: enemyConfig.frameRate,
+          frameBuffer: enemyConfig.frameBuffer,
+          loop: enemyConfig.loop,
+          animations: enemyConfig.animations,
+          collisionBlocks: collisionBlocks,
+          patrolCenterX: 5700,
+          patrolRange: 1000, 
+          patrolDirection: 1, 
+          patrolSpeed: 5
         })
       ]
       animals = [
@@ -142,7 +196,7 @@ let levels = {
             x:600,
             y:445
           },
-          imageSrc: '/assets/sprites/other/sandworm.png',
+          imageSrc: '',
           frameRate: 27,
           frameBuffer: 3,
           loop:true
@@ -153,7 +207,7 @@ let levels = {
             x:150,
             y:445
           },
-          imageSrc: '/assets/sprites/other/sandworm.png',
+          imageSrc: '',
           frameRate: 27,
           frameBuffer: 3,
           loop:true,

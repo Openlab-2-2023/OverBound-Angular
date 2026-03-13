@@ -42,7 +42,7 @@ class Sprite {
         y:0
       },
       width: this.width,
-      height: this.height
+            height: this.height
 
     }
     c.drawImage(this.image,
@@ -79,3 +79,4 @@ class Sprite {
     }
   }
 }
+

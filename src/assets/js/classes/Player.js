@@ -1,7 +1,32 @@
+// Global dialog state for NPC interactions
+var npcDialog = {
+  active: false,
+  text: ''
+};
+
+// Responsible only for drawing the top-screen NPC dialog bar
+function drawNpcDialogBar() {
+  if (typeof npcDialog === 'undefined' || !npcDialog.active) return;
+  if (typeof c === 'undefined' || typeof canvas === 'undefined') return;
+
+  c.save();
+  c.setTransform(1, 0, 0, 1, 0, 0);
+
+  const barHeight = 150;
+  c.fillStyle = 'rgba(0, 0, 0, 0.75)';
+  c.fillRect(0, 0, canvas.width, barHeight);
+
+  c.fillStyle = 'white';
+  c.font = '32px Arial';
+  const text = npcDialog.text || '';
+  c.fillText(text, 40, barHeight / 2 + 10);
+
+  c.restore();
+}
+
 class Player extends Sprite  {
   constructor ({
     collisionBlocks = [],
-    clouds = [],
     imageSrc,
     frameRate,
     animations,
@@ -29,38 +54,9 @@ class Player extends Sprite  {
 
     this.collisionBlocks = collisionBlocks
 
+    this.isTransitioningLevel = false
+
   }
-
-  updateCamera() {
-  if (player.position.x >= 2200 && player.position.x <= 6370) {
-    camera.position.x = player.position.x - canvas.width - 240;
-  }
-   else if(player.position.x >= 6370) {
-    camera.position.x = 4200
-  }
-   else {
-    camera.position.x = 0;
-  }
-  // console.log(this.position.x)
-
-  
-  const followStartY = 3650;
-
-  if (player.position.y < followStartY && player.position.y > 980) {
-    
-    camera.position.y = player.position.y - canvas.height;
-  } 
-   else if(player.position.y < 980 ) {
-    camera.position.y = -50
-   }
-   else {
-    
-    camera.position.y = followStartY - canvas.height;
-  }
-}
-
-
-
   update() {  
     this.position.x += this.velocity.x
     this.updateHitBox()
@@ -245,6 +241,51 @@ detectRisk() {
   }
 }
 
+detectEnemy() {
+    for(let i = 0; i < enemies.length; i++) {
+      const enemy = enemies[i]
+      if(player.hitbox.position.x <= enemy.position.x + enemy.width &&
+        player.hitbox.position.x + player.hitbox.width >= enemy.position.x &&
+        player.hitbox.position.y + player.hitbox.height >= enemy.position.y &&
+        player.hitbox.position.y <= enemy.position.y + enemy.height) {
+          console.log('hit by enemy')     
+        }
+  }
+  }
+
+detectNpc() {
+    let npcNearby = false;
+
+    for (let i = 0; i < npcs.length; i++) {
+      const npc = npcs[i];
+
+      if (
+        player.hitbox.position.x <= npc.position.x + npc.width &&
+        player.hitbox.position.x + player.hitbox.width >= npc.position.x &&
+        player.hitbox.position.y + player.hitbox.height >= npc.position.y &&
+        player.hitbox.position.y <= npc.position.y + npc.height
+      ) {
+        npcNearby = true;
+
+        c.fillStyle = 'white';
+        document.fonts.ready.then(() => {
+          c.font = '100px Times New Roman';
+        });
+        c.fillText('Talk[E]', npc.position.x + 20, npc.position.y - 100);
+
+        // If E was pressed while near NPC, show dialog bar
+        if (typeof keys !== 'undefined' && keys.e && keys.e.pressed) {
+          npcDialog.active = true;
+          npcDialog.text = npc.dialogText || '...';
+        }
+      }
+    }
+
+    if (!npcNearby) {
+      npcDialog.active = false;
+    }
+}
+
 detectCloud() {
     //vertikalne kolizie
     for(let i = 0; i < clouds.length; i++) {
@@ -273,20 +314,49 @@ detectCloud() {
         player.hitbox.position.x + player.hitbox.width >= portal.position.x &&
         player.hitbox.position.y + player.hitbox.height >= portal.position.y &&
         player.hitbox.position.y <= portal.position.y + portal.height) {
-          if(level == 1) {
-          c.fillStyle = 'black'
-          c.fillRect(portal.position.x - 30,portal.position.y - 60,120,40)
-          c.fillStyle = 'white';
-          document.fonts.ready.then(() => {
-            c.font = "18px Arial";
-          });
-          c.fillText("Press E",portal.position.x ,portal.position.y - 31);
-          }
           
+
+          if (this.isTransitioningLevel) return
+
+          this.isTransitioningLevel = true
+          player.velocity.x = 0
+
+          const goToNextLevel = () => {
+            level++
+            if (levels[level] && typeof levels[level].init === 'function') {
+              levels[level].init()
+            }
+          }
+
+          const finishTransition = () => {
+            this.isTransitioningLevel = false
+          }
+
+          if (typeof gsap !== 'undefined') {
+            gsap.to(overlay, {
+              opacity: 1,
+              duration: 0.5,
+              onComplete: () => {
+                goToNextLevel()
+                gsap.to(overlay, {
+                  opacity: 0,
+                  duration: 0.5,
+                  onComplete: finishTransition
+                })
+              }
+            })
+          } else {
+            overlay.opacity = 1
+            setTimeout(() => {
+              goToNextLevel()
+              setTimeout(() => {
+                overlay.opacity = 0
+                finishTransition()
+              }, 300)
+            }, 300)
+          }
+
         } 
     }
   }
 }
-
-
-

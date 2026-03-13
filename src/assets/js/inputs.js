@@ -14,6 +14,9 @@ let keys = {
   w: {
     pressed: false,
   },
+  e: {
+    pressed: false,
+  },
   o: {
     pressed: false,
   },
@@ -69,15 +72,7 @@ window.addEventListener("keydown", (event) => {
       break;
 
       case "KeyE":
-    for(let i = 0; i < portals.length; i++) {
-      const portal = portals[i]
-      if(player.hitbox.position.x <= portal.position.x + portal.width &&
-        player.hitbox.position.x + player.hitbox.width >= portal.position.x &&
-        player.hitbox.position.y + player.hitbox.height >= portal.position.y &&
-        player.hitbox.position.y <= portal.position.y + portal.height) {
-          player.switchSprite('perish')
-        } 
-    }
+      keys.e.pressed = true;
       break;
 
       
@@ -111,6 +106,10 @@ window.addEventListener("keyup", (event) => {
       } else if(player.lastDirection === 'left') {
         player.switchSprite('idleLeft')
       }
+      break;
+    case "KeyE":
+      keys.e.pressed = false;
+      break;
     case "KeyW":
       keys.w.pressed = false;
       break;
