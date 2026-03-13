@@ -92,3 +92,25 @@ const player = new Player({
     },
   }
 });
+
+
+const enemyConfig = {
+  imageSrc: '/assets/sprites/character/runright.png',
+  frameRate: 8,
+  frameBuffer: 8,
+  loop: true,
+  animations: {
+    runRight: {
+      frameRate: 8,
+      frameBuffer: 8,
+      loop: true,
+      imageSrc: '/assets/sprites/character/runright.png'
+    },
+    runLeft: {
+      frameRate: 8,
+      frameBuffer: 8,
+      loop: true,
+      imageSrc: '/assets/sprites/character/runleft.png'
+    }
+  }
+}
