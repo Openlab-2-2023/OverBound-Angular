@@ -10,19 +10,26 @@
 		<form (submit)="submit(); $event.preventDefault();">
 			<div class="field">
 				<label>Email</label>
-				<input type="email" [(ngModel)]="email" name="email" placeholder="you@example.com" />
+				<input type="email" [(ngModel)]="email" name="email" placeholder="you@example.com" [disabled]="loading" />
 			</div>
 
 			<div class="field-divider" aria-hidden="true"></div>
 
 			<div class="field">
 				<label>Password</label>
-				<input type="password" [(ngModel)]="password" name="password" placeholder="Enter password" />
+				<input type="password" [(ngModel)]="password" name="password" placeholder="Enter password" [disabled]="loading" />
 			</div>
 
 			<div class="actions">
-				<button type="submit" class="submit-btn">{{ mode === 'login' ? 'Login' : 'Register' }}</button>
-				<button type="button" class="back-btn" (click)="goBack()">Back</button>
+				<button type="submit" class="submit-btn" [disabled]="loading">
+					<span *ngIf="!loading">{{ mode === 'login' ? 'Login' : 'Register' }}</span>
+					<span *ngIf="loading" class="btn-loading">
+						<span class="dot"></span>
+						<span class="dot"></span>
+						<span class="dot"></span>
+					</span>
+				</button>
+				<button type="button" class="back-btn" (click)="goBack()" [disabled]="loading">Back</button>
 			</div>
 
 			@if (message) {

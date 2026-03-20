@@ -16,6 +16,7 @@ export class Login {
   email = '';
   password = '';
   message = '';
+  loading = false;
 
   constructor(private auth: AuthService, private router: Router, private route: ActivatedRoute) {
     this.route.queryParams.subscribe(q => {
@@ -24,19 +25,26 @@ export class Login {
     });
   }
 
-  submit() {
+  async submit() {
+    if (this.loading) return;
     this.message = '';
-    if (this.mode === 'login') {
-      const res = this.auth.login(this.email, this.password);
-      if (!res.ok) { this.message = res.message || 'Login failed.'; return; }
-      this.router.navigate(['/']);
-    } else {
-      const res = this.auth.register(this.email, this.password);
-      if (!res.ok) { this.message = res.message || 'Register failed.'; return; }
-      this.router.navigate(['/']);
+    this.loading = true;
+    try {
+      if (this.mode === 'login') {
+        const res = await this.auth.login(this.email, this.password);
+        if (!res.ok) { this.message = res.message || 'Login failed.'; return; }
+        this.router.navigate(['/']);
+      } else {
+        const res = await this.auth.register(this.email, this.password);
+        if (!res.ok) { this.message = res.message || 'Register failed.'; return; }
+        this.router.navigate(['/']);
+      }
+    } finally {
+      this.loading = false;
     }
   }
 
   switchMode(m: 'login'|'register') { this.mode = m; this.message = ''; }
   goBack() { this.router.navigate(['/']); }
+  
 }
