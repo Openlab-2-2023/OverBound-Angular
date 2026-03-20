@@ -86,9 +86,26 @@ export async function authUpdatePassword(email: string, currentPassword: string,
     const user = cred.user || _auth.currentUser;
     if (!user) throw new Error('No authenticated user');
     await updatePassword(user, newPassword);
+    // ensure auth session reflects new password: sign in with new password
+    try { await signInWithEmailAndPassword(_auth, email, newPassword); } catch (e) { /* ignore */ }
     return true;
   } catch (e) {
     console.warn('authUpdatePassword failed', e);
+    throw e;
+  }
+}
+
+export async function authUpdateUserProfile(updates: { displayName?: string; photoURL?: string }) {
+  await initFirebaseIfNeeded();
+  if (!_auth) throw new Error('Firebase Auth not initialized');
+  try {
+    const { updateProfile } = await import('firebase/auth');
+    const user = _auth.currentUser;
+    if (!user) throw new Error('No authenticated user');
+    await updateProfile(user, updates as any);
+    return true;
+  } catch (e) {
+    console.warn('authUpdateUserProfile failed', e);
     throw e;
   }
 }

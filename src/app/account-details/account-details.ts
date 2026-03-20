@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth.service';
@@ -11,7 +11,7 @@ import { Router } from '@angular/router';
   templateUrl: './account-details.html',
   styleUrls: ['./account-details.css'],
 })
-export class AccountDetails {
+export class AccountDetails implements OnDestroy {
   editingName = false;
   nameValue = '';
   profilePreview: string | null = null;
@@ -27,6 +27,20 @@ export class AccountDetails {
     this.nameValue = u?.displayName || '';
     this.profilePreview = u?.photoURL || null;
     this.inventory = (u?.inventory && Array.isArray(u.inventory)) ? u.inventory.slice() : [];
+    // listen for profile updates so we can update preview without full reload
+    window.addEventListener('ob:user-updated', this.onUserUpdated as EventListener);
+  }
+
+  onUserUpdated = (ev: Event) => {
+    try {
+      const detail: any = (ev as any).detail;
+      if (detail && detail.photoURL) this.profilePreview = detail.photoURL;
+      if (detail && detail.displayName) this.nameValue = detail.displayName;
+    } catch { }
+  }
+
+  ngOnDestroy(): void {
+    window.removeEventListener('ob:user-updated', this.onUserUpdated as EventListener);
   }
 
   get user(): any { return this.auth.getCurrent(); }
