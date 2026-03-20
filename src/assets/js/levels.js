@@ -35,8 +35,8 @@ let levels = {
       player.position.y = 4000//position sa meni
       npcs = [
         new NPC({
-          position: { x: 3000, y: 4459 },
-          imageSrc: '/assets/sprites/character/idle.png',
+          position: { x: 6500, y: 4000 },
+          imageSrc: '/assets/sprites/character/idleleft.png',
           frameRate: 4,
           frameBuffer: 14,
           loop: true,
@@ -47,7 +47,7 @@ let levels = {
       enemies = [
         new Enemy({
           position: { x: 5700, y: 4000 },
-          imageSrc: enemyConfig.imageSrc,
+          imageSrc: '',
           frameRate: enemyConfig.frameRate,
           frameBuffer: enemyConfig.frameBuffer,
           loop: enemyConfig.loop,
@@ -132,7 +132,7 @@ let levels = {
       parsedCollisions = level2Collisions.Parse2D(levels[1].tileCount);
       collisionBlocks = parsedCollisions.createObjectsFrom2D(); 
       player.collisionBlocks = collisionBlocks
-      player.position.x = 2000
+      player.position.x = 100
       player.position.y = 4000
       player.levelSpawnPosition = {
         x:50,
@@ -164,15 +164,15 @@ let levels = {
 
       enemies = [
         new Enemy({
-          position: { x: 5700, y: 4000 },
-          imageSrc: '',
+          position: { x: 2800, y: 5000 },
+          imageSrc: enemyConfig.imageSrc,
           frameRate: enemyConfig.frameRate,
           frameBuffer: enemyConfig.frameBuffer,
           loop: enemyConfig.loop,
           animations: enemyConfig.animations,
           collisionBlocks: collisionBlocks,
-          patrolCenterX: 5700,
-          patrolRange: 1000, 
+          patrolCenterX: 2800,
+          patrolRange: 900, 
           patrolDirection: 1, 
           patrolSpeed: 5
         })
