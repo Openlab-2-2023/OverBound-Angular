@@ -9,7 +9,7 @@ import { Router } from '@angular/router';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './account-details.html',
-  styleUrl: './account-details.css',
+  styleUrls: ['./account-details.css'],
 })
 export class AccountDetails {
   editingName = false;
@@ -25,21 +25,20 @@ export class AccountDetails {
   ngOnInit(): void {
     const u: any = this.user;
     this.nameValue = u?.displayName || '';
-    // inventory will be populated by the Store later; keep empty for now
-    this.inventory = [];
+    this.profilePreview = u?.photoURL || null;
+    this.inventory = (u?.inventory && Array.isArray(u.inventory)) ? u.inventory.slice() : [];
   }
 
   get user(): any { return this.auth.getCurrent(); }
 
-  logout() { this.auth.logout(); this.router.navigate(['/']); }
+  async logout() { await this.auth.logout(); this.router.navigate(['/']); }
   goBack() { this.router.navigate(['/']); }
 
   startEditName() { this.editingName = true; }
   cancelEditName() { this.editingName = false; this.nameValue = this.user?.displayName || ''; }
   saveName() {
-    // update locally; integrate with backend/auth service later
-    const u: any = this.user;
-    if (u) { u.displayName = this.nameValue; }
+    const res = this.auth.updateProfile({ displayName: this.nameValue });
+    if (!res.ok) { alert(res.message || 'Failed to save name'); return; }
     this.editingName = false;
     console.log('Name saved:', this.nameValue);
   }
@@ -49,14 +48,19 @@ export class AccountDetails {
     if (!inp.files || inp.files.length === 0) return;
     const file = inp.files[0];
     const reader = new FileReader();
-    reader.onload = () => { this.profilePreview = reader.result as string; };
+    reader.onload = () => {
+      const data = reader.result as string;
+      this.profilePreview = data;
+      // persist to auth service (and Firebase when enabled)
+      this.auth.updateProfile({ photoURL: data });
+    };
     reader.readAsDataURL(file);
   }
 
-  changePassword() {
+  async changePassword() {
     if (!this.currentPassword || !this.newPassword) { alert('Please fill passwords'); return; }
     if (this.newPassword !== this.confirmPassword) { alert('Passwords do not match'); return; }
-    const res = this.auth.changePassword(this.currentPassword, this.newPassword as string);
+    const res = await this.auth.changePassword(this.currentPassword, this.newPassword as string);
     if (!res.ok) { alert(res.message || 'Failed to change password'); return; }
     alert('Password changed successfully.');
     this.currentPassword = this.newPassword = this.confirmPassword = '';
@@ -64,5 +68,8 @@ export class AccountDetails {
 
   toggleEquip(item: any) {
     item.equipped = !item.equipped;
+    // persist inventory change
+    const updatedInv = this.inventory.map(i => ({ ...i }));
+    this.auth.updateProfile({ inventory: updatedInv });
   }
 }
