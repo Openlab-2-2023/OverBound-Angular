@@ -9,7 +9,7 @@ export class AuthService {
   private storageCurrentKey = 'ob_current_user_v1';
   private users: User[] = [];
   private current: User | null = null;
-  private adminEmails: string[] = ['sebokubinec7@gmail.com', 'admin2@example.com'];
+  private adminEmails: string[] = ['sebokubinec7@gmail.com', 'bojkosam1@gmail.com'];
 
   constructor() {
     const raw = localStorage.getItem(this.storageUsersKey);

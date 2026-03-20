@@ -50,6 +50,13 @@ class Player extends Sprite  {
       y:0
     }
 
+    // frames where knockback is active
+    this.knockbackFrames = 0
+    // frames where player is invulnerable to enemy hits
+    this.invulnerableFrames = 0
+    // frames remaining where player is being knocked back
+    this.knockbackFrames = 0
+
     this.gravity = 2
 
     this.collisionBlocks = collisionBlocks
@@ -65,6 +72,12 @@ class Player extends Sprite  {
     this.updateHitBox()
     this.checkForVerticalCollisions()
     
+    if (this.knockbackFrames > 0) {
+      this.knockbackFrames--
+    }
+    if (this.invulnerableFrames > 0) {
+      this.invulnerableFrames--
+    }
     
   }
 
@@ -86,10 +99,11 @@ class Player extends Sprite  {
       },
       width: 70,
       height: 300,
-
+      c
       
       
     }
+    
     c.fillStyle = "rgba(0,0,255,0.0)"
     c.fillRect(this.hitbox.position.x, this.hitbox.position.y, this.hitbox.width, this.hitbox.height)
   }
@@ -242,13 +256,49 @@ detectRisk() {
 }
 
 detectEnemy() {
+    // temporary immunity: ignore new hits while invulnerable
+    if (player.invulnerableFrames > 0) return
+
     for(let i = 0; i < enemies.length; i++) {
       const enemy = enemies[i]
-      if(player.hitbox.position.x <= enemy.position.x + enemy.width &&
-        player.hitbox.position.x + player.hitbox.width >= enemy.position.x &&
-        player.hitbox.position.y + player.hitbox.height >= enemy.position.y &&
-        player.hitbox.position.y <= enemy.position.y + enemy.height) {
-          console.log('hit by enemy')     
+      // prefer enemy's damage hitbox if available
+      const damageBox = enemy.damageHitbox || {
+        position: enemy.position,
+        width: enemy.width,
+        height: enemy.height
+      }
+
+      if(player.hitbox.position.x <= damageBox.position.x + damageBox.width &&
+        player.hitbox.position.x + player.hitbox.width >= damageBox.position.x &&
+        player.hitbox.position.y + player.hitbox.height >= damageBox.position.y &&
+        player.hitbox.position.y <= damageBox.position.y + damageBox.height) {
+          // simple knockback + small jump plus short delay before next hit
+          const playerCenterX = player.hitbox.position.x + player.hitbox.width / 2
+          const enemyCenterX = damageBox.position.x + damageBox.width / 2
+          const knockDir = playerCenterX < enemyCenterX ? -1 : 1
+          const playerCenterY = player.hitbox.position.y + player.hitbox.height / 2
+          const enemyCenterY = damageBox.position.y + damageBox.height / 2
+
+          // knockback duration and invulnerability window
+          player.knockbackFrames = 15
+          player.invulnerableFrames = 60
+          player.velocity.x = 30 * knockDir
+
+          // Only launch upward if we're not already clearly above the enemy
+          if (playerCenterY >= enemyCenterY) {
+            player.velocity.y = -25
+          } else {
+            // On top of the enemy: don't add more upward velocity
+            if (player.velocity.y < 0) {
+              // keep existing upward motion but don't increase it
+              player.velocity.y = player.velocity.y
+            } else {
+              // neutral or downward if needed
+              player.velocity.y = 0
+            }
+          }
+
+          console.log('hit by enemy')
         }
   }
   }

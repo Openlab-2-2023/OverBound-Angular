@@ -1,4 +1,5 @@
 var background
+let foregrounds
 let parsedCollisions
 let collisionBlocks
 let portals
@@ -23,11 +24,30 @@ let levels = {
           x: 0,
           y: 0,
         },
-        
-      imageSrc: '/assets/sprites/levels/room1.png',
-      
-
+        imageSrc: '/assets/sprites/levels/room1.png',
       });
+
+      foregrounds = [
+        new Sprite({
+          position: {
+            x: 6000,
+            y: 900,
+          },
+          imageSrc: '/assets/sprites/levels/foreground.png',
+        }),
+
+        
+      ]
+
+      // remember original positions for parallax calculations
+      foregrounds.forEach((fg) => {
+        fg.basePosition = {
+          x: fg.position.x,
+          y: fg.position.y,
+        }
+      })
+
+      
       parsedCollisions = level1Collisions.Parse2D(levels[1].tileCount);
       collisionBlocks = parsedCollisions.createObjectsFrom2D(); 
       player.collisionBlocks = collisionBlocks
@@ -128,6 +148,24 @@ let levels = {
       //obrazok levelu
         imageSrc: "/assets/sprites/levels/room2.png",
       });
+
+      foregrounds = [
+        new Sprite({
+          position: {
+            x: 6000,
+            y: 900,
+          },
+          imageSrc: '',
+        }),
+
+        new Sprite({
+          position: {
+            x: 1000,
+            y: 900,
+          },
+          imageSrc: '',
+        }),
+      ]
       
       parsedCollisions = level2Collisions.Parse2D(levels[1].tileCount);
       collisionBlocks = parsedCollisions.createObjectsFrom2D(); 
@@ -149,6 +187,8 @@ let levels = {
           collisionBlocks: collisionBlocks
         })
       ]
+
+      
       portals = [
         new Sprite ({
           position: {
@@ -164,7 +204,7 @@ let levels = {
 
       enemies = [
         new Enemy({
-          position: { x: 2800, y: 5000 },
+          position: { x: 2800, y: 3000 },
           imageSrc: enemyConfig.imageSrc,
           frameRate: enemyConfig.frameRate,
           frameBuffer: enemyConfig.frameBuffer,
