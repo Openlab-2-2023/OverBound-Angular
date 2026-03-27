@@ -63,8 +63,9 @@ function startGame() {
     player.update();
     player.detectCloud();
     player.detectRisk();
-    player.detectEnemy();
+    // first detect NPC proximity / dialog, then enemy hits
     player.detectNpc();
+    player.detectEnemy();
     player.textAppear();
 
 

@@ -30,7 +30,7 @@ let levels = {
       foregrounds = [
         new Sprite({
           position: {
-            x: 6000,
+            x: 3000,
             y: 900,
           },
           imageSrc: '/assets/sprites/levels/foreground.png',
@@ -65,19 +65,7 @@ let levels = {
       ]
 
       enemies = [
-        new Enemy({
-          position: { x: 5700, y: 4000 },
-          imageSrc: '',
-          frameRate: enemyConfig.frameRate,
-          frameBuffer: enemyConfig.frameBuffer,
-          loop: enemyConfig.loop,
-          animations: enemyConfig.animations,
-          collisionBlocks: collisionBlocks,
-          patrolCenterX: 5700,
-          patrolRange: 1000,
-          patrolDirection: 1,
-          patrolSpeed: 5
-        })
+        
       ]
       
 
