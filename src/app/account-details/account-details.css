@@ -42,8 +42,40 @@
 
 .account-actions { display:flex; justify-content:center; gap:12px; margin-top:14px; width:100%; max-width:640px }
 .account-actions button { padding: 12px 18px; border-radius: 12px; background: linear-gradient(90deg,#2b2b2b,#222); color: #fff; font-family: "Pixelify Sans", sans-serif; border: none; cursor: pointer; font-size: 16px; min-width:120px }
-.account-actions .logout { background: linear-gradient(90deg,#ff7a20,#ff9a40); color:#111; font-weight:700 }
-.account-actions .back-btn { background: linear-gradient(90deg,#5f6b7f,#3b3f4a); color:#fff }
+.account-actions .logout {
+	background:#111;
+	border:1px solid transparent;
+	background-image: linear-gradient(#111,#111), linear-gradient(90deg,#ff7a20,#ff9a40,#5f8dff);
+	background-origin: padding-box, border-box;
+	background-clip: padding-box, border-box;
+	color:#fff;
+	font-weight:700;
+	letter-spacing:.2px;
+	transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
+}
+.account-actions .logout:hover {
+	transform: translateY(-1px) scale(1.03);
+	box-shadow: 0 8px 20px rgba(255,122,32,.24);
+	filter: brightness(1.05);
+}
+.account-actions .logout:active {
+	transform: translateY(0) scale(.99);
+}
+.account-actions .back-btn {
+	background:#111;
+	border:1px solid transparent;
+	background-image: linear-gradient(#111,#111), linear-gradient(90deg,#6d7483,#8d96a8,#5f8dff);
+	background-origin: padding-box, border-box;
+	background-clip: padding-box, border-box;
+	color:#e8eefc;
+	font-weight:700;
+	transition: transform 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+}
+.account-actions .back-btn:hover {
+	color:#fff;
+	transform: translateY(-1px) scale(1.03);
+	box-shadow: 0 8px 20px rgba(95,141,255,0.2);
+}
 
 .profile-row {
 	display:flex;
@@ -117,9 +149,12 @@
 .profile-info { flex:1; text-align:left; display:flex; flex-direction:column; justify-content:flex-start; gap:8px; min-width: 0; }
 .name-row {
 	display:grid;
-	grid-template-columns: minmax(220px, 360px) 190px;
+	grid-template-columns: 1fr;
 	align-items:center;
 	column-gap:12px;
+}
+.name-row.with-actions {
+	grid-template-columns: minmax(220px, 360px) 190px;
 }
 .name-display {
 	min-height: 46px;
@@ -163,7 +198,27 @@
 .password-section h4, .inventory-section h4 { margin:0 0 8px 0; font-size:18px }
 .password-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:center }
 .password-row input { padding:10px 12px; border-radius:10px; background:#0f0f0f; border:1px solid #333; color:#fff; min-width:220px }
-.password-row .primary { padding:10px 14px; border-radius:10px; background:linear-gradient(90deg,#ff7a20,#ff9a40); border:none; cursor:pointer; color:#111; font-weight:700 }
+.password-row .primary {
+	padding:10px 16px;
+	border-radius:10px;
+	border:1px solid transparent;
+	background-image: linear-gradient(#111,#111), linear-gradient(90deg,#ff7a20,#ff9a40,#5f8dff);
+	background-origin: padding-box, border-box;
+	background-clip: padding-box, border-box;
+	cursor:pointer;
+	color:#fff;
+	font-weight:700;
+	letter-spacing:.2px;
+	transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
+}
+.password-row .primary:hover {
+	transform: translateY(-1px);
+	box-shadow: 0 8px 18px rgba(95,141,255,.2);
+	filter: brightness(1.06);
+}
+.password-row .primary:active {
+	transform: translateY(0) scale(.99);
+}
 
 .inventory-grid { display:flex; gap:12px; flex-wrap:wrap; margin-top:8px; justify-content:center }
 .empty-inventory { color: #cfcfcf; padding:12px 0; font-size:15px }

@@ -2,7 +2,8 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth.service';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-account-details',
@@ -26,19 +27,55 @@ export class AccountDetails implements OnInit, OnDestroy {
   cropOffsetX = 0;
   cropOffsetY = 0;
   private readonly maxUploadBytes = 8 * 1024 * 1024;
+  viewOnlyMode = false;
+  viewedUser: any = null;
+  loadingViewedUser = false;
+  viewedUserError = '';
+  private routeSub: Subscription | null = null;
 
-  constructor(private auth: AuthService, private router: Router) {}
+  constructor(private auth: AuthService, private router: Router, private route: ActivatedRoute) {}
 
   ngOnInit(): void {
     const u: any = this.user;
     this.nameValue = u?.displayName || '';
     this.profilePreview = u?.photoURL || null;
     this.inventory = (u?.inventory && Array.isArray(u.inventory)) ? u.inventory.slice() : [];
-    // listen for profile updates so we can update preview without full reload
+    this.routeSub = this.route.queryParamMap.subscribe(async (params) => {
+      const viewedEmail = (params.get('view') || '').trim().toLowerCase();
+      const currentEmail = (this.user?.email || '').toLowerCase();
+      if (viewedEmail && viewedEmail !== currentEmail) {
+        this.viewOnlyMode = true;
+        const stateUser = this.getStateViewedUser();
+        if (stateUser && stateUser.email === viewedEmail) {
+          this.viewedUser = {
+            email: stateUser.email,
+            displayName: stateUser.displayName || viewedEmail.split('@')[0] || 'Player',
+            role: stateUser.role || 'Player',
+            photoURL: stateUser.photoURL || '',
+            gold: Number.isFinite(Number(stateUser.gold)) ? Number(stateUser.gold) : 0,
+            inventory: Array.isArray(stateUser.inventory) ? stateUser.inventory.slice() : [],
+          };
+          this.nameValue = this.viewedUser.displayName || '';
+          this.profilePreview = this.viewedUser.photoURL || null;
+          this.inventory = this.viewedUser.inventory || [];
+        }
+        await this.loadViewedUser(viewedEmail);
+      } else {
+        this.viewOnlyMode = false;
+        this.viewedUser = null;
+        this.viewedUserError = '';
+        const current: any = this.user;
+        this.nameValue = current?.displayName || '';
+        this.profilePreview = current?.photoURL || null;
+        this.inventory = (current?.inventory && Array.isArray(current.inventory)) ? current.inventory.slice() : [];
+      }
+    });
+    // listen for profile updates so we can update preview without full reload (own profile only)
     window.addEventListener('ob:user-updated', this.onUserUpdated as EventListener);
   }
 
   onUserUpdated = (ev: Event) => {
+    if (this.viewOnlyMode) return;
     try {
       const detail: any = (ev as any).detail;
       if (detail && detail.photoURL) this.profilePreview = detail.photoURL;
@@ -49,16 +86,22 @@ export class AccountDetails implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.releaseCropSource();
     window.removeEventListener('ob:user-updated', this.onUserUpdated as EventListener);
+    if (this.routeSub) {
+      this.routeSub.unsubscribe();
+      this.routeSub = null;
+    }
   }
 
   get user(): any { return this.auth.getCurrent(); }
+  get activeUser(): any { return this.viewOnlyMode ? this.viewedUser : this.user; }
 
   async logout() { await this.auth.logout(); this.router.navigate(['/']); }
   goBack() { this.router.navigate(['/']); }
 
-  startEditName() { this.editingName = true; }
-  cancelEditName() { this.editingName = false; this.nameValue = this.user?.displayName || ''; }
+  startEditName() { if (this.viewOnlyMode) return; this.editingName = true; }
+  cancelEditName() { if (this.viewOnlyMode) return; this.editingName = false; this.nameValue = this.user?.displayName || ''; }
   async saveName() {
+    if (this.viewOnlyMode) return;
     const res = await this.auth.updateProfile({ displayName: this.nameValue });
     if (!res.ok) { alert(res.message || 'Failed to save name'); return; }
     this.editingName = false;
@@ -66,6 +109,7 @@ export class AccountDetails implements OnInit, OnDestroy {
   }
 
   async onFileSelected(ev: Event) {
+    if (this.viewOnlyMode) return;
     const inp = ev.target as HTMLInputElement;
     if (!inp.files || inp.files.length === 0) return;
     const file = inp.files[0];
@@ -101,6 +145,7 @@ export class AccountDetails implements OnInit, OnDestroy {
   }
 
   async applyCroppedImage() {
+    if (this.viewOnlyMode) return;
     if (!this.cropSourceDataUrl) return;
     this.isProcessingProfileImage = true;
     try {
@@ -224,6 +269,7 @@ export class AccountDetails implements OnInit, OnDestroy {
   }
 
   async changePassword() {
+    if (this.viewOnlyMode) return;
     if (!this.currentPassword || !this.newPassword) { alert('Please fill passwords'); return; }
     if (this.newPassword !== this.confirmPassword) { alert('Passwords do not match'); return; }
     const res = await this.auth.changePassword(this.currentPassword, this.newPassword as string);
@@ -233,6 +279,7 @@ export class AccountDetails implements OnInit, OnDestroy {
   }
 
   async toggleEquip(item: any) {
+    if (this.viewOnlyMode) return;
     item.equipped = !item.equipped;
     // persist inventory change
     const updatedInv = this.inventory.map(i => ({ ...i }));
@@ -240,6 +287,54 @@ export class AccountDetails implements OnInit, OnDestroy {
     if (!res.ok) {
       item.equipped = !item.equipped;
       alert(res.message || 'Failed to update inventory');
+    }
+  }
+
+  private async loadViewedUser(email: string) {
+    this.loadingViewedUser = true;
+    const hadStateUser = !!this.viewedUser;
+    this.viewedUserError = '';
+    try {
+      const remote = await this.auth.getUserProfileByEmail(email);
+      if (!remote) {
+        if (!hadStateUser) {
+          this.viewedUser = null;
+          this.viewedUserError = 'Player profile not found.';
+        }
+        return;
+      }
+      this.viewedUser = {
+        email,
+        displayName: (remote as any).displayName || email.split('@')[0] || 'Player',
+        role: (remote as any).role || 'Player',
+        photoURL: (remote as any).photoURL || '',
+        gold: Number.isFinite(Number((remote as any).gold)) ? Number((remote as any).gold) : 0,
+        inventory: Array.isArray((remote as any).inventory) ? (remote as any).inventory.slice() : [],
+      };
+      this.nameValue = this.viewedUser.displayName || '';
+      this.profilePreview = this.viewedUser.photoURL || null;
+      this.inventory = this.viewedUser.inventory || [];
+    } catch (e: any) {
+      if (!hadStateUser) {
+        this.viewedUser = null;
+        this.viewedUserError = e?.message || 'Failed to load player profile.';
+      } else {
+        this.viewedUserError = '';
+      }
+    } finally {
+      this.loadingViewedUser = false;
+    }
+  }
+
+  private getStateViewedUser(): any | null {
+    try {
+      const st: any = history.state;
+      if (st && st.leaderboardUser && st.leaderboardUser.email) {
+        return st.leaderboardUser;
+      }
+      return null;
+    } catch {
+      return null;
     }
   }
 }

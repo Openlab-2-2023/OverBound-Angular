@@ -8,6 +8,14 @@
 		</div>
 
 		<form (submit)="submit(); $event.preventDefault();">
+			@if (mode === 'register') {
+				<div class="field">
+					<label>Username</label>
+					<input type="text" [(ngModel)]="username" name="username" placeholder="Choose username" [disabled]="loading" />
+				</div>
+				<div class="field-divider" aria-hidden="true"></div>
+			}
+
 			<div class="field">
 				<label>Email</label>
 				<input type="email" [(ngModel)]="email" name="email" placeholder="you@example.com" [disabled]="loading" />

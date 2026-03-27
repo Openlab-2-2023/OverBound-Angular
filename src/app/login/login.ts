@@ -13,6 +13,7 @@ import { AuthService } from '../services/auth.service';
 })
 export class Login {
   mode: 'login' | 'register' = 'login';
+  username = '';
   email = '';
   password = '';
   message = '';
@@ -35,7 +36,7 @@ export class Login {
         if (!res.ok) { this.message = res.message || 'Login failed.'; return; }
         this.router.navigate(['/']);
       } else {
-        const res = await this.auth.register(this.email, this.password);
+        const res = await this.auth.register(this.email, this.password, this.username);
         if (!res.ok) { this.message = res.message || 'Register failed.'; return; }
         this.router.navigate(['/']);
       }
@@ -44,7 +45,11 @@ export class Login {
     }
   }
 
-  switchMode(m: 'login'|'register') { this.mode = m; this.message = ''; }
+  switchMode(m: 'login'|'register') {
+    this.mode = m;
+    this.message = '';
+    if (m === 'login') this.username = '';
+  }
   goBack() { this.router.navigate(['/']); }
   
 }

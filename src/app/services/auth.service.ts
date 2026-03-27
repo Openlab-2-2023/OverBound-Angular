@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { isFirebaseEnabled, initFirebaseIfNeeded, getAuthInstance, saveUserToFirestore, fetchUserFromFirestore, authCreateUser, authSignIn, authSignOut, authUpdatePassword, authUpdateUserProfile } from './firebase.init';
+import { isFirebaseEnabled, initFirebaseIfNeeded, getAuthInstance, saveUserToFirestore, fetchUserFromFirestore, fetchAllUsersFromFirestore, subscribeAllUsersFromFirestore, authCreateUser, authSignIn, authSignOut, authUpdatePassword, authUpdateUserProfile, diagnoseFirestoreUserCollections } from './firebase.init';
 
 export type Role = 'Admin' | 'Player';
 export interface User {
@@ -94,19 +94,23 @@ export class AuthService {
   
   // SDK-based Firebase helpers are used from firebase.init.ts
 //register
-  async register(email: string, password: string): Promise<{ ok: boolean; message?: string }> {
+  async register(email: string, password: string, username?: string): Promise<{ ok: boolean; message?: string }> {
     email = email.trim().toLowerCase();
+    username = String(username || '').trim();
     if (!email || !password) return { ok: false, message: 'Email and password are required.' };
+    if (!username) return { ok: false, message: 'Username is required.' };
+    if (username.length < 3) return { ok: false, message: 'Username must be at least 3 characters.' };
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { ok: false, message: 'Invalid email.' };
     if (this.users.find(u => u.email === email)) return { ok: false, message: 'Email already registered.' };
     // if email matches admin defaults, promote to admin
     const role: Role = this.adminEmails.includes(email) ? 'Admin' : 'Player';
-    const username = email.split('@')[0];
-    const user: User = { username, email, password, role, displayName: '', photoURL: '', gold: 0, inventory: [] };
+    const safeUsername = username;
+    const user: User = { username: safeUsername, email, password, role, displayName: safeUsername, photoURL: '', gold: 0, inventory: [] };
     // If Firebase Auth is enabled, create the auth user first
     if (isFirebaseEnabled()) {
       try {
         await authCreateUser(email, password);
+        await authUpdateUserProfile({ displayName: safeUsername });
       } catch (e: any) {
         return { ok: false, message: e?.message || 'Firebase auth failed' };
       }
@@ -288,4 +292,125 @@ export class AuthService {
   isLoggedIn(): boolean { return this.current !== null; }
   getCurrent(): User | null { return this.current ? { ...this.current } : null; }
   isAdmin(): boolean { return this.current?.role === 'Admin'; }
+
+  getLeaderboardUsers(): Array<{ email: string; displayName: string; gold: number; role: Role; photoURL?: string }> {
+    const seen = new Set<string>();
+    return this.users
+      .filter((u) =>
+        !!u.email &&
+        /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(u.email) &&
+        (u.role || 'Player') === 'Player' &&
+        !!u.password,
+      )
+      .filter((u) => {
+        const key = u.email.toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .map((u) => ({
+        email: u.email,
+        displayName: u.displayName || u.username || u.email.split('@')[0],
+        gold: typeof u.gold === 'number' ? u.gold : 0,
+        role: u.role || 'Player',
+        photoURL: u.photoURL || '',
+      }));
+  }
+
+  async getLeaderboardUsersFromDatabase(): Promise<Array<{ email: string; displayName: string; gold: number; role: Role; photoURL?: string }>> {
+    if (!isFirebaseEnabled()) return [];
+    let remoteUsers: any[] = [];
+    remoteUsers = await fetchAllUsersFromFirestore();
+    const mapped = this.mapLeaderboardUsers(remoteUsers);
+    return mapped;
+  }
+
+  async subscribeLeaderboardUsers(
+    onUsers: (users: Array<{ email: string; displayName: string; gold: number; role: Role; photoURL?: string }>) => void,
+    onError?: (error: any) => void,
+  ) {
+    if (!isFirebaseEnabled()) {
+      onUsers([]);
+      return () => {};
+    }
+    const unsubscribe = await subscribeAllUsersFromFirestore(
+      (remoteUsers: any[]) => {
+        const mapped = this.mapLeaderboardUsers(remoteUsers);
+        onUsers(mapped);
+      },
+      (err: any) => {
+        if (onError) onError(err);
+      },
+    );
+    return unsubscribe;
+  }
+
+  async waitForFirebaseAuthReady(timeoutMs: number = 5000): Promise<void> {
+    if (!isFirebaseEnabled()) return;
+    try {
+      await initFirebaseIfNeeded();
+      const auth = getAuthInstance();
+      if (!auth) return;
+      const { onAuthStateChanged } = await import('firebase/auth');
+      await Promise.race([
+        new Promise<void>((resolve) => {
+          const unsub = onAuthStateChanged(auth, () => {
+            try { unsub(); } catch { /* ignore */ }
+            resolve();
+          });
+        }),
+        new Promise<void>((resolve) => setTimeout(resolve, timeoutMs)),
+      ]);
+    } catch {
+      // non-blocking: if auth readiness fails, caller can still attempt reads
+    }
+  }
+
+  async getLeaderboardDiagnostics(): Promise<string> {
+    if (!isFirebaseEnabled()) return 'Firebase disabled';
+    try {
+      return await diagnoseFirestoreUserCollections();
+    } catch (e: any) {
+      return `Diagnostics failed: ${e?.message || 'unknown error'}`;
+    }
+  }
+
+  private mapLeaderboardUsers(remoteUsers: any[]): Array<{ email: string; displayName: string; gold: number; role: Role; photoURL?: string }> {
+    const seen = new Set<string>();
+    return remoteUsers
+      .filter((u: any) => !!u && typeof u === 'object')
+      .map((u: any) => {
+        const rawDocId = String(u.__docId || '').trim();
+        const rawEmail = String(u.email || '').trim();
+        let id = rawEmail || rawDocId;
+        if (!id) id = `user-${Math.random().toString(36).slice(2, 10)}`;
+        try {
+          id = decodeURIComponent(id);
+        } catch { /* keep raw id */ }
+        const emailLike = id.includes('@') ? id.toLowerCase() : id;
+        const nameFromId = emailLike.includes('@') ? emailLike.split('@')[0] : emailLike;
+        return {
+          _id: emailLike,
+          email: emailLike,
+          displayName: String(u.displayName || u.username || nameFromId || 'Player'),
+          gold: Number.isFinite(Number(u.gold)) ? Number(u.gold) : 0,
+          role: (String(u.role || 'Player') === 'Admin' ? 'Admin' : 'Player') as Role,
+          photoURL: String(u.photoURL || ''),
+        };
+      })
+      .filter((u) => {
+        if (seen.has(u._id)) return false;
+        seen.add(u._id);
+        return true;
+      })
+      .map(({ _id, ...rest }) => rest);
+  }
+
+  async getUserProfileByEmail(email: string): Promise<Partial<User> | null> {
+    const normalized = String(email || '').trim().toLowerCase();
+    if (!normalized || !isFirebaseEnabled()) return null;
+    const remote = await fetchUserFromFirestore(normalized);
+    if (!remote) return null;
+    return { email: normalized, ...(remote as any) };
+  }
 }

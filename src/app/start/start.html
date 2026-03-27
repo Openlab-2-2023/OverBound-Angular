@@ -14,13 +14,61 @@
     <div class="controls-row" #controlsRow>
 
       <div class="Leaderboard-wrapper">
-      <div class="LeaderBoard">
+      <div class="LeaderBoard auto-scroll">
         <div class="leader-header">
           <h4 class="leader-title">Leaderboard</h4>
+          <div class="leader-filter-wrap">
+            <button class="leader-filter-btn" type="button" (click)="toggleLeaderboardFilter()">
+              {{ leaderboardFilterLabel }}
+              <span class="leader-filter-caret">{{ leaderboardFilterOpen ? '▲' : '▼' }}</span>
+            </button>
+            @if (leaderboardFilterOpen) {
+              <div class="leader-filter-menu">
+                <button class="leader-filter-item" type="button" (click)="selectLeaderboardFilter('gold-desc')">
+                  Most Gold
+                </button>
+              </div>
+            }
+          </div>
         </div>
         <div class="divider"></div>
         <div class="leader-content">
-          <!-- Leaderboard entries go here -->
+          @if (leaderboardError) {
+            <p class="leader-empty">{{ leaderboardError }}</p>
+          } @else if (filteredLeaderboard.length > 0) {
+            <div class="leader-list">
+              <div
+                class="leader-row"
+                *ngFor="let player of filteredLeaderboard; let i = index"
+                [class.top-1]="i === 0"
+                [class.top-2]="i === 1"
+                [class.top-3]="i === 2"
+              >
+                <span class="leader-rank">#{{ i + 1 }}</span>
+                <div class="leader-avatar" (click)="openLeaderboardProfile(player, $event)">
+                  @if (player.photoURL) {
+                    <img [src]="player.photoURL" alt="Avatar" />
+                  } @else {
+                    <span>{{ (player.displayName || '?').charAt(0).toUpperCase() }}</span>
+                  }
+                </div>
+                <button class="leader-name" type="button" (click)="openLeaderboardProfile(player, $event)">{{ player.displayName }}</button>
+                <span class="leader-gold"><span class="gold-value">{{ player.gold }}</span> <span class="gold-icon">◈</span></span>
+                <button class="leader-view" type="button" title="View player" (click)="openLeaderboardProfile(player, $event)">></button>
+              </div>
+            </div>
+          } @else {
+            <div class="leader-loading" aria-live="polite">
+              <span class="btn-loading">
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+              </span>
+            </div>
+            @if (leaderboardHint) {
+              <p class="leader-empty-hint">{{ leaderboardHint }}</p>
+            }
+          }
         </div>
       </div>
       </div>
@@ -32,10 +80,10 @@
       </div>
 
       
-      <div class="Store">
+      <div class="Store auto-scroll">
         <div class="store-header">
           <h4 class="store-title">Store</h4>
-          <div class="currency">0 <span class="coin">◈</span></div>
+          <div class="currency">{{ storeGold }} <span class="coin">◈</span></div>
         </div>
         <div class="divider"></div>
         <div class="store-content">
@@ -53,21 +101,22 @@
   <!-- Settings overlay -->
   @if (showSettings()) {
     <div class="settings-backdrop" (click)="closeSettings()">
-      <div class="settings-modal" [ngStyle]="modalStyle" (click)="$event.stopPropagation()">
+      <div class="settings-modal" (click)="$event.stopPropagation()">
         <div class="settings-header">
           <h3>Settings</h3>
           <button class="close-btn" (click)="closeSettings()">✕</button>
         </div>
-        <div class="settings-body">
+        <div class="settings-body auto-scroll">
           <h4>Controls</h4>
-          <div class="keybinds">
-            <p>Key bindings:</p>
-            <p>A,D - MOVE</p>
-            <p>W/SPACE - JUMP</p> 
-            <p>S - CROUCH</p>
-            <p>S + W/SPACE - SUPER JUMP</p>
-            <p>O - DASH</p>
-            <p>E - ENTER PORTAL</p>
+          <div class="controls-panel">
+            <p class="controls-title">Key bindings</p>
+            <ul class="controls-list">
+              <li><span>A, D</span><span>Move</span></li>
+              <li><span>W / Space</span><span>Jump</span></li>
+              <li><span>S</span><span>Crouch</span></li>
+              <li><span>S + W / Space</span><span>Super Jump</span></li>
+              <li><span>O</span><span>Dash</span></li>
+            </ul>
           </div>
         </div>
       </div>
@@ -77,13 +126,13 @@
   <!-- Credits overlay -->
   @if (showCredits()) {
     <div class="credits-backdrop" (click)="closeCredits()">
-      <div class="credits-modal" [ngStyle]="creditsModalStyle" (click)="$event.stopPropagation()">
+      <div class="credits-modal" (click)="$event.stopPropagation()">
         <div class="credits-header">
           <h3>Credits</h3>
           <button class="close-btn" (click)="closeCredits()">✕</button>
         </div>
-        <div class="credits-body">
-          <div class="Credits">
+        <div class="credits-body auto-scroll">
+          <div class="Credits auto-scroll">
             <h1>Credits:</h1>
             <h3>Hlavny developer:</h3>
             <p>Samuel Bojko</p>
