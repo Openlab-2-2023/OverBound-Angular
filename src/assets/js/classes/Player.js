@@ -62,6 +62,7 @@ class Player extends Sprite  {
     this.collisionBlocks = collisionBlocks
 
     this.isTransitioningLevel = false
+    this.nearNpc = false
 
   }
   update() {  
@@ -257,7 +258,8 @@ detectRisk() {
 
 detectEnemy() {
     // temporary immunity: ignore new hits while invulnerable
-    if (player.invulnerableFrames > 0) return
+    // also ignore enemy hits while near an NPC so talking isn't interrupted
+    if (player.invulnerableFrames > 0 || player.nearNpc) return
 
     for(let i = 0; i < enemies.length; i++) {
       const enemy = enemies[i]
@@ -334,6 +336,9 @@ detectNpc() {
     if (!npcNearby) {
       npcDialog.active = false;
     }
+
+    // remember for this frame so enemy detection can skip knockback while talking
+    player.nearNpc = npcNearby;
 }
 
 detectCloud() {
