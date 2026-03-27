@@ -19,7 +19,7 @@ export class AuthService {
   private storageCurrentKey = 'ob_current_user_v1';
   private users: User[] = [];
   private current: User | null = null;
-  private adminEmails: string[] = ['sebokubinec7@gmail.com', 'bojkosam1@gmail.com'];
+  private adminEmails: string[] = ['sebokubinec7@gmail.com', 'bojkosam@gmail.com'];
 
   constructor() {
     const raw = localStorage.getItem(this.storageUsersKey);
@@ -54,7 +54,7 @@ export class AuthService {
 
     // If Firebase Auth is enabled, initialize SDK and listen for auth state changes
     (async () => {
-      if (!isFirebaseEnabled()) return;
+      if (!isFirebaseEnabled()) return;  
       try {
         await initFirebaseIfNeeded();
         const auth = getAuthInstance();
