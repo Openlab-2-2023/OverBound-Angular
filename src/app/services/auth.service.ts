@@ -219,32 +219,63 @@ export class AuthService {
     return { ok: true };
   }
 
-  updateProfile(updates: Partial<User>): { ok: boolean; message?: string } {
+  async updateProfile(
+    updates: Partial<User>,
+    options?: { waitForCloud?: boolean; cloudTimeoutMs?: number },
+  ): Promise<{ ok: boolean; message?: string }> {
     if (!this.current) return { ok: false, message: 'Not logged in' };
+    const email = this.current.email;
     this.current = { ...this.current, ...updates } as User;
     const idx = this.users.findIndex(u => u.email === this.current!.email);
     if (idx >= 0) this.users[idx] = { ...this.users[idx], ...updates } as User;
     this.saveUsers();
     this.saveCurrent();
-    if (isFirebaseEnabled()) {
-      // update Firestore and Firebase Auth profile
-      saveUserToFirestore(this.current!).catch(() => {});
-      (async () => {
-        try {
-          const authUpdates: any = {};
-          if (updates.displayName) authUpdates.displayName = updates.displayName;
-          if (updates.photoURL) authUpdates.photoURL = updates.photoURL;
-          if (Object.keys(authUpdates).length > 0) {
-            await authUpdateUserProfile(authUpdates);
-          }
-        } catch (e) {
-          // ignore auth profile update errors
-        }
-      })();
-    }
     // dispatch a DOM event so UI components can react to updated profile
     try { window.dispatchEvent(new CustomEvent('ob:user-updated', { detail: this.getCurrent() })); } catch {}
+    // Keep UI snappy: sync to Firebase in background instead of blocking user flow.
+    if (isFirebaseEnabled()) {
+      if (options?.waitForCloud) {
+        const timeoutMs = Math.max(1000, options.cloudTimeoutMs ?? 4500);
+        const syncPromise = this.syncProfileToFirebase(email, updates);
+        try {
+          await Promise.race([
+            syncPromise,
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Cloud sync timeout')), timeoutMs),
+            ),
+          ]);
+        } catch (e: any) {
+          // If cloud is just slow, keep syncing in background and don't block UX.
+          if (String(e?.message || '').includes('Cloud sync timeout')) {
+            syncPromise.catch((err) => console.warn('Background profile sync failed', err));
+            return { ok: true, message: 'Saved locally. Cloud sync is still running.' };
+          }
+          return { ok: false, message: e?.message || 'Failed to sync profile to Firebase' };
+        }
+      } else {
+        this.syncProfileToFirebase(email, updates).catch((e) => {
+          console.warn('Background profile sync failed', e);
+        });
+      }
+    }
     return { ok: true };
+  }
+
+  private async syncProfileToFirebase(email: string, updates: Partial<User>) {
+    await saveUserToFirestore({ email, ...updates });
+    const authUpdates: any = {};
+    if (updates.displayName) authUpdates.displayName = updates.displayName;
+    // Firebase Auth profile photoURL has strict limits; skip long/data URLs.
+    if (
+      updates.photoURL &&
+      !updates.photoURL.startsWith('data:') &&
+      updates.photoURL.length < 900
+    ) {
+      authUpdates.photoURL = updates.photoURL;
+    }
+    if (Object.keys(authUpdates).length > 0) {
+      await authUpdateUserProfile(authUpdates);
+    }
   }
 
   async logout() { 

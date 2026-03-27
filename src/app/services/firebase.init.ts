@@ -113,13 +113,14 @@ export async function authUpdateUserProfile(updates: { displayName?: string; pho
 export async function saveUserToFirestore(user: any) {
   if (!isFirebaseEnabled()) return;
   await initFirebaseIfNeeded();
-  if (!_firestore) return;
+  if (!_firestore) throw new Error('Firestore is not initialized');
   try {
     const { doc, setDoc } = await import('firebase/firestore');
-    const ref = doc(_firestore, 'users', encodeURIComponent(user.email));
+    const ref = doc(_firestore, 'users', user.email);
     await setDoc(ref, user, { merge: true });
   } catch (e) {
     console.warn('saveUserToFirestore failed', e);
+    throw e;
   }
 }
 
@@ -129,11 +130,29 @@ export async function fetchUserFromFirestore(email: string) {
   if (!_firestore) return null;
   try {
     const { doc, getDoc } = await import('firebase/firestore');
-    const ref = doc(_firestore, 'users', encodeURIComponent(email));
+    const ref = doc(_firestore, 'users', email);
     const snap = await getDoc(ref);
     return snap.exists() ? snap.data() : null;
   } catch (e) {
     console.warn('fetchUserFromFirestore failed', e);
     return null;
+  }
+}
+
+export async function uploadFileToStorage(file: File, destPath?: string) {
+  if (!isFirebaseEnabled()) throw new Error('Firebase not enabled');
+  await initFirebaseIfNeeded();
+  try {
+    const storageMod = await import('firebase/storage');
+    const { getStorage, ref, uploadBytes, getDownloadURL } = storageMod;
+    const storage = getStorage();
+    const path = destPath || `user_uploads/${encodeURIComponent((file.name || 'upload'))}_${Date.now()}`;
+    const storageRef = ref(storage, path);
+    const uploadRes = await uploadBytes(storageRef, file as any);
+    const url = await getDownloadURL(uploadRes.ref);
+    return url;
+  } catch (e) {
+    console.warn('uploadFileToStorage failed', e);
+    throw e;
   }
 }

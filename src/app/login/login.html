@@ -22,12 +22,16 @@
 
 			<div class="actions">
 				<button type="submit" class="submit-btn" [disabled]="loading">
-					<span *ngIf="!loading">{{ mode === 'login' ? 'Login' : 'Register' }}</span>
-					<span *ngIf="loading" class="btn-loading">
-						<span class="dot"></span>
-						<span class="dot"></span>
-						<span class="dot"></span>
-					</span>
+					@if (!loading) {
+						<span>{{ mode === 'login' ? 'Login' : 'Register' }}</span>
+					}
+					@if (loading) {
+						<span class="btn-loading">
+							<span class="dot"></span>
+							<span class="dot"></span>
+							<span class="dot"></span>
+						</span>
+					}
 				</button>
 				<button type="button" class="back-btn" (click)="goBack()" [disabled]="loading">Back</button>
 			</div>
