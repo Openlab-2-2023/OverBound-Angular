@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { isFirebaseEnabled, initFirebaseIfNeeded, getAuthInstance, saveUserToFirestore, fetchUserFromFirestore, authCreateUser, authSignIn, authSignOut, authUpdatePassword } from './firebase.init';
+import { isFirebaseEnabled, initFirebaseIfNeeded, getAuthInstance, saveUserToFirestore, fetchUserFromFirestore, authCreateUser, authSignIn, authSignOut, authUpdatePassword, authUpdateUserProfile } from './firebase.init';
 
 export type Role = 'Admin' | 'Player';
 export interface User {
@@ -124,12 +124,7 @@ export class AuthService {
     email = email.trim().toLowerCase();
     // If Firebase Auth is enabled, use it for sign in
     if (isFirebaseEnabled()) {
-      try {
-        await authSignIn(email, password);
-      } catch (e: any) {
-        return { ok: false, message: e?.message || 'Invalid credentials.' };
-      }
-      // fetch profile from Firestore and merge into local storage
+      // sign in once and get credential+user
       let fbUser: any = null;
       try {
         const cred = await authSignIn(email, password);
@@ -231,7 +226,24 @@ export class AuthService {
     if (idx >= 0) this.users[idx] = { ...this.users[idx], ...updates } as User;
     this.saveUsers();
     this.saveCurrent();
-    if (isFirebaseEnabled()) saveUserToFirestore(this.current!).catch(() => {});
+    if (isFirebaseEnabled()) {
+      // update Firestore and Firebase Auth profile
+      saveUserToFirestore(this.current!).catch(() => {});
+      (async () => {
+        try {
+          const authUpdates: any = {};
+          if (updates.displayName) authUpdates.displayName = updates.displayName;
+          if (updates.photoURL) authUpdates.photoURL = updates.photoURL;
+          if (Object.keys(authUpdates).length > 0) {
+            await authUpdateUserProfile(authUpdates);
+          }
+        } catch (e) {
+          // ignore auth profile update errors
+        }
+      })();
+    }
+    // dispatch a DOM event so UI components can react to updated profile
+    try { window.dispatchEvent(new CustomEvent('ob:user-updated', { detail: this.getCurrent() })); } catch {}
     return { ok: true };
   }
 
