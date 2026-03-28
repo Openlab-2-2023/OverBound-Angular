@@ -128,10 +128,60 @@ export async function saveUserToFirestore(user: any) {
   if (!_firestore) throw new Error('Firestore is not initialized');
   try {
     const { doc, setDoc } = await import('firebase/firestore');
-    const ref = doc(_firestore, 'users', user.email);
-    await setDoc(ref, user, { merge: true });
+    const email = String(user?.email || '').trim().toLowerCase();
+    if (!email) throw new Error('User email is required');
+    const ref = doc(_firestore, 'users', email);
+    await setDoc(ref, { ...user, email }, { merge: true });
   } catch (e) {
     console.warn('saveUserToFirestore failed', e);
+    throw e;
+  }
+}
+
+export async function authSendPasswordResetEmail(
+  email: string,
+  actionCodeSettings?: { url: string; handleCodeInApp?: boolean },
+) {
+  await initFirebaseIfNeeded();
+  if (!_auth) throw new Error('Firebase Auth not initialized');
+  try {
+    const { sendPasswordResetEmail } = await import('firebase/auth');
+    const normalized = String(email || '').trim().toLowerCase();
+    if (!normalized) throw new Error('Email is required');
+    await sendPasswordResetEmail(_auth, normalized, actionCodeSettings as any);
+    return true;
+  } catch (e) {
+    console.warn('authSendPasswordResetEmail failed', e);
+    throw e;
+  }
+}
+
+export async function authVerifyPasswordResetCode(code: string) {
+  await initFirebaseIfNeeded();
+  if (!_auth) throw new Error('Firebase Auth not initialized');
+  try {
+    const { verifyPasswordResetCode } = await import('firebase/auth');
+    const normalized = String(code || '').trim();
+    if (!normalized) throw new Error('Reset code is required');
+    return await verifyPasswordResetCode(_auth, normalized);
+  } catch (e) {
+    console.warn('authVerifyPasswordResetCode failed', e);
+    throw e;
+  }
+}
+
+export async function authConfirmPasswordReset(code: string, newPassword: string) {
+  await initFirebaseIfNeeded();
+  if (!_auth) throw new Error('Firebase Auth not initialized');
+  try {
+    const { confirmPasswordReset } = await import('firebase/auth');
+    const normalizedCode = String(code || '').trim();
+    if (!normalizedCode) throw new Error('Reset code is required');
+    if (!newPassword) throw new Error('New password is required');
+    await confirmPasswordReset(_auth, normalizedCode, newPassword);
+    return true;
+  } catch (e) {
+    console.warn('authConfirmPasswordReset failed', e);
     throw e;
   }
 }
@@ -142,7 +192,9 @@ export async function fetchUserFromFirestore(email: string) {
   if (!_firestore) return null;
   try {
     const { doc, getDoc } = await import('firebase/firestore');
-    const ref = doc(_firestore, 'users', email);
+    const normalized = String(email || '').trim().toLowerCase();
+    if (!normalized) return null;
+    const ref = doc(_firestore, 'users', normalized);
     const snap = await getDoc(ref);
     return snap.exists() ? snap.data() : null;
   } catch (e) {

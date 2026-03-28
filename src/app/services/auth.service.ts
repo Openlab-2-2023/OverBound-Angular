@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { isFirebaseEnabled, initFirebaseIfNeeded, getAuthInstance, saveUserToFirestore, fetchUserFromFirestore, fetchAllUsersFromFirestore, subscribeAllUsersFromFirestore, authCreateUser, authSignIn, authSignOut, authUpdatePassword, authUpdateUserProfile, diagnoseFirestoreUserCollections } from './firebase.init';
+import { isFirebaseEnabled, initFirebaseIfNeeded, getAuthInstance, saveUserToFirestore, fetchUserFromFirestore, fetchAllUsersFromFirestore, subscribeAllUsersFromFirestore, authCreateUser, authSignIn, authSignOut, authUpdatePassword, authUpdateUserProfile, diagnoseFirestoreUserCollections, authSendPasswordResetEmail, authVerifyPasswordResetCode, authConfirmPasswordReset } from './firebase.init';
 
 export type Role = 'Admin' | 'Player';
 export interface User {
@@ -91,6 +91,48 @@ export class AuthService {
     if (this.current) localStorage.setItem(this.storageCurrentKey, JSON.stringify(this.current));
     else localStorage.removeItem(this.storageCurrentKey);
   }
+
+  private withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) => setTimeout(() => reject(new Error(message)), timeoutMs)),
+    ]);
+  }
+
+  private getAuthErrorMessage(error: any, fallback: string): string {
+    const code = String(error?.code || '');
+    switch (code) {
+      case 'auth/invalid-credential':
+      case 'auth/wrong-password':
+      case 'auth/user-not-found':
+        return 'Wrong email or password.';
+      case 'auth/invalid-email':
+        return 'Invalid email.';
+      case 'auth/email-already-in-use':
+        return 'Email already registered.';
+      case 'auth/weak-password':
+        return 'Password is too weak.';
+      case 'auth/missing-password':
+        return 'Password is required.';
+      case 'auth/missing-email':
+        return 'Email is required.';
+      case 'auth/expired-action-code':
+      case 'auth/invalid-action-code':
+        return 'Reset code is invalid or expired.';
+      case 'auth/too-many-requests':
+        return 'Too many attempts. Please try again later.';
+      case '':
+        if (String(error?.message || '') === 'Reset verification timed out.') {
+          return 'Verification took too long. Please try again.';
+        }
+        if (String(error?.message || '') === 'Password reset timed out.') {
+          return 'Password reset took too long. Please try again.';
+        }
+        return fallback;
+      default:
+        return fallback;
+    }
+  }
   
   // SDK-based Firebase helpers are used from firebase.init.ts
 //register
@@ -112,15 +154,20 @@ export class AuthService {
         await authCreateUser(email, password);
         await authUpdateUserProfile({ displayName: safeUsername });
       } catch (e: any) {
-        return { ok: false, message: e?.message || 'Firebase auth failed' };
+        return { ok: false, message: this.getAuthErrorMessage(e, 'Registration failed.') };
       }
     }
     this.users.push(user);
     this.saveUsers();
     this.current = { ...user };
     this.saveCurrent();
-    // persist to Firestore (fire-and-forget)
-    if (isFirebaseEnabled()) saveUserToFirestore(user).catch(() => {});
+    if (isFirebaseEnabled()) {
+      try {
+        await saveUserToFirestore(user);
+      } catch (e: any) {
+        return { ok: false, message: e?.message || 'Failed to create Firestore user profile.' };
+      }
+    }
     return { ok: true };
   }
 //login ked uz si bol raz prihlaseny a chces sa prihlasit znova, tak sa ti to podari len ak zadavas spravne heslo, inak ti to napise ze neplatne udaje
@@ -134,7 +181,7 @@ export class AuthService {
         const cred = await authSignIn(email, password);
         fbUser = cred && (cred as any).user ? (cred as any).user : null;
       } catch (e: any) {
-        return { ok: false, message: e?.message || 'Invalid credentials.' };
+        return { ok: false, message: this.getAuthErrorMessage(e, 'Wrong email or password.') };
       }
 
       try {
@@ -193,6 +240,69 @@ export class AuthService {
     return { ok: true };
   }
 
+  async forgotPassword(email: string): Promise<{ ok: boolean; message?: string }> {
+    const normalized = String(email || '').trim().toLowerCase();
+    if (!normalized) return { ok: false, message: 'Email is required.' };
+    if (!isFirebaseEnabled()) return { ok: false, message: 'Password reset is only available with Firebase Auth enabled.' };
+    try {
+      const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://overbound-angular.web.app';
+      await authSendPasswordResetEmail(normalized, {
+        url: `${baseUrl}/login`,
+        handleCodeInApp: false,
+      });
+      return { ok: true, message: 'Password reset email sent. Click the link in the email to open the reset page directly.' };
+    } catch (e: any) {
+      return { ok: false, message: this.getAuthErrorMessage(e, 'Failed to send password reset email.') };
+    }
+  }
+
+  async verifyResetCode(code: string): Promise<{ ok: boolean; email?: string; message?: string }> {
+    const normalized = String(code || '').trim();
+    if (!normalized) return { ok: false, message: 'Reset code is required.' };
+    if (!isFirebaseEnabled()) return { ok: false, message: 'Password reset is only available with Firebase Auth enabled.' };
+    try {
+      const email = await this.withTimeout(
+        authVerifyPasswordResetCode(normalized),
+        8000,
+        'Reset verification timed out.',
+      );
+      return { ok: true, email };
+    } catch (e: any) {
+      return { ok: false, message: this.getAuthErrorMessage(e, 'Reset code is invalid or expired.') };
+    }
+  }
+
+  async resetPassword(code: string, newPassword: string): Promise<{ ok: boolean; message?: string }> {
+    const normalizedCode = String(code || '').trim();
+    if (!normalizedCode) return { ok: false, message: 'Reset code is required.' };
+    if (!newPassword) return { ok: false, message: 'New password is required.' };
+    if (!isFirebaseEnabled()) return { ok: false, message: 'Password reset is only available with Firebase Auth enabled.' };
+    try {
+      const email = await this.withTimeout(
+        authVerifyPasswordResetCode(normalizedCode),
+        8000,
+        'Reset verification timed out.',
+      );
+      await this.withTimeout(
+        authConfirmPasswordReset(normalizedCode, newPassword),
+        10000,
+        'Password reset timed out.',
+      );
+      const localIdx = this.users.findIndex(u => u.email === email.toLowerCase());
+      if (localIdx >= 0) {
+        this.users[localIdx].password = newPassword;
+        this.saveUsers();
+      }
+      if (this.current?.email === email.toLowerCase()) {
+        this.current = { ...this.current, password: newPassword };
+        this.saveCurrent();
+      }
+      return { ok: true, message: 'Password reset successful. You can log in with your new password now.' };
+    } catch (e: any) {
+      return { ok: false, message: this.getAuthErrorMessage(e, 'Failed to reset password.') };
+    }
+  }
+
   async changePassword(currentPassword: string, newPassword: string): Promise<{ ok: boolean; message?: string }> {
     if (!this.current) return { ok: false, message: 'Not logged in' };
     const email = this.current.email;
@@ -200,7 +310,7 @@ export class AuthService {
       try {
         await authUpdatePassword(email, currentPassword, newPassword);
       } catch (e: any) {
-        return { ok: false, message: e?.message || 'Password update failed' };
+        return { ok: false, message: this.getAuthErrorMessage(e, 'Password update failed') };
       }
       // update local store and Firestore
       const idx = this.users.findIndex(u => u.email === email);
