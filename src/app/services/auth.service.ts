@@ -403,6 +403,7 @@ export class AuthService {
   getCurrent(): User | null { return this.current ? { ...this.current } : null; }
   isAdmin(): boolean { return this.current?.role === 'Admin'; }
 
+
   getLeaderboardUsers(): Array<{ email: string; displayName: string; gold: number; role: Role; photoURL?: string }> {
     const seen = new Set<string>();
     return this.users

@@ -57,6 +57,7 @@ export class Start implements OnInit, OnDestroy {
       window.removeEventListener('ob:user-updated', this.onUserUpdatedListener);
       this.onUserUpdatedListener = null;
     }
+    
     if (this.onScrollRevealListener) {
       document.removeEventListener('scroll', this.onScrollRevealListener, true);
       this.onScrollRevealListener = null;

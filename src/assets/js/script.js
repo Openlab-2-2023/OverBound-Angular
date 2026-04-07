@@ -1,4 +1,7 @@
 var canvas, c, t;
+// simple HUD state for recent gold gains
+var goldGainFx = [];
+
 function startGame() {
   canvas = window.canvas;
 
@@ -9,6 +12,47 @@ function startGame() {
 
   canvas.width = screen.width;
   canvas.height = screen.height;
+
+  // expose HUD helpers if needed from other scripts
+  window._addGoldGainFx = function (amount) {
+    if (!canvas) return;
+    const now = performance.now ? performance.now() : Date.now();
+    goldGainFx.push({
+      amount: amount,
+      startTime: now,
+      duration: 1000, // ms
+    });
+  };
+
+  function drawGoldGainFx() {
+    if (!goldGainFx.length) return;
+    const now = performance.now ? performance.now() : Date.now();
+    const keep = [];
+
+    for (var i = 0; i < goldGainFx.length; i++) {
+      var fx = goldGainFx[i];
+      var elapsed = now - fx.startTime;
+      if (elapsed >= fx.duration) {
+        continue;
+      }
+      keep.push(fx);
+
+      var tNorm = elapsed / fx.duration; // 0..1
+      var alpha = 1 - tNorm;
+      var offsetY = tNorm * 30; // float upward
+
+      c.save();
+      c.setTransform(1, 0, 0, 1, 0, 0);
+      c.globalAlpha = alpha;
+      c.fillStyle = '#ffd84a';
+      c.font = '32px Arial';
+      var text = '+' + fx.amount + ' ◈';
+      c.fillText(text, 24, 40 - offsetY);
+      c.restore();
+    }
+
+    goldGainFx = keep;
+  }
 
   // console.log(screen.width)
   // console.log(screen.height)
@@ -81,6 +125,9 @@ function startGame() {
     if (typeof drawNpcDialogBar === 'function') {
       drawNpcDialogBar();
     }
+
+    // HUD overlays (screen space)
+    drawGoldGainFx();
 
     c.save();
     c.setTransform(1, 0, 0, 1, 0, 0);

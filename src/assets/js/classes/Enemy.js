@@ -188,6 +188,15 @@ class Enemy extends Sprite {
     this.hitsTaken++
     if (this.hitsTaken >= this.maxHits) {
       this.isDead = true
+
+      // notify Angular app (if hooked) that an enemy was killed
+      try {
+        if (typeof window !== 'undefined' && typeof window.onEnemyKilled === 'function') {
+          window.onEnemyKilled()
+        }
+      } catch (e) {
+        // ignore errors from reward handler
+      }
     }
   }
 
@@ -272,8 +281,6 @@ class Enemy extends Sprite {
     }
   }
 }
-
-
 
 
 
