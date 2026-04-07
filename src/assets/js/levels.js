@@ -14,7 +14,7 @@ const overlay = {
   opacity: 0
 }
 const kolagen = new Kolagen()
-let level = 1
+let level = 2
 let levels = {
   1: { 
     tileCount: 77,
@@ -202,7 +202,8 @@ let levels = {
           patrolCenterX: 2800,
           patrolRange: 900, 
           patrolDirection: 1, 
-          patrolSpeed: 5
+          patrolSpeed: 5,
+          health: 3
         })
       ]
       animals = [

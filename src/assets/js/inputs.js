@@ -20,6 +20,9 @@ let keys = {
   o: {
     pressed: false,
   },
+  i: {
+    pressed: false,
+  },
 };
 
 window.addEventListener("keydown", (event) => {
@@ -75,6 +78,15 @@ window.addEventListener("keydown", (event) => {
       keys.e.pressed = true;
       break;
 
+      case "KeyI":
+      // attack key (I) – one-shot per press
+      if (event.repeat) break;
+      keys.i.pressed = true;
+      if (typeof player !== 'undefined' && typeof player.performAttack === 'function') {
+        player.performAttack();
+      }
+      break;
+
       
 
   }
@@ -112,6 +124,10 @@ window.addEventListener("keyup", (event) => {
       break;
     case "KeyW":
       keys.w.pressed = false;
+      break;
+
+    case "KeyI":
+      keys.i.pressed = false;
       break;
 
 

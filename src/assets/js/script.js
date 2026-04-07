@@ -31,6 +31,12 @@ function startGame() {
     risks.forEach((risk) => risk.draw());
     clouds.forEach((cloud) => cloud.draw());
     npcs.forEach((npcs) => npcs.draw());
+
+    // remove dead enemies before drawing / updating
+    if (Array.isArray(enemies)) {
+      enemies = enemies.filter((enemy) => !enemy.isDead);
+    }
+
     enemies.forEach((enemy) => {
       if (typeof enemy.updateDamageHitBox === 'function') {
         enemy.updateDamageHitBox();

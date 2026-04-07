@@ -13,7 +13,9 @@ class Enemy extends Sprite {
         patrolCenterX = null,
         patrolRange = 200,
         patrolDirection = 1,
-        patrolSpeed = 5
+        patrolSpeed = 5,
+        // how many successful hits from the player this enemy can take
+        health = 3
 
     }) {
         super({
@@ -50,6 +52,13 @@ class Enemy extends Sprite {
     this.collisionBlocks = collisionBlocks
 
     this.isTransitioningLevel = false
+    // frames remaining where this enemy is being knocked back by the player
+    this.knockbackFrames = 0
+
+    // simple health: enemy dies after `health` successful hits
+    this.maxHits = health
+    this.hitsTaken = 0
+    this.isDead = false
     }
     update() {  
 
@@ -86,6 +95,11 @@ class Enemy extends Sprite {
 
 
   move() {
+    // while in knockback, skip AI so we just slide
+    if (this.knockbackFrames && this.knockbackFrames > 0) {
+      this.knockbackFrames--
+      return
+    }
 
     // If player is inside patrol box, chase him instead of patrolling
     if (this.isAggro && typeof player !== 'undefined') {
@@ -166,6 +180,15 @@ class Enemy extends Sprite {
       this.damageHitbox.width,
       this.damageHitbox.height
     )
+  }
+
+  // Called when the player successfully hits this enemy
+  takeHit() {
+    if (this.isDead) return
+    this.hitsTaken++
+    if (this.hitsTaken >= this.maxHits) {
+      this.isDead = true
+    }
   }
 
    updateHitBox() {
@@ -249,10 +272,6 @@ class Enemy extends Sprite {
     }
   }
 }
-
-
-
-
 
 
 

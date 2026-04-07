@@ -64,6 +64,11 @@ class Player extends Sprite  {
     this.isTransitioningLevel = false
     this.nearNpc = false
 
+    // simple melee attack state
+    this.isAttacking = false
+    this.attackFramesRemaining = 0
+    this.attackCooldownFrames = 0
+
   }
   update() {  
     this.position.x += this.velocity.x
@@ -78,6 +83,15 @@ class Player extends Sprite  {
     }
     if (this.invulnerableFrames > 0) {
       this.invulnerableFrames--
+    }
+    if (this.attackFramesRemaining > 0) {
+      this.attackFramesRemaining--
+      if (this.attackFramesRemaining === 0) {
+        this.isAttacking = false
+      }
+    }
+    if (this.attackCooldownFrames > 0) {
+      this.attackCooldownFrames--
     }
     
   }
@@ -255,6 +269,73 @@ detectRisk() {
         }
   }
 }
+
+  // Triggered from inputs when the player presses I
+  performAttack() {
+    // don't start a new attack if we're still attacking or on cooldown
+    if (this.attackFramesRemaining > 0 || this.attackCooldownFrames > 0) return
+
+    this.isAttacking = true
+    this.attackFramesRemaining = 10   // how many frames the hitbox is “active”
+    this.attackCooldownFrames = 25    // short delay before next attack
+
+    // basic melee hitbox in front of the player
+    const range = 180
+    const attackWidth = 140
+    const attackHeight = this.hitbox.height
+    const facingLeft = this.lastDirection === 'left'
+
+    const attackBox = {
+      position: {
+        x: facingLeft
+          ? this.hitbox.position.x - attackWidth
+          : this.hitbox.position.x + this.hitbox.width,
+        y: this.hitbox.position.y
+      },
+      width: attackWidth,
+      height: attackHeight
+    }
+
+    // optional: invisible debug rect kept transparent
+    c.fillStyle = "rgba(255,0,0,0.0)"
+    c.fillRect(
+      attackBox.position.x,
+      attackBox.position.y,
+      attackBox.width,
+      attackBox.height
+    )
+
+    if (typeof enemies === 'undefined') return
+
+    for (let i = 0; i < enemies.length; i++) {
+      const enemy = enemies[i]
+      if (!enemy || !enemy.hitbox) continue
+
+      const eBox = enemy.hitbox
+
+      const overlaps =
+        attackBox.position.x <= eBox.position.x + eBox.width &&
+        attackBox.position.x + attackBox.width >= eBox.position.x &&
+        attackBox.position.y + attackBox.height >= eBox.position.y &&
+        attackBox.position.y <= eBox.position.y + eBox.height
+
+      if (!overlaps) continue
+
+      // knock enemy away from the player
+      const playerCenterX = this.hitbox.position.x + this.hitbox.width / 2
+      const enemyCenterX = eBox.position.x + eBox.width / 2
+      const knockDir = enemyCenterX >= playerCenterX ? 1 : -1
+
+      enemy.knockbackFrames = 15
+      enemy.velocity.x = 25 * knockDir
+      enemy.velocity.y = -20
+
+      // track damage: enemy dies after enough hits
+      if (typeof enemy.takeHit === 'function') {
+        enemy.takeHit()
+      }
+    }
+  }
 
 detectEnemy() {
     // temporary immunity: ignore new hits while invulnerable
