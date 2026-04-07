@@ -1,6 +1,7 @@
 import { FIREBASE_SDK_CONFIG } from './firebase.sdk.config';
 
 let firebaseInitialized = false;
+let firebaseInitPromise: Promise<void> | null = null;
 let _firestore: any = null;
 let _auth: any = null;
 
@@ -10,27 +11,38 @@ export function isFirebaseEnabled(): boolean {
 
 export async function initFirebaseIfNeeded() {
   if (!isFirebaseEnabled() || firebaseInitialized) return;
-  try {
-    // dynamic import to avoid adding runtime dependency when not used
-    const firebase = await import('firebase/app');
-    const { initializeApp } = firebase;
-    const app = initializeApp(FIREBASE_SDK_CONFIG as any);
-    const firestoreMod = await import('firebase/firestore');
-    _firestore = firestoreMod.getFirestore(app);
-    try {
-      const authMod = await import('firebase/auth');
-      _auth = authMod.getAuth(app);
-    } catch (e) {
-      // auth is optional; continue if it fails
-      console.warn('Failed to init Firebase Auth', e);
-      _auth = null;
-    }
-    firebaseInitialized = true;
-  } catch (e) {
-    console.warn('Failed to initialize Firebase SDK', e);
-    firebaseInitialized = false;
-    _firestore = null;
+  if (firebaseInitPromise) {
+    await firebaseInitPromise;
+    return;
   }
+  firebaseInitPromise = (async () => {
+    try {
+      // dynamic import to avoid adding runtime dependency when not used
+      const firebase = await import('firebase/app');
+      const { initializeApp, getApps, getApp } = firebase;
+      const app = getApps().length ? getApp() : initializeApp(FIREBASE_SDK_CONFIG as any);
+      const firestoreMod = await import('firebase/firestore');
+      _firestore = firestoreMod.getFirestore(app);
+      try {
+        const authMod = await import('firebase/auth');
+        _auth = authMod.getAuth(app);
+      } catch (e) {
+        // auth is optional; continue if it fails
+        console.warn('Failed to init Firebase Auth', e);
+        _auth = null;
+      }
+      firebaseInitialized = true;
+    } catch (e) {
+      console.warn('Failed to initialize Firebase SDK', e);
+      firebaseInitialized = false;
+      _firestore = null;
+      _auth = null;
+      throw e;
+    } finally {
+      firebaseInitPromise = null;
+    }
+  })();
+  await firebaseInitPromise;
 }
 
 export function getFirestoreInstance() {
@@ -116,10 +128,60 @@ export async function saveUserToFirestore(user: any) {
   if (!_firestore) throw new Error('Firestore is not initialized');
   try {
     const { doc, setDoc } = await import('firebase/firestore');
-    const ref = doc(_firestore, 'users', user.email);
-    await setDoc(ref, user, { merge: true });
+    const email = String(user?.email || '').trim().toLowerCase();
+    if (!email) throw new Error('User email is required');
+    const ref = doc(_firestore, 'users', email);
+    await setDoc(ref, { ...user, email }, { merge: true });
   } catch (e) {
     console.warn('saveUserToFirestore failed', e);
+    throw e;
+  }
+}
+
+export async function authSendPasswordResetEmail(
+  email: string,
+  actionCodeSettings?: { url: string; handleCodeInApp?: boolean },
+) {
+  await initFirebaseIfNeeded();
+  if (!_auth) throw new Error('Firebase Auth not initialized');
+  try {
+    const { sendPasswordResetEmail } = await import('firebase/auth');
+    const normalized = String(email || '').trim().toLowerCase();
+    if (!normalized) throw new Error('Email is required');
+    await sendPasswordResetEmail(_auth, normalized, actionCodeSettings as any);
+    return true;
+  } catch (e) {
+    console.warn('authSendPasswordResetEmail failed', e);
+    throw e;
+  }
+}
+
+export async function authVerifyPasswordResetCode(code: string) {
+  await initFirebaseIfNeeded();
+  if (!_auth) throw new Error('Firebase Auth not initialized');
+  try {
+    const { verifyPasswordResetCode } = await import('firebase/auth');
+    const normalized = String(code || '').trim();
+    if (!normalized) throw new Error('Reset code is required');
+    return await verifyPasswordResetCode(_auth, normalized);
+  } catch (e) {
+    console.warn('authVerifyPasswordResetCode failed', e);
+    throw e;
+  }
+}
+
+export async function authConfirmPasswordReset(code: string, newPassword: string) {
+  await initFirebaseIfNeeded();
+  if (!_auth) throw new Error('Firebase Auth not initialized');
+  try {
+    const { confirmPasswordReset } = await import('firebase/auth');
+    const normalizedCode = String(code || '').trim();
+    if (!normalizedCode) throw new Error('Reset code is required');
+    if (!newPassword) throw new Error('New password is required');
+    await confirmPasswordReset(_auth, normalizedCode, newPassword);
+    return true;
+  } catch (e) {
+    console.warn('authConfirmPasswordReset failed', e);
     throw e;
   }
 }
@@ -130,13 +192,83 @@ export async function fetchUserFromFirestore(email: string) {
   if (!_firestore) return null;
   try {
     const { doc, getDoc } = await import('firebase/firestore');
-    const ref = doc(_firestore, 'users', email);
+    const normalized = String(email || '').trim().toLowerCase();
+    if (!normalized) return null;
+    const ref = doc(_firestore, 'users', normalized);
     const snap = await getDoc(ref);
     return snap.exists() ? snap.data() : null;
   } catch (e) {
     console.warn('fetchUserFromFirestore failed', e);
     return null;
   }
+}
+
+export async function fetchAllUsersFromFirestore() {
+  if (!isFirebaseEnabled()) return [];
+  await initFirebaseIfNeeded();
+  if (!_firestore) throw new Error('Firestore is not initialized');
+  const { collection, getDocs } = await import('firebase/firestore');
+  let allDocs: any[] = [];
+  try {
+    const snap = await getDocs(collection(_firestore, 'users'));
+    allDocs = snap.docs || [];
+  } catch (e: any) {
+    throw new Error(`users: ${e?.code || e?.message || 'query failed'}`);
+  }
+
+  if (allDocs.length === 0) return [];
+  const seen = new Set<string>();
+  return allDocs
+    .map((d: any) => ({ __docId: d.id, ...(d.data() || {}) }))
+    .filter((u: any) => {
+      const key = String(u.__docId || u.email || '').toLowerCase();
+      if (!key) return true;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+export async function diagnoseFirestoreUserCollections(): Promise<string> {
+  if (!isFirebaseEnabled()) return 'Firebase disabled';
+  await initFirebaseIfNeeded();
+  if (!_firestore) return 'Firestore not initialized';
+  const { collection, getDocs } = await import('firebase/firestore');
+  const names = ['users'];
+  const parts: string[] = [];
+  for (const name of names) {
+    try {
+      const snap = await getDocs(collection(_firestore, name));
+      parts.push(`${name}:${snap.size}`);
+    } catch (e: any) {
+      parts.push(`${name}:ERR(${e?.code || e?.message || 'failed'})`);
+    }
+  }
+  return parts.join(' | ');
+}
+
+export async function subscribeAllUsersFromFirestore(
+  onData: (users: any[]) => void,
+  onError?: (error: any) => void,
+) {
+  if (!isFirebaseEnabled()) throw new Error('Firebase not enabled');
+  await initFirebaseIfNeeded();
+  if (!_firestore) throw new Error('Firestore is not initialized');
+  const { collection, onSnapshot } = await import('firebase/firestore');
+  const ref = collection(_firestore, 'users');
+  const unsub = onSnapshot(
+    ref,
+    (snap: any) => {
+      const users = (snap.docs || []).map((d: any) => ({ __docId: d.id, ...(d.data() || {}) }));
+      onData(users);
+    },
+    (err: any) => {
+      console.warn('subscribeAllUsersFromFirestore failed for "users"', err);
+      if (onError) onError(err);
+    },
+  );
+
+  return () => unsub();
 }
 
 export async function uploadFileToStorage(file: File, destPath?: string) {

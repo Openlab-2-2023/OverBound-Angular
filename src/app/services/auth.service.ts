@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { isFirebaseEnabled, initFirebaseIfNeeded, getAuthInstance, saveUserToFirestore, fetchUserFromFirestore, authCreateUser, authSignIn, authSignOut, authUpdatePassword, authUpdateUserProfile } from './firebase.init';
+import { isFirebaseEnabled, initFirebaseIfNeeded, getAuthInstance, saveUserToFirestore, fetchUserFromFirestore, fetchAllUsersFromFirestore, subscribeAllUsersFromFirestore, authCreateUser, authSignIn, authSignOut, authUpdatePassword, authUpdateUserProfile, diagnoseFirestoreUserCollections, authSendPasswordResetEmail, authVerifyPasswordResetCode, authConfirmPasswordReset } from './firebase.init';
 
 export type Role = 'Admin' | 'Player';
 export interface User {
@@ -91,32 +91,83 @@ export class AuthService {
     if (this.current) localStorage.setItem(this.storageCurrentKey, JSON.stringify(this.current));
     else localStorage.removeItem(this.storageCurrentKey);
   }
+
+  private withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) => setTimeout(() => reject(new Error(message)), timeoutMs)),
+    ]);
+  }
+
+  private getAuthErrorMessage(error: any, fallback: string): string {
+    const code = String(error?.code || '');
+    switch (code) {
+      case 'auth/invalid-credential':
+      case 'auth/wrong-password':
+      case 'auth/user-not-found':
+        return 'Wrong email or password.';
+      case 'auth/invalid-email':
+        return 'Invalid email.';
+      case 'auth/email-already-in-use':
+        return 'Email already registered.';
+      case 'auth/weak-password':
+        return 'Password is too weak.';
+      case 'auth/missing-password':
+        return 'Password is required.';
+      case 'auth/missing-email':
+        return 'Email is required.';
+      case 'auth/expired-action-code':
+      case 'auth/invalid-action-code':
+        return 'Reset code is invalid or expired.';
+      case 'auth/too-many-requests':
+        return 'Too many attempts. Please try again later.';
+      case '':
+        if (String(error?.message || '') === 'Reset verification timed out.') {
+          return 'Verification took too long. Please try again.';
+        }
+        if (String(error?.message || '') === 'Password reset timed out.') {
+          return 'Password reset took too long. Please try again.';
+        }
+        return fallback;
+      default:
+        return fallback;
+    }
+  }
   
   // SDK-based Firebase helpers are used from firebase.init.ts
 //register
-  async register(email: string, password: string): Promise<{ ok: boolean; message?: string }> {
+  async register(email: string, password: string, username?: string): Promise<{ ok: boolean; message?: string }> {
     email = email.trim().toLowerCase();
+    username = String(username || '').trim();
     if (!email || !password) return { ok: false, message: 'Email and password are required.' };
+    if (!username) return { ok: false, message: 'Username is required.' };
+    if (username.length < 3) return { ok: false, message: 'Username must be at least 3 characters.' };
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { ok: false, message: 'Invalid email.' };
     if (this.users.find(u => u.email === email)) return { ok: false, message: 'Email already registered.' };
     // if email matches admin defaults, promote to admin
     const role: Role = this.adminEmails.includes(email) ? 'Admin' : 'Player';
-    const username = email.split('@')[0];
-    const user: User = { username, email, password, role, displayName: '', photoURL: '', gold: 0, inventory: [] };
+    const safeUsername = username;
+    const user: User = { username: safeUsername, email, password, role, displayName: safeUsername, photoURL: '', gold: 0, inventory: [] };
     // If Firebase Auth is enabled, create the auth user first
     if (isFirebaseEnabled()) {
       try {
         await authCreateUser(email, password);
+        await authUpdateUserProfile({ displayName: safeUsername });
       } catch (e: any) {
-        return { ok: false, message: e?.message || 'Firebase auth failed' };
+        return { ok: false, message: this.getAuthErrorMessage(e, 'Registration failed.') };
       }
     }
     this.users.push(user);
     this.saveUsers();
     this.current = { ...user };
     this.saveCurrent();
-    // persist to Firestore (fire-and-forget)
-    if (isFirebaseEnabled()) saveUserToFirestore(user).catch(() => {});
+    if (isFirebaseEnabled()) {
+      try {
+        await saveUserToFirestore(user);
+      } catch (e: any) {
+        return { ok: false, message: e?.message || 'Failed to create Firestore user profile.' };
+      }
+    }
     return { ok: true };
   }
 //login ked uz si bol raz prihlaseny a chces sa prihlasit znova, tak sa ti to podari len ak zadavas spravne heslo, inak ti to napise ze neplatne udaje
@@ -130,7 +181,7 @@ export class AuthService {
         const cred = await authSignIn(email, password);
         fbUser = cred && (cred as any).user ? (cred as any).user : null;
       } catch (e: any) {
-        return { ok: false, message: e?.message || 'Invalid credentials.' };
+        return { ok: false, message: this.getAuthErrorMessage(e, 'Wrong email or password.') };
       }
 
       try {
@@ -189,6 +240,69 @@ export class AuthService {
     return { ok: true };
   }
 
+  async forgotPassword(email: string): Promise<{ ok: boolean; message?: string }> {
+    const normalized = String(email || '').trim().toLowerCase();
+    if (!normalized) return { ok: false, message: 'Email is required.' };
+    if (!isFirebaseEnabled()) return { ok: false, message: 'Password reset is only available with Firebase Auth enabled.' };
+    try {
+      const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://overbound-angular.web.app';
+      await authSendPasswordResetEmail(normalized, {
+        url: `${baseUrl}/login`,
+        handleCodeInApp: false,
+      });
+      return { ok: true, message: 'Password reset email sent. Click the link in the email to open the reset page directly.' };
+    } catch (e: any) {
+      return { ok: false, message: this.getAuthErrorMessage(e, 'Failed to send password reset email.') };
+    }
+  }
+
+  async verifyResetCode(code: string): Promise<{ ok: boolean; email?: string; message?: string }> {
+    const normalized = String(code || '').trim();
+    if (!normalized) return { ok: false, message: 'Reset code is required.' };
+    if (!isFirebaseEnabled()) return { ok: false, message: 'Password reset is only available with Firebase Auth enabled.' };
+    try {
+      const email = await this.withTimeout(
+        authVerifyPasswordResetCode(normalized),
+        8000,
+        'Reset verification timed out.',
+      );
+      return { ok: true, email };
+    } catch (e: any) {
+      return { ok: false, message: this.getAuthErrorMessage(e, 'Reset code is invalid or expired.') };
+    }
+  }
+
+  async resetPassword(code: string, newPassword: string): Promise<{ ok: boolean; message?: string }> {
+    const normalizedCode = String(code || '').trim();
+    if (!normalizedCode) return { ok: false, message: 'Reset code is required.' };
+    if (!newPassword) return { ok: false, message: 'New password is required.' };
+    if (!isFirebaseEnabled()) return { ok: false, message: 'Password reset is only available with Firebase Auth enabled.' };
+    try {
+      const email = await this.withTimeout(
+        authVerifyPasswordResetCode(normalizedCode),
+        8000,
+        'Reset verification timed out.',
+      );
+      await this.withTimeout(
+        authConfirmPasswordReset(normalizedCode, newPassword),
+        10000,
+        'Password reset timed out.',
+      );
+      const localIdx = this.users.findIndex(u => u.email === email.toLowerCase());
+      if (localIdx >= 0) {
+        this.users[localIdx].password = newPassword;
+        this.saveUsers();
+      }
+      if (this.current?.email === email.toLowerCase()) {
+        this.current = { ...this.current, password: newPassword };
+        this.saveCurrent();
+      }
+      return { ok: true, message: 'Password reset successful. You can log in with your new password now.' };
+    } catch (e: any) {
+      return { ok: false, message: this.getAuthErrorMessage(e, 'Failed to reset password.') };
+    }
+  }
+
   async changePassword(currentPassword: string, newPassword: string): Promise<{ ok: boolean; message?: string }> {
     if (!this.current) return { ok: false, message: 'Not logged in' };
     const email = this.current.email;
@@ -196,7 +310,7 @@ export class AuthService {
       try {
         await authUpdatePassword(email, currentPassword, newPassword);
       } catch (e: any) {
-        return { ok: false, message: e?.message || 'Password update failed' };
+        return { ok: false, message: this.getAuthErrorMessage(e, 'Password update failed') };
       }
       // update local store and Firestore
       const idx = this.users.findIndex(u => u.email === email);
@@ -288,4 +402,125 @@ export class AuthService {
   isLoggedIn(): boolean { return this.current !== null; }
   getCurrent(): User | null { return this.current ? { ...this.current } : null; }
   isAdmin(): boolean { return this.current?.role === 'Admin'; }
+
+  getLeaderboardUsers(): Array<{ email: string; displayName: string; gold: number; role: Role; photoURL?: string }> {
+    const seen = new Set<string>();
+    return this.users
+      .filter((u) =>
+        !!u.email &&
+        /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(u.email) &&
+        (u.role || 'Player') === 'Player' &&
+        !!u.password,
+      )
+      .filter((u) => {
+        const key = u.email.toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .map((u) => ({
+        email: u.email,
+        displayName: u.displayName || u.username || u.email.split('@')[0],
+        gold: typeof u.gold === 'number' ? u.gold : 0,
+        role: u.role || 'Player',
+        photoURL: u.photoURL || '',
+      }));
+  }
+
+  async getLeaderboardUsersFromDatabase(): Promise<Array<{ email: string; displayName: string; gold: number; role: Role; photoURL?: string }>> {
+    if (!isFirebaseEnabled()) return [];
+    let remoteUsers: any[] = [];
+    remoteUsers = await fetchAllUsersFromFirestore();
+    const mapped = this.mapLeaderboardUsers(remoteUsers);
+    return mapped;
+  }
+
+  async subscribeLeaderboardUsers(
+    onUsers: (users: Array<{ email: string; displayName: string; gold: number; role: Role; photoURL?: string }>) => void,
+    onError?: (error: any) => void,
+  ) {
+    if (!isFirebaseEnabled()) {
+      onUsers([]);
+      return () => {};
+    }
+    const unsubscribe = await subscribeAllUsersFromFirestore(
+      (remoteUsers: any[]) => {
+        const mapped = this.mapLeaderboardUsers(remoteUsers);
+        onUsers(mapped);
+      },
+      (err: any) => {
+        if (onError) onError(err);
+      },
+    );
+    return unsubscribe;
+  }
+
+  async waitForFirebaseAuthReady(timeoutMs: number = 5000): Promise<void> {
+    if (!isFirebaseEnabled()) return;
+    try {
+      await initFirebaseIfNeeded();
+      const auth = getAuthInstance();
+      if (!auth) return;
+      const { onAuthStateChanged } = await import('firebase/auth');
+      await Promise.race([
+        new Promise<void>((resolve) => {
+          const unsub = onAuthStateChanged(auth, () => {
+            try { unsub(); } catch { /* ignore */ }
+            resolve();
+          });
+        }),
+        new Promise<void>((resolve) => setTimeout(resolve, timeoutMs)),
+      ]);
+    } catch {
+      // non-blocking: if auth readiness fails, caller can still attempt reads
+    }
+  }
+
+  async getLeaderboardDiagnostics(): Promise<string> {
+    if (!isFirebaseEnabled()) return 'Firebase disabled';
+    try {
+      return await diagnoseFirestoreUserCollections();
+    } catch (e: any) {
+      return `Diagnostics failed: ${e?.message || 'unknown error'}`;
+    }
+  }
+
+  private mapLeaderboardUsers(remoteUsers: any[]): Array<{ email: string; displayName: string; gold: number; role: Role; photoURL?: string }> {
+    const seen = new Set<string>();
+    return remoteUsers
+      .filter((u: any) => !!u && typeof u === 'object')
+      .map((u: any) => {
+        const rawDocId = String(u.__docId || '').trim();
+        const rawEmail = String(u.email || '').trim();
+        let id = rawEmail || rawDocId;
+        if (!id) id = `user-${Math.random().toString(36).slice(2, 10)}`;
+        try {
+          id = decodeURIComponent(id);
+        } catch { /* keep raw id */ }
+        const emailLike = id.includes('@') ? id.toLowerCase() : id;
+        const nameFromId = emailLike.includes('@') ? emailLike.split('@')[0] : emailLike;
+        return {
+          _id: emailLike,
+          email: emailLike,
+          displayName: String(u.displayName || u.username || nameFromId || 'Player'),
+          gold: Number.isFinite(Number(u.gold)) ? Number(u.gold) : 0,
+          role: (String(u.role || 'Player') === 'Admin' ? 'Admin' : 'Player') as Role,
+          photoURL: String(u.photoURL || ''),
+        };
+      })
+      .filter((u) => {
+        if (seen.has(u._id)) return false;
+        seen.add(u._id);
+        return true;
+      })
+      .map(({ _id, ...rest }) => rest);
+  }
+
+  async getUserProfileByEmail(email: string): Promise<Partial<User> | null> {
+    const normalized = String(email || '').trim().toLowerCase();
+    if (!normalized || !isFirebaseEnabled()) return null;
+    const remote = await fetchUserFromFirestore(normalized);
+    if (!remote) return null;
+    return { email: normalized, ...(remote as any) };
+  }
 }

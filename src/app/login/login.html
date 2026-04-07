@@ -1,29 +1,124 @@
-<div class="login-wrapper">
-	<div class="login-box">
-		<div class="title">{{ mode === 'login' ? 'Login' : 'Register' }}</div>
+<div class="login-wrapper" [class.reset-mode]="mode === 'reset'">
+	<div class="login-box" [class.reset-mode]="mode === 'reset'">
+		<div class="title">
+			{{ mode === 'login' ? 'Login' : mode === 'register' ? 'Register' : mode === 'forgot' ? 'Forgot Password' : 'Reset Password' }}
+		</div>
 
-		<div class="login-controls">
+		@if (mode === 'reset') {
+			<div class="reset-hero">
+				<div class="reset-badge">ACCOUNT RECOVERY</div>
+				<div class="reset-hero-title">Secure Your Next Run</div>
+				<div class="reset-hero-text">
+					Verify the reset code from your email, then choose a fresh password to get back into OverBound.
+				</div>
+				<div class="reset-steps">
+					<div class="reset-step" [class.active]="!!resetCode">
+						<span class="step-num">1</span>
+						<span class="step-label">Paste Code</span>
+					</div>
+					<div class="reset-step" [class.active]="resetCodeVerified">
+						<span class="step-num">2</span>
+						<span class="step-label">Verify</span>
+					</div>
+					<div class="reset-step" [class.active]="!!newPassword">
+						<span class="step-num">3</span>
+						<span class="step-label">Set Password</span>
+					</div>
+				</div>
+			</div>
+		}
+
+		<div class="login-controls" *ngIf="mode === 'login' || mode === 'register'">
 			<button [class.active]="mode==='login'" (click)="switchMode('login')">Login</button>
 			<button [class.active]="mode==='register'" (click)="switchMode('register')">Register</button>
 		</div>
 
-		<form (submit)="submit(); $event.preventDefault();">
-			<div class="field">
-				<label>Email</label>
-				<input type="email" [(ngModel)]="email" name="email" placeholder="you@example.com" [disabled]="loading" />
-			</div>
+		<form (submit)="submit(); $event.preventDefault();" [class.reset-form]="mode === 'reset'">
+			@if (mode === 'register') {
+				<div class="field">
+					<label>Username</label>
+					<input type="text" [(ngModel)]="username" name="username" placeholder="Choose username" [disabled]="loading" />
+				</div>
+				<div class="field-divider" aria-hidden="true"></div>
+			}
 
-			<div class="field-divider" aria-hidden="true"></div>
+			@if (mode !== 'reset') {
+				<div class="field">
+					<label>Email</label>
+					<input type="email" [(ngModel)]="email" name="email" placeholder="you@example.com" [disabled]="loading" />
+				</div>
+			}
 
-			<div class="field">
-				<label>Password</label>
-				<input type="password" [(ngModel)]="password" name="password" placeholder="Enter password" [disabled]="loading" />
-			</div>
+			@if (mode === 'login' || mode === 'register') {
+				<div class="field-divider" aria-hidden="true"></div>
+
+				<div class="field">
+					<label>Password</label>
+					<input type="password" [(ngModel)]="password" name="password" placeholder="Enter password" [disabled]="loading" />
+				</div>
+			}
+
+			@if (mode === 'login') {
+				<button type="button" class="text-link" (click)="switchMode('forgot')" [disabled]="loading">Forgot password?</button>
+			}
+
+			@if (mode === 'forgot') {
+				<div class="helper-text">
+					Enter your account email and we’ll send you a password reset link that opens this page automatically.
+				</div>
+				<button type="button" class="text-link" (click)="switchMode('reset')" [disabled]="loading">I already have a reset code</button>
+			}
+
+			@if (mode === 'reset') {
+				<div class="reset-panel">
+					<div class="reset-panel-title">Reset Verification</div>
+					@if (resetCodeVerified && resetCode) {
+						<div class="reset-status success">Reset link verified. Resetting password for <strong>{{ resetEmail || 'your account' }}</strong></div>
+					} @else {
+						<div class="field">
+							<label>Reset Code</label>
+							<input type="text" [ngModel]="resetCode" (ngModelChange)="onResetCodeChange($event)" name="resetCode" placeholder="Paste the reset code from the email link" [disabled]="loading || verifyingCode" />
+						</div>
+
+						<div class="inline-actions">
+							<button type="button" class="submit-btn verify-btn" (click)="verifyResetCode()" [disabled]="loading || verifyingCode || !resetCode.trim()">
+								@if (!verifyingCode) {
+									<span>Verify Code</span>
+								}
+								@if (verifyingCode) {
+									<span class="btn-loading">
+										<span class="dot"></span>
+										<span class="dot"></span>
+										<span class="dot"></span>
+									</span>
+								}
+							</button>
+						</div>
+
+						<div class="reset-status">If you opened the email link in this app, the code should verify automatically.</div>
+					}
+				</div>
+
+				<div class="reset-panel">
+					<div class="reset-panel-title">Choose New Password</div>
+					<div class="field">
+						<label>New Password</label>
+						<input type="password" [(ngModel)]="newPassword" name="newPassword" placeholder="Enter new password" [disabled]="loading" />
+					</div>
+
+					<div class="field-divider" aria-hidden="true"></div>
+
+					<div class="field">
+						<label>Confirm Password</label>
+						<input type="password" [(ngModel)]="confirmPassword" name="confirmPassword" placeholder="Confirm new password" [disabled]="loading" />
+					</div>
+				</div>
+			}
 
 			<div class="actions">
-				<button type="submit" class="submit-btn" [disabled]="loading">
+				<button type="submit" class="submit-btn" [disabled]="loading || (mode === 'reset' && !resetCodeVerified)">
 					@if (!loading) {
-						<span>{{ mode === 'login' ? 'Login' : 'Register' }}</span>
+						<span>{{ mode === 'login' ? 'Login' : mode === 'register' ? 'Register' : mode === 'forgot' ? 'Send Reset Email' : 'Reset Password' }}</span>
 					}
 					@if (loading) {
 						<span class="btn-loading">
@@ -33,11 +128,14 @@
 						</span>
 					}
 				</button>
-				<button type="button" class="back-btn" (click)="goBack()" [disabled]="loading">Back</button>
+				@if (mode === 'forgot' || mode === 'reset') {
+					<button type="button" class="back-btn" (click)="switchMode('login')">Back to Login</button>
+				}
+				<button type="button" class="back-btn" (click)="goBack()">Back</button>
 			</div>
 
 			@if (message) {
-			<div class="message">{{message}}</div>
+			<div class="message" [class.success]="messageType === 'success'" [class.info]="messageType === 'info'">{{message}}</div>
 			}
 		</form>
 	</div>
