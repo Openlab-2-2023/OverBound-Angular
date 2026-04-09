@@ -205,22 +205,21 @@ h1, p {
 /* Make the Angular root element behave like a normal full-page body */
 app-root {
   display: block;
-  min-height: 100vh; /* fill viewport height */
+  min-height: 100vh; 
   width: 100%;
-  zoom: 0.9;
 }
 
-/* Ensure routed views can fill the root without unexpected shrinking */
+
 app-root > * {
   box-sizing: border-box;
-  min-height: 111.111111vh;
-  width: 111.111111%;
+  min-height: 100vh;
+  width: 100%;
 }
 
-/* Prevent scrolling when Start or Game views are active */
+
 app-start, app-game {
   position: fixed;
-  inset: 0; /* top:0; right:0; bottom:0; left:0 */
+  inset: 0; 
   display: block;
   width: 100%;
   height: 100vh;
@@ -229,12 +228,19 @@ app-start, app-game {
   background: transparent;
 }
 
-/* Move game content down a bit so it isn't flush with the top */
+
+app-start {
+  zoom: 0.9;
+  width: 100%;
+  height: 111.111111vh;
+}
+
+
 app-game .wrap {
   margin-top: 40px;
 }
 
-/* Move keybinds down so they're not flush with the top as well */
+
 app-game .keybinds {
   margin-top: 40px;
-}
+} 

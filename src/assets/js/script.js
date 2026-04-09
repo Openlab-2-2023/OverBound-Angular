@@ -119,6 +119,10 @@ function startGame() {
     player.textAppear();
 
 
+    console.log(player.position.x)
+        // console.log(player.position.y)
+
+
     enemies.forEach((enemies) => enemies.update());
 
 

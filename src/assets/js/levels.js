@@ -14,7 +14,7 @@ const overlay = {
   opacity: 0
 }
 const kolagen = new Kolagen()
-let level = 2
+let level = 1
 let levels = {
   1: { 
     tileCount: 77,
@@ -35,8 +35,6 @@ let levels = {
           },
           imageSrc: '/assets/sprites/levels/foreground.png',
         }),
-
-        
       ]
 
       // remember original positions for parallax calculations
@@ -155,7 +153,7 @@ let levels = {
         }),
       ]
       
-      parsedCollisions = level2Collisions.Parse2D(levels[1].tileCount);
+      parsedCollisions = level2Collisions.Parse2D(levels[2].tileCount);
       collisionBlocks = parsedCollisions.createObjectsFrom2D(); 
       player.collisionBlocks = collisionBlocks
       player.position.x = 100
@@ -166,22 +164,15 @@ let levels = {
       }
 
       npcs = [
-        new NPC({
-          position: { x: 3000, y: 4459 },
-          imageSrc: '',
-          frameRate: 4,
-          frameBuffer: 14,
-          loop: true,
-          collisionBlocks: collisionBlocks
-        })
+        
       ]
 
       
       portals = [
         new Sprite ({
           position: {
-            x:930,
-            y:110
+            x:9200,
+            y:4100
           },
           imageSrc: '/assets/sprites/other/portal.png',
           frameRate: 6,
@@ -207,60 +198,23 @@ let levels = {
         })
       ]
       animals = [
-        new Sprite ({
-          position: {
-            x:0,
-            y:0
-          },
-          imageSrc: '',
-          frameRate: 4,
-          frameBuffer: 8,
-          loop:true
-        })
+        
       ]
 
       risks = [
-        new Sprite ({
-          position: {
-            x:600,
-            y:445
-          },
-          imageSrc: '',
-          frameRate: 27,
-          frameBuffer: 3,
-          loop:true
-        }),
-
-        new Sprite ({
-          position: {
-            x:150,
-            y:445
-          },
-          imageSrc: '',
-          frameRate: 27,
-          frameBuffer: 3,
-          loop:true,
-        })
+        
       ]
 
       clouds = [
-        new Sprite ({
-          position: {
-            x:500,
-            y:300
-          },
-          imageSrc: '',
-          frameRate: 6,
-          frameBuffer: 8,
-          loop:true
-        })
+        
       ]
       
     }
   },
 3: {
-  tileCount: 77,
+    tileCount: 77,
     init: () => {
+      
       background = new Sprite({
         position: {
           x: 0,
@@ -271,17 +225,45 @@ let levels = {
       //obrazok levelu
         imageSrc: "/assets/sprites/levels/room3.png",
       });
+
+      foregrounds = [
+        new Sprite({
+          position: {
+            x: 6000,
+            y: 900,
+          },
+          imageSrc: '',
+        }),
+
+        new Sprite({
+          position: {
+            x: 1000,
+            y: 900,
+          },
+          imageSrc: '',
+        }),
+      ]
       
-      parsedCollisions = level2Collisions.Parse2D(levels[1].tileCount);
+      parsedCollisions = level3Collisions.Parse2D(levels[3].tileCount);
       collisionBlocks = parsedCollisions.createObjectsFrom2D(); 
       player.collisionBlocks = collisionBlocks
-      player.position.x = 100
-      player.position.y = 4000
+      player.position.x = 10
+      player.position.y = 4100
+      player.levelSpawnPosition = {
+        x:50,
+        y:350
+      }
+
+      npcs = [
+        
+      ]
+
+      
       portals = [
         new Sprite ({
           position: {
-            x:70,
-            y:50
+            x:930,
+            y:110
           },
           imageSrc: '/assets/sprites/other/portal.png',
           frameRate: 6,
@@ -289,44 +271,67 @@ let levels = {
           loop:true
         })
       ]
+
+      enemies = [
+        new Enemy({
+          position: { x: 3300, y: 4500 },
+          imageSrc: enemyConfig.imageSrc,
+          frameRate: enemyConfig.frameRate,
+          frameBuffer: enemyConfig.frameBuffer,
+          loop: enemyConfig.loop,
+          animations: enemyConfig.animations,
+          collisionBlocks: collisionBlocks,
+          patrolCenterX: 3040,
+          patrolRange: 400, 
+          patrolDirection: 1, 
+          patrolSpeed: 5,
+          health: 3
+        }),
+
+        new Enemy({
+          position: { x: 4670, y: 1860 },
+          imageSrc: enemyConfig.imageSrc,
+          frameRate: enemyConfig.frameRate,
+          frameBuffer: enemyConfig.frameBuffer,
+          loop: enemyConfig.loop,
+          animations: enemyConfig.animations,
+          collisionBlocks: collisionBlocks,
+          patrolCenterX: 4670,
+          patrolRange: 400, 
+          patrolDirection: 1, 
+          patrolSpeed: 5,
+          health: 3
+        }),
+
+        new Enemy({
+          position: { x: 6670, y: 3540 },
+          imageSrc: enemyConfig.imageSrc,
+          frameRate: enemyConfig.frameRate,
+          frameBuffer: enemyConfig.frameBuffer,
+          loop: enemyConfig.loop,
+          animations: enemyConfig.animations,
+          collisionBlocks: collisionBlocks,
+          patrolCenterX: 6670,
+          patrolRange: 400, 
+          patrolDirection: 1, 
+          patrolSpeed: 5,
+          health: 3
+        }),
+
+
+      ]
       animals = [
-        new Sprite ({
-          position: {
-            x:0,
-            y:0
-          },
-          imageSrc: '',
-          frameRate: 4,
-          frameBuffer: 8,
-          loop:true
-        })
+        
       ]
 
       risks = [
-        new Sprite ({
-          position: {
-            x:700,
-            y:400
-          },
-          imageSrc: '',
-          frameRate: 6,
-          frameBuffer: 8,
-          loop:true
-        })
+        
       ]
 
       clouds = [
-        new Sprite ({
-          position: {
-            x:450,
-            y:300
-          },
-          imageSrc: '',
-          frameRate: 5,
-          frameBuffer: 13,
-          loop:true,
-        })
+        
       ]
+      
     }
   },
   4: {
