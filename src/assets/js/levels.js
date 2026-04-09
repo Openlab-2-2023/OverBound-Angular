@@ -259,6 +259,7 @@ let levels = {
     }
   },
 3: {
+  tileCount: 77,
     init: () => {
       background = new Sprite({
         position: {
@@ -268,14 +269,14 @@ let levels = {
       
         
       //obrazok levelu
-        imageSrc: "/assets/sprites/levels/level3.png",
+        imageSrc: "/assets/sprites/levels/room3.png",
       });
       
-      parsedCollisions = level3Collisions.Parse2D();
+      parsedCollisions = level2Collisions.Parse2D(levels[1].tileCount);
       collisionBlocks = parsedCollisions.createObjectsFrom2D(); 
       player.collisionBlocks = collisionBlocks
       player.position.x = 100
-      player.position.y = 350
+      player.position.y = 4000
       portals = [
         new Sprite ({
           position: {
