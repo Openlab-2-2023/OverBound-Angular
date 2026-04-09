@@ -9,5 +9,6 @@ export const routes: Routes = [
   { path: 'game', component: GameComponent },
   { path: 'login', component: Login },
   { path: 'account', component: AccountDetails },
+  { path: 'store/:id', loadComponent: () => import('./store-item/store-item').then((m) => m.StoreItemPage) },
   { path: 'end',loadComponent: () => import('./endscreen/endscreen').then((m) => m.Endscreen),},
 ];

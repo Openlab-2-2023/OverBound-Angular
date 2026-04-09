@@ -7,7 +7,7 @@ html, body {
   
   background-image: url('/assets/imgs/game.png');
   background-repeat: no-repeat;
-  background-position: center center;
+  background-position: center bottom;
   background-size: cover;
   background-attachment: fixed;
   overflow-x: hidden;

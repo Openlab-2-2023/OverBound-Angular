@@ -53,7 +53,7 @@
                   }
                 </div>
                 <button class="leader-name" type="button" (click)="openLeaderboardProfile(player, $event)">{{ player.displayName }}</button>
-                <span class="leader-gold"><span class="gold-value">{{ player.gold }}</span> <span class="gold-icon">◈</span></span>
+                <span class="leader-gold"><span class="gold-value" style="font-family:'Silkscreen','Pixelify Sans',sans-serif;letter-spacing:.2px">{{ player.gold }}</span> <span class="gold-icon">◈</span></span>
                 <button class="leader-view" type="button" title="View player" (click)="openLeaderboardProfile(player, $event)">></button>
               </div>
             </div>
@@ -83,11 +83,37 @@
       <div class="Store auto-scroll">
         <div class="store-header">
           <h4 class="store-title">Store</h4>
-          <div class="currency">{{ storeGold }} <span class="coin">◈</span></div>
+          <div class="currency"><span style="font-family:'Silkscreen','Pixelify Sans',sans-serif;letter-spacing:.2px">{{ storeGold }}</span> <span class="coin">◈</span></div>
         </div>
         <div class="divider"></div>
         <div class="store-content">
-          <!-- Store items will go here -->
+          @if (!isLoggedIn()) {
+            <p class="leader-empty">Log in to use the store.</p>
+          } @else {
+            <div class="leader-list">
+              <div class="leader-row" style="grid-template-columns:56px 40px 1fr auto 84px" *ngFor="let item of storeItems">
+                <span class="leader-rank">{{ item.icon }}</span>
+                <a class="leader-avatar" [routerLink]="['/store', item.id]" title="View item details" style="text-decoration:none;color:#fff"><span style="color:#fff">{{ item.name.charAt(0) }}</span></a>
+                <div>
+                  <a class="leader-name" [routerLink]="['/store', item.id]" style="text-decoration:none;color:#fff">{{ item.name }}</a>
+                  <div style="font-size:13px;color:#bfc7d8">{{ item.description }}</div>
+                </div>
+                <span class="leader-gold"><span class="gold-value" style="font-family:'Silkscreen','Pixelify Sans',sans-serif;letter-spacing:.2px">{{ item.cost }}</span> <span class="gold-icon">◈</span></span>
+                <button
+                  type="button"
+                  style="border:1px solid transparent;background-image:linear-gradient(#111,#111),linear-gradient(90deg,#ff7a20,#ffb347,#2f6bff);background-origin:padding-box,border-box;background-clip:padding-box,border-box;color:#fff;border-radius:10px;padding:6px 10px;font-family:'Pixelify Sans',sans-serif;font-weight:700;cursor:pointer;min-width:74px;height:30px;display:inline-flex;align-items:center;justify-content:center;line-height:1;box-shadow:0 0 0 1px rgba(255,186,87,.2),0 8px 20px rgba(47,107,255,.18)"
+                  [disabled]="buyingItemId === item.id || !canBuyStoreItem(item)"
+                  [style.opacity]="(buyingItemId === item.id || !canBuyStoreItem(item)) ? '0.55' : '1'"
+                  (click)="buyStoreItem(item); $event.stopPropagation()"
+                >
+                  @if (isStoreItemOwned(item)) {Owned} @else if (buyingItemId === item.id) {..} @else {Buy}
+                </button>
+              </div>
+            </div>
+            @if (storeNotice) {
+              <p style="margin-top:10px;color:#d5def2;font-size:15px">{{ storeNotice }}</p>
+            }
+          }
         </div>
       </div>
       </div>

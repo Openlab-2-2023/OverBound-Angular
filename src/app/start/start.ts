@@ -1,13 +1,14 @@
 import { Component, signal, ViewChild, ElementRef, OnDestroy, OnInit, ChangeDetectorRef } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../services/auth.service';
 import { FIREBASE_SDK_CONFIG } from '../services/firebase.sdk.config';
+import { STORE_ITEMS, StoreItem } from '../store/store-catalog';
 
 @Component({
   selector: 'app-start',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './start.html',
   styleUrl: './start.css',
 })
@@ -21,6 +22,9 @@ export class Start implements OnInit, OnDestroy {
   leaderboardLoadedCount = 0;
   leaderboardHint = '';
   storeGold = 0;
+  storeNotice = '';
+  buyingItemId = '';
+  storeItems: StoreItem[] = STORE_ITEMS;
   leaderboardDiag = 'diagnostics: init';
   leaderboardProjectId = FIREBASE_SDK_CONFIG.projectId || 'n/a';
   leaderboardBuildStamp = 'LB-2026-03-27-1250';
@@ -154,6 +158,40 @@ export class Start implements OnInit, OnDestroy {
   private refreshStoreGold() {
     const current = this.auth.getCurrent();
     this.storeGold = Number.isFinite(Number(current?.gold)) ? Number(current?.gold) : 0;
+  }
+
+  isStoreItemOwned(item: StoreItem) {
+    const current = this.auth.getCurrent();
+    const inv = Array.isArray(current?.inventory) ? current!.inventory! : [];
+    return inv.some((it: any) => it?.id === item.id);
+  }
+
+  canBuyStoreItem(item: StoreItem) {
+    return this.isLoggedIn() && !this.isStoreItemOwned(item) && this.storeGold >= item.cost;
+  }
+
+  async buyStoreItem(item: StoreItem) {
+    if (!this.isLoggedIn()) {
+      this.storeNotice = 'Log in to buy items.';
+      return;
+    }
+    if (this.buyingItemId) return;
+    this.buyingItemId = item.id;
+    this.storeNotice = '';
+    try {
+      const res = await this.auth.buyStoreItem(item);
+      this.storeNotice = res.message || (res.ok ? 'Purchased.' : 'Purchase failed.');
+      this.refreshStoreGold();
+      if (!res.ok) return;
+      await this.refreshLeaderboard().catch(() => {});
+    } finally {
+      this.buyingItemId = '';
+    }
+  }
+
+  openStoreItem(item: StoreItem, event?: Event) {
+    if (event) event.stopPropagation();
+    this.router.navigate(['/store', item.id], { state: { storeItem: item } });
   }
 
   private withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {

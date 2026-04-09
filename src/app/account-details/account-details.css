@@ -8,6 +8,30 @@
 	z-index: 2000;
 	font-family: "Pixelify Sans", sans-serif;
 	background: rgba(0,0,0,0.25);
+	overflow: hidden;
+}
+.account-details::before,
+.account-details::after {
+	content: "";
+	position: absolute;
+	border-radius: 50%;
+	filter: blur(22px);
+	opacity: 0.35;
+	pointer-events: none;
+}
+.account-details::before {
+	width: 260px;
+	height: 260px;
+	background: radial-gradient(circle, rgba(255,122,32,0.55), transparent 68%);
+	top: 8%;
+	left: 10%;
+}
+.account-details::after {
+	width: 320px;
+	height: 320px;
+	background: radial-gradient(circle, rgba(47,107,255,0.45), transparent 68%);
+	bottom: 8%;
+	right: 8%;
 }
 
 .account-card {
@@ -28,6 +52,8 @@
 	display: flex;
 	flex-direction: column;
 	align-items: center;
+	position: relative;
+	z-index: 1;
 }
 .account-card,
 .account-card *,
@@ -227,6 +253,8 @@
 .inv-name { font-size:14px; margin-bottom:8px }
 .equip-btn { padding:8px 10px; border-radius:8px; background:linear-gradient(90deg,#2b2b2b,#222); color:#fff; border:none; cursor:pointer }
 .equip-btn.equipped { background:linear-gradient(90deg,#2f6bff,#5f8dff); color:#fff }
+.inv-actions { display:flex; flex-direction:column; gap:6px; width:100% }
+.sell-btn { padding:8px 10px; border-radius:8px; background:linear-gradient(90deg,#3a2a0f,#4a3214); color:#ffd783; border:1px solid rgba(255,215,131,.22); cursor:pointer; font-family:"Pixelify Sans",sans-serif; font-size:13px }
 
 .gold { margin-top:6px }
 

@@ -19,7 +19,7 @@ export class AccountDetails implements OnInit, OnDestroy {
   currentPassword = '';
   newPassword = '';
   confirmPassword = '';
-  inventory: Array<{ id: string; name: string; icon: string; equipped?: boolean }> = [];
+  inventory: Array<{ id: string; name: string; icon: string; equipped?: boolean; cost?: number }> = [];
   isProcessingProfileImage = false;
   showCropper = false;
   cropSourceDataUrl: string | null = null;
@@ -288,6 +288,31 @@ export class AccountDetails implements OnInit, OnDestroy {
       item.equipped = !item.equipped;
       alert(res.message || 'Failed to update inventory');
     }
+  }
+
+  getSellPrice(item: any): number {
+    return this.auth.getInventorySellValue(
+      String(item?.id || ''),
+      String(item?.name || ''),
+      Number(item?.cost || 0),
+    );
+  }
+
+  async sellItem(item: any) {
+    if (this.viewOnlyMode) return;
+    const sellPrice = this.getSellPrice(item);
+    if (sellPrice <= 0) {
+      alert('This item cannot be sold yet.');
+      return;
+    }
+    const res = await this.auth.sellInventoryItem(String(item?.id || ''));
+    if (!res.ok) {
+      alert(res.message || 'Failed to sell item');
+      return;
+    }
+    this.inventory = (this.user?.inventory && Array.isArray(this.user.inventory))
+      ? this.user.inventory.slice()
+      : [];
   }
 
   private async loadViewedUser(email: string) {

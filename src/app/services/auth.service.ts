@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { isFirebaseEnabled, initFirebaseIfNeeded, getAuthInstance, saveUserToFirestore, fetchUserFromFirestore, fetchAllUsersFromFirestore, subscribeAllUsersFromFirestore, authCreateUser, authSignIn, authSignOut, authUpdatePassword, authUpdateUserProfile, diagnoseFirestoreUserCollections, authSendPasswordResetEmail, authVerifyPasswordResetCode, authConfirmPasswordReset } from './firebase.init';
+import { getStoreItemById } from '../store/store-catalog';
 
 export type Role = 'Admin' | 'Player';
 export interface User {
@@ -10,7 +11,13 @@ export interface User {
   displayName?: string;
   photoURL?: string;
   gold?: number;
-  inventory?: Array<{ id: string; name: string; icon: string; equipped?: boolean }>;
+  inventory?: Array<{ id: string; name: string; icon: string; equipped?: boolean; cost?: number }>;
+}
+export interface StoreItemInput {
+  id: string;
+  name: string;
+  icon: string;
+  cost: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -373,6 +380,79 @@ export class AuthService {
       }
     }
     return { ok: true };
+  }
+
+  async buyStoreItem(item: StoreItemInput): Promise<{ ok: boolean; message?: string }> {
+    if (!this.current) return { ok: false, message: 'Please log in first.' };
+    const cost = Number.isFinite(Number(item?.cost)) ? Number(item.cost) : 0;
+    if (!item?.id || !item?.name || !item?.icon || cost <= 0) {
+      return { ok: false, message: 'Invalid store item.' };
+    }
+
+    const inventory = Array.isArray(this.current.inventory) ? this.current.inventory.slice() : [];
+    if (inventory.some((it) => it.id === item.id)) {
+      return { ok: false, message: 'You already own this item.' };
+    }
+
+    const currentGold = Number.isFinite(Number(this.current.gold)) ? Number(this.current.gold) : 0;
+    if (currentGold < cost) {
+      return { ok: false, message: 'Not enough gold.' };
+    }
+
+    const updatedInventory = [
+      ...inventory,
+      { id: item.id, name: item.name, icon: item.icon, equipped: false, cost: item.cost },
+    ];
+    const updatedGold = currentGold - cost;
+    const res = await this.updateProfile(
+      { inventory: updatedInventory, gold: updatedGold },
+      { waitForCloud: true, cloudTimeoutMs: 10000 },
+    );
+    if (!res.ok) return res;
+    return { ok: true, message: `${item.name} purchased.` };
+  }
+
+  getInventorySellValue(itemId: string, fallbackName?: string, fallbackCost?: number): number {
+    const directCost = Number.isFinite(Number(fallbackCost)) ? Number(fallbackCost) : 0;
+    if (directCost > 0) return Math.floor(directCost * 0.8);
+    const storeItem = getStoreItemById(itemId);
+    if (storeItem) return Math.floor(Number(storeItem.cost) * 0.8);
+    if (fallbackName) {
+      const byName = [
+        'hat_wanderer',
+        'cloak_ember',
+        'blade_pixel',
+        'pet_slime',
+      ]
+        .map((id) => getStoreItemById(id))
+        .find((it) => String(it?.name || '').toLowerCase() === String(fallbackName).toLowerCase());
+      if (byName) return Math.floor(Number(byName.cost) * 0.8);
+    }
+    return 0;
+  }
+
+  async sellInventoryItem(itemId: string): Promise<{ ok: boolean; message?: string }> {
+    if (!this.current) return { ok: false, message: 'Please log in first.' };
+    const id = String(itemId || '').trim();
+    if (!id) return { ok: false, message: 'Invalid item.' };
+
+    const inventory = Array.isArray(this.current.inventory) ? this.current.inventory.slice() : [];
+    const itemIndex = inventory.findIndex((it) => it?.id === id);
+    if (itemIndex < 0) return { ok: false, message: 'Item not found in inventory.' };
+
+    const invItem = inventory[itemIndex];
+    const sellValue = this.getInventorySellValue(id, invItem?.name, invItem?.cost);
+    if (sellValue <= 0) return { ok: false, message: 'This item cannot be sold yet.' };
+
+    const soldItemName = invItem?.name || 'Item';
+    inventory.splice(itemIndex, 1);
+
+    const currentGold = Number.isFinite(Number(this.current.gold)) ? Number(this.current.gold) : 0;
+    const updatedGold = currentGold + sellValue;
+
+    const res = await this.updateProfile({ inventory, gold: updatedGold });
+    if (!res.ok) return res;
+    return { ok: true, message: `${soldItemName} sold for ${sellValue} gold.` };
   }
 
   private async syncProfileToFirebase(email: string, updates: Partial<User>) {

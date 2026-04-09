@@ -1,0 +1,44 @@
+<div class="item-page">
+  <div class="item-card">
+    @if (item) {
+      <div class="item-top">
+        <div class="item-preview">{{ item.icon }}</div>
+        <div class="item-head">
+          <h2>{{ item.name }}</h2>
+          <p class="item-short">{{ item.description }}</p>
+          <p class="item-cost"><span class="num">{{ item.cost }}</span> <span>◈</span></p>
+        </div>
+      </div>
+
+      <div class="item-divider"></div>
+
+      <div class="item-body">
+        <h3>Item Details</h3>
+        <p>{{ item.longDescription }}</p>
+        <p class="item-note">Skin preview support can be added here later.</p>
+      </div>
+
+      <div class="item-actions">
+        <button class="back-btn" type="button" (click)="goBack()">Back to Store</button>
+        <button
+          class="buy-btn"
+          type="button"
+          [disabled]="buying || !canBuy()"
+          [style.opacity]="(buying || !canBuy()) ? '0.6' : '1'"
+          (click)="buy()"
+        >
+          @if (isOwned()) {Owned} @else if (buying) {Buying...} @else {Buy}
+        </button>
+      </div>
+      @if (notice) {
+        <p class="item-notice">{{ notice }}</p>
+      }
+    } @else {
+      <p class="item-notice">Item not found.</p>
+      <div class="item-actions">
+        <button class="back-btn" type="button" (click)="goBack()">Back to Store</button>
+      </div>
+    }
+  </div>
+</div>
+

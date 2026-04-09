@@ -74,7 +74,10 @@
 						<div class="inv-icon">{{ it.icon }}</div>
 						<div class="inv-name">{{ it.name }}</div>
 						@if (!viewOnlyMode) {
-							<button class="equip-btn" [class.equipped]="it.equipped" (click)="toggleEquip(it)">{{ it.equipped ? 'Unequip' : 'Equip' }}</button>
+							<div class="inv-actions">
+								<button class="equip-btn" [class.equipped]="it.equipped" (click)="toggleEquip(it)">{{ it.equipped ? 'Unequip' : 'Equip' }}</button>
+								<button class="sell-btn" (click)="sellItem(it)">Sell {{ getSellPrice(it) }} ◈</button>
+							</div>
 						}
 					</div>
 				</div>

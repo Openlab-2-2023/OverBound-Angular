@@ -2,11 +2,12 @@ import { FIREBASE_SDK_CONFIG } from './firebase.sdk.config';
 
 let firebaseInitialized = false;
 let firebaseInitPromise: Promise<void> | null = null;
+let firebaseLoadFailed = false;
 let _firestore: any = null;
 let _auth: any = null;
 
 export function isFirebaseEnabled(): boolean {
-  return !!FIREBASE_SDK_CONFIG && !!FIREBASE_SDK_CONFIG.projectId;
+  return !!FIREBASE_SDK_CONFIG && !!FIREBASE_SDK_CONFIG.projectId && !firebaseLoadFailed;
 }
 
 export async function initFirebaseIfNeeded() {
@@ -35,9 +36,11 @@ export async function initFirebaseIfNeeded() {
     } catch (e) {
       console.warn('Failed to initialize Firebase SDK', e);
       firebaseInitialized = false;
+      firebaseLoadFailed = true;
       _firestore = null;
       _auth = null;
-      throw e;
+      // Keep app usable in local/offline mode when Firebase SDK cannot load.
+      return;
     } finally {
       firebaseInitPromise = null;
     }
