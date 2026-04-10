@@ -606,4 +606,20 @@ export class AuthService {
     if (!remote) return null;
     return { email: normalized, ...(remote as any) };
   }
+
+  async getLeaderboardUserByEmailFromDatabase(
+    email: string,
+  ): Promise<{
+    email: string;
+    displayName: string;
+    gold: number;
+    role: Role;
+    photoURL?: string;
+    inventory?: Array<{ id: string; name: string; icon: string; equipped?: boolean; cost?: number }>;
+  } | null> {
+    const normalized = String(email || '').trim().toLowerCase();
+    if (!normalized || !isFirebaseEnabled()) return null;
+    const users = await this.getLeaderboardUsersFromDatabase();
+    return users.find((u) => String(u.email || '').toLowerCase() === normalized) || null;
+  }
 }

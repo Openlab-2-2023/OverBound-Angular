@@ -320,7 +320,20 @@ export class AccountDetails implements OnInit, OnDestroy {
     const hadStateUser = !!this.viewedUser;
     this.viewedUserError = '';
     try {
-      const remote = await this.auth.getUserProfileByEmail(email);
+      let remote = await this.auth.getUserProfileByEmail(email);
+      if (!remote) {
+        const lbUser = await this.auth.getLeaderboardUserByEmailFromDatabase(email);
+        if (lbUser) {
+          remote = {
+            email: lbUser.email,
+            displayName: lbUser.displayName,
+            role: lbUser.role,
+            gold: lbUser.gold,
+            photoURL: lbUser.photoURL || '',
+            inventory: Array.isArray(lbUser.inventory) ? lbUser.inventory.slice() : [],
+          } as any;
+        }
+      }
       if (!remote) {
         if (!hadStateUser) {
           this.viewedUser = null;

@@ -202,7 +202,7 @@ h1, p {
   color: white;
 }
 
-/* Make the Angular root element behave like a normal full-page body */
+
 app-root {
   display: block;
   min-height: 100vh; 
@@ -243,4 +243,4 @@ app-game .wrap {
 
 app-game .keybinds {
   margin-top: 40px;
-} 
+}
