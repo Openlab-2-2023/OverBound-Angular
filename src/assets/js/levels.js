@@ -14,7 +14,7 @@ const overlay = {
   opacity: 0
 }
 const kolagen = new Kolagen()
-let level = 1
+let level = 3
 let levels = {
   1: { 
     tileCount: 77,
@@ -31,10 +31,16 @@ let levels = {
         new Sprite({
           position: {
             x: 3000,
-            y: 900,
+            y: 2500,
           },
           imageSrc: '/assets/sprites/levels/foreground.png',
+
+
+          
         }),
+
+
+
       ]
 
       // remember original positions for parallax calculations

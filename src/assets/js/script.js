@@ -1,4 +1,7 @@
-var canvas, c, t;
+var canvas, c;
+const SCALE = 0.4;
+const PARALLAX_FACTOR = 1.5;
+const INV_SCALE = 1 / SCALE;
 // simple HUD state for recent gold gains
 var goldGainFx = [];
 
@@ -8,7 +11,6 @@ function startGame() {
   const camera = new Camera()
 
   c = canvas.getContext("2d");
-  t = canvas.getContext("2d");
 
   canvas.width = screen.width;
   canvas.height = screen.height;
@@ -65,9 +67,9 @@ function startGame() {
 
     c.setTransform(1, 0, 0, 1, 0, 0);
 
-    camera.updateCamera()
-    c.scale(0.4,0.4)
-    c.translate(-camera.position.x, -camera.position.y)
+    camera.updateCamera();
+    c.scale(SCALE, SCALE);
+    c.translate(-camera.position.x, -camera.position.y);
     background.draw();
     collisionBlocks.forEach((CollisionBlock) => CollisionBlock.draw());
     portals.forEach((portal) => portal.draw());
@@ -97,18 +99,41 @@ function startGame() {
     kolagen.refill();
     player.draw();
     if (typeof foregrounds !== 'undefined' && foregrounds && foregrounds.length) {
-      const parallaxFactor = 1.5
-      foregrounds.forEach((foreground) => {
+      const viewX = camera.position.x;
+      const viewY = camera.position.y;
+      const viewWidth = canvas.width * INV_SCALE;
+      const viewHeight = canvas.height * INV_SCALE;
+      const parallaxOffsetX = camera.position.x * (PARALLAX_FACTOR - 1);
+
+      for (let i = 0; i < foregrounds.length; i++) {
+        const foreground = foregrounds[i];
+        if (!foreground || !foreground.loaded) continue;
+
         if (!foreground.basePosition) {
           foreground.basePosition = {
             x: foreground.position.x,
             y: foreground.position.y,
-          }
+          };
         }
-        foreground.position.x =
-          foreground.basePosition.x - camera.position.x * (parallaxFactor - 1)
-        foreground.draw()
-      })
+
+        const worldX = foreground.basePosition.x - parallaxOffsetX;
+        const worldY = foreground.basePosition.y;
+        const width = foreground.width || 0;
+        const height = foreground.height || 0;
+
+        if (
+          worldX + width < viewX ||
+          worldX > viewX + viewWidth ||
+          worldY + height < viewY ||
+          worldY > viewY + viewHeight
+        ) {
+          continue;
+        }
+
+        foreground.position.x = worldX;
+        foreground.position.y = worldY;
+        foreground.draw();
+      }
     }                                                            
     player.update();
     player.detectCloud();
@@ -117,10 +142,6 @@ function startGame() {
     player.detectNpc();
     player.detectEnemy();
     player.textAppear();
-
-
-    console.log(player.position.x)
-        // console.log(player.position.y)
 
 
     enemies.forEach((enemies) => enemies.update());
