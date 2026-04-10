@@ -484,7 +484,7 @@ export class AuthService {
   isAdmin(): boolean { return this.current?.role === 'Admin'; }
 
 
-  getLeaderboardUsers(): Array<{ email: string; displayName: string; gold: number; role: Role; photoURL?: string }> {
+  getLeaderboardUsers(): Array<{ email: string; displayName: string; gold: number; role: Role; photoURL?: string; inventory?: Array<{ id: string; name: string; icon: string; equipped?: boolean; cost?: number }> }> {
     const seen = new Set<string>();
     return this.users
       .filter((u) =>
@@ -505,10 +505,11 @@ export class AuthService {
         gold: typeof u.gold === 'number' ? u.gold : 0,
         role: u.role || 'Player',
         photoURL: u.photoURL || '',
+        inventory: Array.isArray(u.inventory) ? u.inventory.slice() : [],
       }));
   }
 
-  async getLeaderboardUsersFromDatabase(): Promise<Array<{ email: string; displayName: string; gold: number; role: Role; photoURL?: string }>> {
+  async getLeaderboardUsersFromDatabase(): Promise<Array<{ email: string; displayName: string; gold: number; role: Role; photoURL?: string; inventory?: Array<{ id: string; name: string; icon: string; equipped?: boolean; cost?: number }> }>> {
     if (!isFirebaseEnabled()) return [];
     let remoteUsers: any[] = [];
     remoteUsers = await fetchAllUsersFromFirestore();
@@ -517,7 +518,7 @@ export class AuthService {
   }
 
   async subscribeLeaderboardUsers(
-    onUsers: (users: Array<{ email: string; displayName: string; gold: number; role: Role; photoURL?: string }>) => void,
+    onUsers: (users: Array<{ email: string; displayName: string; gold: number; role: Role; photoURL?: string; inventory?: Array<{ id: string; name: string; icon: string; equipped?: boolean; cost?: number }> }>) => void,
     onError?: (error: any) => void,
   ) {
     if (!isFirebaseEnabled()) {
@@ -566,7 +567,7 @@ export class AuthService {
     }
   }
 
-  private mapLeaderboardUsers(remoteUsers: any[]): Array<{ email: string; displayName: string; gold: number; role: Role; photoURL?: string }> {
+  private mapLeaderboardUsers(remoteUsers: any[]): Array<{ email: string; displayName: string; gold: number; role: Role; photoURL?: string; inventory?: Array<{ id: string; name: string; icon: string; equipped?: boolean; cost?: number }> }> {
     const seen = new Set<string>();
     return remoteUsers
       .filter((u: any) => !!u && typeof u === 'object')
@@ -587,6 +588,7 @@ export class AuthService {
           gold: Number.isFinite(Number(u.gold)) ? Number(u.gold) : 0,
           role: (String(u.role || 'Player') === 'Admin' ? 'Admin' : 'Player') as Role,
           photoURL: String(u.photoURL || ''),
+          inventory: Array.isArray(u.inventory) ? u.inventory.slice() : [],
         };
       })
       .filter((u) => {

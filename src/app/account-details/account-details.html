@@ -68,11 +68,14 @@
 			<div class="divider"></div>
 
 			<div class="inventory-section">
-				<h4>Inventory</h4>
+				<h4>{{ viewOnlyMode ? 'Owned Items' : 'Inventory' }}</h4>
 				<div *ngIf="inventory && inventory.length > 0" class="inventory-grid">
 					<div class="inv-item" *ngFor="let it of inventory">
 						<div class="inv-icon">{{ it.icon }}</div>
 						<div class="inv-name">{{ it.name }}</div>
+						@if (viewOnlyMode) {
+							<div class="inv-state" [class.equipped]="it.equipped">{{ it.equipped ? 'Equipped' : 'Owned' }}</div>
+						}
 						@if (!viewOnlyMode) {
 							<div class="inv-actions">
 								<button class="equip-btn" [class.equipped]="it.equipped" (click)="toggleEquip(it)">{{ it.equipped ? 'Unequip' : 'Equip' }}</button>
@@ -82,7 +85,7 @@
 					</div>
 				</div>
 				<div *ngIf="!inventory || inventory.length === 0" class="empty-inventory">
-					No items yet — visit the Store to buy items for gold.
+					{{ viewOnlyMode ? 'This player has no items yet.' : 'No items yet - visit the Store to buy items for gold.' }}
 				</div>
 			</div>
 

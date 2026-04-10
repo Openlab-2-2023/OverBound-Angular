@@ -17,7 +17,7 @@ export class Start implements OnInit, OnDestroy {
   showCredits = signal(false);
   leaderboardFilter: 'gold-desc' = 'gold-desc';
   leaderboardFilterOpen = false;
-  leaderboardUsers: Array<{ email: string; displayName: string; gold: number; role: string; photoURL?: string }> = [];
+  leaderboardUsers: Array<{ email: string; displayName: string; gold: number; role: string; photoURL?: string; inventory?: Array<{ id: string; name: string; icon: string; equipped?: boolean; cost?: number }> }> = [];
   leaderboardError = '';
   leaderboardLoadedCount = 0;
   leaderboardHint = '';
@@ -137,7 +137,7 @@ export class Start implements OnInit, OnDestroy {
     return rows.slice(0, 20);
   }
 
-  openLeaderboardProfile(player: { email: string; displayName: string; gold: number; role: string; photoURL?: string }, event?: Event) {
+  openLeaderboardProfile(player: { email: string; displayName: string; gold: number; role: string; photoURL?: string; inventory?: Array<{ id: string; name: string; icon: string; equipped?: boolean; cost?: number }> }, event?: Event) {
     if (event) event.stopPropagation();
     const email = String(player?.email || '').trim().toLowerCase();
     if (!email) return;
@@ -150,6 +150,7 @@ export class Start implements OnInit, OnDestroy {
           role: player.role || 'Player',
           gold: Number.isFinite(Number(player.gold)) ? Number(player.gold) : 0,
           photoURL: player.photoURL || '',
+          inventory: Array.isArray(player.inventory) ? player.inventory.slice() : [],
         },
       },
     });
