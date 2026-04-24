@@ -14,7 +14,7 @@ const overlay = {
   opacity: 0
 }
 const kolagen = new Kolagen()
-let level = 3
+let level = 1
 let levels = {
   1: { 
     tileCount: 77,
@@ -59,9 +59,9 @@ let levels = {
       player.position.y = 4000//position sa meni
       npcs = [
         new NPC({
-          position: { x: 6500, y: 4000 },
-          imageSrc: '/assets/sprites/character/idleleft.png',
-          frameRate: 4,
+          position: { x: 6500, y: 4050 },
+          imageSrc: '/assets/sprites/character/npc_1.png',
+          frameRate: 5,
           frameBuffer: 14,
           loop: true,
           collisionBlocks: collisionBlocks,
