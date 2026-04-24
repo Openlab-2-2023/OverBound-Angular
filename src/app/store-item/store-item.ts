@@ -55,6 +55,28 @@ export class StoreItemPage implements OnInit {
     return this.isLoggedIn() && !this.isOwned() && this.currentGold >= this.item.cost;
   }
 
+  get previewPhoto(): string {
+    return String(this.auth.getCurrent()?.photoURL || '').trim();
+  }
+
+  get previewInitial(): string {
+    const current = this.auth.getCurrent();
+    const source = String(current?.displayName || current?.username || current?.email || 'P').trim();
+    return (source.charAt(0) || 'P').toUpperCase();
+  }
+
+  get previewFrameClass(): string | null {
+    const id = String(this.item?.id || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]/g, '');
+    return id.startsWith('frame_') ? `preview-frame-${id}` : null;
+  }
+
+  isFrameItem() {
+    return String(this.item?.id || '').toLowerCase().startsWith('frame_');
+  }
+
   async buy() {
     if (!this.item || this.buying) return;
     if (!this.isLoggedIn()) {

@@ -1,4 +1,9 @@
 <div class="login-wrapper" [class.reset-mode]="mode === 'reset'">
+	@if (toastVisible && toastMessage) {
+		<div class="login-toast" [class.error]="toastType === 'error'" [class.success]="toastType === 'success'" [class.info]="toastType === 'info'">
+			{{ toastMessage }}
+		</div>
+	}
 	<div class="login-box" [class.reset-mode]="mode === 'reset'">
 		<div class="title">
 			{{ mode === 'login' ? 'Login' : mode === 'register' ? 'Register' : mode === 'forgot' ? 'Forgot Password' : 'Reset Password' }}
@@ -34,10 +39,14 @@
 		</div>
 
 		<form (submit)="submit(); $event.preventDefault();" [class.reset-form]="mode === 'reset'">
+			@if (message) {
+				<div class="message" [class.success]="messageType === 'success'" [class.info]="messageType === 'info'" [class.error]="messageType === 'error'">{{ message }}</div>
+			}
+
 			@if (mode === 'register') {
 				<div class="field">
 					<label>Username</label>
-					<input type="text" [(ngModel)]="username" name="username" placeholder="Choose username" [disabled]="loading" />
+					<input type="text" [(ngModel)]="username" name="username" placeholder="Choose username" [disabled]="shouldDisablePrimaryFields()" />
 				</div>
 				<div class="field-divider" aria-hidden="true"></div>
 			}
@@ -45,7 +54,7 @@
 			@if (mode !== 'reset') {
 				<div class="field">
 					<label>Email</label>
-					<input type="email" [(ngModel)]="email" name="email" placeholder="you@example.com" [disabled]="loading" />
+					<input type="email" [(ngModel)]="email" name="email" placeholder="you@example.com" [disabled]="shouldDisablePrimaryFields()" />
 				</div>
 			}
 
@@ -54,19 +63,24 @@
 
 				<div class="field">
 					<label>Password</label>
-					<input type="password" [(ngModel)]="password" name="password" placeholder="Enter password" [disabled]="loading" />
+					<input type="password" [(ngModel)]="password" name="password" placeholder="Enter password" [disabled]="shouldDisablePrimaryFields()" />
+					@if (mode === 'register') {
+						<div class="field-hint">
+							<small>At least 6 characters, with letters and numbers/special characters</small>
+						</div>
+					}
 				</div>
 			}
 
 			@if (mode === 'login') {
-				<button type="button" class="text-link" (click)="switchMode('forgot')" [disabled]="loading">Forgot password?</button>
+				<button type="button" class="text-link" (click)="switchMode('forgot')">Forgot password?</button>
 			}
 
 			@if (mode === 'forgot') {
 				<div class="helper-text">
 					Enter your account email and we’ll send you a password reset link that opens this page automatically.
 				</div>
-				<button type="button" class="text-link" (click)="switchMode('reset')" [disabled]="loading">I already have a reset code</button>
+				<button type="button" class="text-link" (click)="switchMode('reset')" [disabled]="shouldDisablePrimaryFields()">I already have a reset code</button>
 			}
 
 			@if (mode === 'reset') {
@@ -77,11 +91,11 @@
 					} @else {
 						<div class="field">
 							<label>Reset Code</label>
-							<input type="text" [ngModel]="resetCode" (ngModelChange)="onResetCodeChange($event)" name="resetCode" placeholder="Paste the reset code from the email link" [disabled]="loading || verifyingCode" />
+							<input type="text" [ngModel]="resetCode" (ngModelChange)="onResetCodeChange($event)" name="resetCode" placeholder="Paste the reset code from the email link" [disabled]="loading || verifyingCode || submitting" />
 						</div>
 
 						<div class="inline-actions">
-							<button type="button" class="submit-btn verify-btn" (click)="verifyResetCode()" [disabled]="loading || verifyingCode || !resetCode.trim()">
+							<button type="button" class="submit-btn verify-btn" (click)="verifyResetCode()" [disabled]="loading || verifyingCode || submitting || !resetCode.trim()">
 								@if (!verifyingCode) {
 									<span>Verify Code</span>
 								}
@@ -103,24 +117,24 @@
 					<div class="reset-panel-title">Choose New Password</div>
 					<div class="field">
 						<label>New Password</label>
-						<input type="password" [(ngModel)]="newPassword" name="newPassword" placeholder="Enter new password" [disabled]="loading" />
+						<input type="password" [(ngModel)]="newPassword" name="newPassword" placeholder="Enter new password" [disabled]="submitting" />
 					</div>
 
 					<div class="field-divider" aria-hidden="true"></div>
 
 					<div class="field">
 						<label>Confirm Password</label>
-						<input type="password" [(ngModel)]="confirmPassword" name="confirmPassword" placeholder="Confirm new password" [disabled]="loading" />
+						<input type="password" [(ngModel)]="confirmPassword" name="confirmPassword" placeholder="Confirm new password" [disabled]="submitting" />
 					</div>
 				</div>
 			}
 
 			<div class="actions">
-				<button type="submit" class="submit-btn" [disabled]="loading || (mode === 'reset' && !resetCodeVerified)">
-					@if (!loading) {
+				<button type="submit" class="submit-btn" [disabled]="shouldDisablePrimaryFields() || (mode === 'reset' && !resetCodeVerified)">
+					@if (!shouldShowPrimarySpinner()) {
 						<span>{{ mode === 'login' ? 'Login' : mode === 'register' ? 'Register' : mode === 'forgot' ? 'Send Reset Email' : 'Reset Password' }}</span>
 					}
-					@if (loading) {
+					@if (shouldShowPrimarySpinner()) {
 						<span class="btn-loading">
 							<span class="dot"></span>
 							<span class="dot"></span>
@@ -133,10 +147,6 @@
 				}
 				<button type="button" class="back-btn" (click)="goBack()">Back</button>
 			</div>
-
-			@if (message) {
-			<div class="message" [class.success]="messageType === 'success'" [class.info]="messageType === 'info'">{{message}}</div>
-			}
 		</form>
 	</div>
 </div>

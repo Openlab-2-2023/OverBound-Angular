@@ -37,7 +37,7 @@
 .account-card {
 	width: 880px;
 	max-width: calc(100% - 48px);
-	background: rgba(18,18,18,0.98);
+	background: rgba(10,10,12,0.94);
 	border-radius: 18px;
 	padding: 30px 40px;
 	color: #fff;
@@ -54,6 +54,29 @@
 	align-items: center;
 	position: relative;
 	z-index: 1;
+	overflow: hidden;
+}
+.account-card::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background:
+		radial-gradient(circle at 18% 18%, rgba(255,172,83,0.2), transparent 30%),
+		radial-gradient(circle at 82% 16%, rgba(95,141,255,0.18), transparent 28%),
+		linear-gradient(120deg, rgba(255,122,32,0.12), rgba(95,141,255,0.12));
+	opacity: 0.9;
+	filter: blur(28px);
+	transform: scale(1.04);
+	z-index: 0;
+	pointer-events: none;
+}
+.account-card::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(180deg, rgba(0,0,0,0.08), rgba(0,0,0,0.22));
+	pointer-events: none;
+	z-index: 0;
 }
 .account-card,
 .account-card *,
@@ -65,8 +88,18 @@
 .account-card h2 { margin: 0 0 12px 0; font-size: 35px }
 .account-info { font-size: 25px; color: #e6e6e6; margin-bottom: 18px }
 .account-info p { margin: 8px 0 }
+.gold-value {
+	font-family: "Silkscreen", "Pixelify Sans", sans-serif;
+	font-size: 24px;
+	letter-spacing: .2px;
+	color: inherit;
+	font-weight: 700;
+}
+.coin {
+	font-family: inherit;
+}
 
-.account-actions { display:flex; justify-content:center; gap:12px; margin-top:14px; width:100%; max-width:640px }
+.account-actions { display:flex; justify-content:center; gap:12px; margin-top:14px; width:100%; max-width:640px; position: relative; z-index: 1; }
 .account-actions button { padding: 12px 18px; border-radius: 12px; background: linear-gradient(90deg,#2b2b2b,#222); color: #fff; font-family: "Pixelify Sans", sans-serif; border: none; cursor: pointer; font-size: 16px; min-width:120px }
 .account-actions .logout {
 	background:#111;
@@ -113,6 +146,8 @@
 	padding: 10px 14px;
 	border-radius: 14px;
 	background: rgba(255,255,255,0.04);
+	position: relative;
+	z-index: 1;
 }
 .avatar-wrapper {
 	position:relative;
@@ -131,6 +166,47 @@
 	overflow: hidden;
 	border:4px solid rgba(255,255,255,0.06);
 	background:#222;
+	box-shadow: 0 0 0 1px rgba(255,255,255,0.04), 0 18px 28px rgba(0,0,0,0.28);
+}
+.avatar-frame.profile-frame-frame_solar {
+	border-color: rgba(255, 176, 74, 0.95);
+	box-shadow:
+		0 0 0 3px rgba(255, 140, 45, 0.18),
+		0 0 26px rgba(255, 156, 58, 0.3),
+		0 18px 28px rgba(0,0,0,0.28);
+	animation: solarFramePulseAccount 1.9s ease-in-out infinite;
+}
+.avatar-frame.profile-frame-frame_frost {
+	border-color: rgba(141, 201, 255, 0.95);
+	box-shadow:
+		0 0 0 3px rgba(90, 165, 255, 0.18),
+		0 0 26px rgba(102, 192, 255, 0.24),
+		0 18px 28px rgba(0,0,0,0.28);
+	animation: frostFrameSweepAccount 2.2s ease-in-out infinite;
+}
+.avatar-frame.profile-frame-frame_neon {
+	border-color: rgba(123, 255, 231, 0.92);
+	box-shadow:
+		0 0 0 3px rgba(255,77,187,.16),
+		0 0 26px rgba(73,247,255,.3),
+		0 18px 28px rgba(0,0,0,0.28);
+	animation: neonFrameBlinkAccount 1.45s linear infinite;
+}
+.avatar-frame.profile-frame-frame_royal {
+	border-color: rgba(146, 161, 255, 0.96);
+	box-shadow:
+		0 0 0 3px rgba(110,93,255,.18),
+		0 0 26px rgba(144,164,255,.28),
+		0 18px 28px rgba(0,0,0,0.28);
+	animation: royalFrameFloatAccount 2.6s ease-in-out infinite;
+}
+.avatar-frame.profile-frame-frame_blossom {
+	border-color: rgba(255, 177, 208, 0.96);
+	box-shadow:
+		0 0 0 3px rgba(255,121,164,.15),
+		0 0 26px rgba(255,177,208,.28),
+		0 18px 28px rgba(0,0,0,0.28);
+	animation: blossomFrameWaveAccount 2s ease-in-out infinite;
 }
 .avatar {
 	display: block;
@@ -143,7 +219,6 @@
 	object-fit:cover;
 	object-position: center 45%;
 	border-radius:50%;
-	vertical-align: middle;
 }
 .avatar-edit { position:absolute; right:6px; bottom:6px; background:rgba(0,0,0,0.7); border-radius:999px; padding:8px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; }
 .avatar-edit input { display:none }
@@ -219,9 +294,87 @@
 .save-btn { background:linear-gradient(90deg,#2f6bff,#5f8dff); color:#fff; border:none }
 .cancel-btn { background:linear-gradient(90deg,#333,#222); color:#fff; border:none }
 
-.divider { height:2px; background:rgba(80, 80, 80, 0.04); margin:14px 0 }
+.divider { height:2px; background:rgba(255,255,255,0.035); margin:14px 0; position: relative; z-index: 1; }
+
+.section-head {
+	display:flex;
+	align-items:center;
+	justify-content:space-between;
+	gap:12px;
+	width:100%;
+	position: relative;
+	z-index: 1;
+}
+.bio-section {
+	width:100%;
+	max-width:760px;
+	padding:12px 18px;
+	border-radius:14px;
+	background: rgba(255,255,255,0.04);
+	text-align:left;
+	box-sizing:border-box;
+	position: relative;
+	z-index: 1;
+}
+.bio-section h4 {
+	margin:0;
+	font-size:18px;
+}
+.bio-copy {
+	margin:8px 0 0 0;
+	font-size:14px;
+	line-height:1.45;
+	color:#dbe4f4;
+	min-height:28px;
+	white-space:pre-wrap;
+}
+.bio-input {
+	width:100%;
+	min-height:78px;
+	margin-top:8px;
+	padding:10px 12px;
+	border-radius:12px;
+	border:1px solid rgba(255,255,255,0.12);
+	background:#101218;
+	color:#fff;
+	font-size:15px;
+	line-height:1.5;
+	resize:vertical;
+	box-sizing:border-box;
+}
+.bio-count {
+	margin-top:6px;
+	font-size:12px;
+	color:#9db1d9;
+	text-align:right;
+}
+.inline-actions {
+	display:flex;
+	align-items:center;
+	gap:8px;
+}
+.cosmetic-tag {
+	display:inline-flex;
+	align-items:center;
+	justify-content:center;
+	padding:6px 10px;
+	border-radius:999px;
+	font-size:12px;
+	background:rgba(255,255,255,0.07);
+	border:1px solid rgba(255,255,255,0.12);
+	color:#dce5f8;
+}
+.cosmetic-tag {
+	width:100%;
+	box-sizing:border-box;
+	font-size:11px;
+	color:#ffd9b0;
+	background:rgba(255,122,32,0.08);
+	border-color:rgba(255,154,64,0.22);
+}
 
 .password-section h4, .inventory-section h4 { margin:0 0 8px 0; font-size:18px }
+.password-section, .inventory-section { position: relative; z-index: 1; width: 100%; max-width: 760px; }
 .password-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:center }
 .password-row input { padding:10px 12px; border-radius:10px; background:#0f0f0f; border:1px solid #333; color:#fff; min-width:220px }
 .password-row .primary {
@@ -259,6 +412,19 @@
 .sell-btn { padding:8px 10px; border-radius:8px; background:linear-gradient(90deg,#3a2a0f,#4a3214); color:#ffd783; border:1px solid rgba(255,215,131,.22); cursor:pointer; font-family:"Pixelify Sans",sans-serif; font-size:13px }
 
 .gold { margin-top:6px }
+
+.account-card.profile-banner-banner_dawn::before {
+	background:
+		radial-gradient(circle at 18% 18%, rgba(255,235,176,0.22), transparent 30%),
+		radial-gradient(circle at 82% 16%, rgba(255,156,58,0.14), transparent 28%),
+		linear-gradient(120deg, rgba(255,122,32,0.18), rgba(255,204,103,0.16));
+}
+.account-card.profile-banner-banner_aurora::before {
+	background:
+		radial-gradient(circle at 18% 18%, rgba(207,255,243,0.16), transparent 30%),
+		radial-gradient(circle at 82% 16%, rgba(130,168,255,0.16), transparent 28%),
+		linear-gradient(120deg, rgba(48,165,142,0.16), rgba(71,112,255,0.18));
+}
 
 .cropper-overlay {
 	position: fixed;
@@ -360,6 +526,8 @@
 		align-items: center;
 		padding: 10px;
 	}
+	.bio-section,
+	.bio-section { padding:12px 14px; }
 	.avatar-wrapper { width:120px; height:120px; flex: 0 0 120px; }
 	.name-row {
 		grid-template-columns: 1fr;
@@ -378,4 +546,24 @@
 @keyframes spin {
 	from { transform: rotate(0deg); }
 	to { transform: rotate(360deg); }
+}
+@keyframes solarFramePulseAccount {
+  0%,100% { transform: scale(1); filter: saturate(1); }
+  50% { transform: scale(1.03); filter: saturate(1.16); }
+}
+@keyframes frostFrameSweepAccount {
+  0%,100% { transform: translateY(0); filter: brightness(1); }
+  50% { transform: translateY(-2px); filter: brightness(1.12); }
+}
+@keyframes neonFrameBlinkAccount {
+  0%,100% { filter: saturate(1) brightness(1); }
+  50% { filter: saturate(1.28) brightness(1.18); }
+}
+@keyframes royalFrameFloatAccount {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+@keyframes blossomFrameWaveAccount {
+  0%,100% { transform: scale(1); filter: hue-rotate(0deg); }
+  50% { transform: scale(1.025); filter: hue-rotate(-10deg); }
 }

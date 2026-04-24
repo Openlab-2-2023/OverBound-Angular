@@ -6,6 +6,16 @@ let firebaseLoadFailed = false;
 let _firestore: any = null;
 let _auth: any = null;
 
+function isExpectedAuthError(error: any): boolean {
+  const code = String(error?.code || '');
+  return [
+    'auth/invalid-credential',
+    'auth/wrong-password',
+    'auth/user-not-found',
+    'auth/too-many-requests',
+  ].includes(code);
+}
+
 export function isFirebaseEnabled(): boolean {
   return !!FIREBASE_SDK_CONFIG && !!FIREBASE_SDK_CONFIG.projectId && !firebaseLoadFailed;
 }
@@ -75,7 +85,9 @@ export async function authSignIn(email: string, password: string) {
     const { signInWithEmailAndPassword } = await import('firebase/auth');
     return await signInWithEmailAndPassword(_auth, email, password);
   } catch (e) {
-    console.warn('authSignIn failed', e);
+    if (!isExpectedAuthError(e)) {
+      console.warn('authSignIn failed', e);
+    }
     throw e;
   }
 }
@@ -137,6 +149,20 @@ export async function saveUserToFirestore(user: any) {
     await setDoc(ref, { ...user, email }, { merge: true });
   } catch (e) {
     console.warn('saveUserToFirestore failed', e);
+    throw e;
+  }
+}
+
+export async function authFetchSignInMethodsForEmail(email: string) {
+  await initFirebaseIfNeeded();
+  if (!_auth) throw new Error('Firebase Auth not initialized');
+  try {
+    const { fetchSignInMethodsForEmail } = await import('firebase/auth');
+    const normalized = String(email || '').trim().toLowerCase();
+    if (!normalized) throw new Error('Email is required');
+    return await fetchSignInMethodsForEmail(_auth, normalized);
+  } catch (e) {
+    console.warn('authFetchSignInMethodsForEmail failed', e);
     throw e;
   }
 }

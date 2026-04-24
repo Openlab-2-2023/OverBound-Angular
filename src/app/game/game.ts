@@ -37,10 +37,13 @@ export class GameComponent implements AfterViewInit {
 
       const currentGold =
         Number.isFinite(Number((current as any).gold)) ? Number((current as any).gold) : 0;
+      const currentTotalGold =
+        Number.isFinite(Number((current as any).totalGoldCollected)) ? Number((current as any).totalGoldCollected) : 0;
       const nextGold = currentGold + 10;
+      const nextTotalGold = currentTotalGold + 10;
 
       this.auth
-        .updateProfile({ gold: nextGold })
+        .updateProfile({ gold: nextGold, totalGoldCollected: nextTotalGold })
         .then((res) => {
           if (!res.ok) {
             console.warn('Failed to update gold after enemy kill:', res.message);
