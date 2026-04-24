@@ -14,7 +14,9 @@ import { Subscription } from 'rxjs';
 })
 export class AccountDetails implements OnInit, OnDestroy {
   editingName = false;
+  editingBio = false;
   nameValue = '';
+  bioValue = '';
   profilePreview: string | null = null;
   currentPassword = '';
   newPassword = '';
@@ -38,6 +40,7 @@ export class AccountDetails implements OnInit, OnDestroy {
   ngOnInit(): void {
     const u: any = this.user;
     this.nameValue = u?.displayName || '';
+    this.bioValue = u?.bio || '';
     this.profilePreview = u?.photoURL || null;
     this.inventory = (u?.inventory && Array.isArray(u.inventory)) ? u.inventory.slice() : [];
     this.routeSub = this.route.queryParamMap.subscribe(async (params) => {
@@ -52,10 +55,12 @@ export class AccountDetails implements OnInit, OnDestroy {
             displayName: stateUser.displayName || viewedEmail.split('@')[0] || 'Player',
             role: stateUser.role || 'Player',
             photoURL: stateUser.photoURL || '',
+            bio: stateUser.bio || '',
             gold: Number.isFinite(Number(stateUser.gold)) ? Number(stateUser.gold) : 0,
             inventory: Array.isArray(stateUser.inventory) ? stateUser.inventory.slice() : [],
           };
           this.nameValue = this.viewedUser.displayName || '';
+          this.bioValue = this.viewedUser.bio || '';
           this.profilePreview = this.viewedUser.photoURL || null;
           this.inventory = this.viewedUser.inventory || [];
         }
@@ -66,6 +71,7 @@ export class AccountDetails implements OnInit, OnDestroy {
         this.viewedUserError = '';
         const current: any = this.user;
         this.nameValue = current?.displayName || '';
+        this.bioValue = current?.bio || '';
         this.profilePreview = current?.photoURL || null;
         this.inventory = (current?.inventory && Array.isArray(current.inventory)) ? current.inventory.slice() : [];
       }
@@ -80,6 +86,8 @@ export class AccountDetails implements OnInit, OnDestroy {
       const detail: any = (ev as any).detail;
       if (detail && detail.photoURL) this.profilePreview = detail.photoURL;
       if (detail && detail.displayName) this.nameValue = detail.displayName;
+      if (detail && typeof detail.bio === 'string') this.bioValue = detail.bio;
+      if (detail && Array.isArray(detail.inventory)) this.inventory = detail.inventory.slice();
     } catch { }
   }
 
@@ -106,6 +114,17 @@ export class AccountDetails implements OnInit, OnDestroy {
     if (!res.ok) { alert(res.message || 'Failed to save name'); return; }
     this.editingName = false;
     console.log('Name saved:', this.nameValue);
+  }
+
+  startEditBio() { if (this.viewOnlyMode) return; this.editingBio = true; }
+  cancelEditBio() { if (this.viewOnlyMode) return; this.editingBio = false; this.bioValue = this.user?.bio || ''; }
+  async saveBio() {
+    if (this.viewOnlyMode) return;
+    const bio = String(this.bioValue || '').trim().slice(0, 180);
+    const res = await this.auth.updateProfile({ bio });
+    if (!res.ok) { alert(res.message || 'Failed to save bio'); return; }
+    this.bioValue = bio;
+    this.editingBio = false;
   }
 
   async onFileSelected(ev: Event) {
@@ -280,7 +299,17 @@ export class AccountDetails implements OnInit, OnDestroy {
 
   async toggleEquip(item: any) {
     if (this.viewOnlyMode) return;
-    item.equipped = !item.equipped;
+    const shouldEquip = !item.equipped;
+    const category = this.getCosmeticCategory(item);
+    if (shouldEquip && category !== 'other') {
+      for (const invItem of this.inventory) {
+        if (invItem === item) continue;
+        if (this.getCosmeticCategory(invItem) === category) {
+          invItem.equipped = false;
+        }
+      }
+    }
+    item.equipped = shouldEquip;
     // persist inventory change
     const updatedInv = this.inventory.map(i => ({ ...i }));
     const res = await this.auth.updateProfile({ inventory: updatedInv });
@@ -315,6 +344,33 @@ export class AccountDetails implements OnInit, OnDestroy {
       : [];
   }
 
+  getEquippedFrameClass(): string | null {
+    const frameId = this.getEquippedCosmeticId('frame');
+    return frameId ? `profile-frame-${frameId}` : null;
+  }
+
+  getEquippedBannerClass(): string | null {
+    const bannerId = this.getEquippedCosmeticId('banner');
+    return bannerId ? `profile-banner-${bannerId}` : null;
+  }
+
+  getEquippedCosmeticId(category: 'frame' | 'banner'): string {
+    const inventory = Array.isArray(this.inventory) ? this.inventory : [];
+    const prefix = `${category}_`;
+    const equipped = inventory.find((item) => item?.equipped && String(item.id || '').toLowerCase().startsWith(prefix));
+    return String(equipped?.id || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]/g, '');
+  }
+
+  getCosmeticCategory(item: any): 'frame' | 'banner' | 'other' {
+    const id = String(item?.id || '').trim().toLowerCase();
+    if (id.startsWith('frame_')) return 'frame';
+    if (id.startsWith('banner_')) return 'banner';
+    return 'other';
+  }
+
   private async loadViewedUser(email: string) {
     this.loadingViewedUser = true;
     const hadStateUser = !!this.viewedUser;
@@ -346,10 +402,12 @@ export class AccountDetails implements OnInit, OnDestroy {
         displayName: (remote as any).displayName || email.split('@')[0] || 'Player',
         role: (remote as any).role || 'Player',
         photoURL: (remote as any).photoURL || '',
+        bio: (remote as any).bio || '',
         gold: Number.isFinite(Number((remote as any).gold)) ? Number((remote as any).gold) : 0,
         inventory: Array.isArray((remote as any).inventory) ? (remote as any).inventory.slice() : [],
       };
       this.nameValue = this.viewedUser.displayName || '';
+      this.bioValue = this.viewedUser.bio || '';
       this.profilePreview = this.viewedUser.photoURL || null;
       this.inventory = this.viewedUser.inventory || [];
     } catch (e: any) {

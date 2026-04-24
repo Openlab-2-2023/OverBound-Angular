@@ -5,44 +5,59 @@ export interface StoreItem {
   cost: number;
   description: string;
   longDescription: string;
+  type?: 'frame';
 }
 
 export const STORE_ITEMS: StoreItem[] = [
   {
-    id: 'hat_wanderer',
-    name: 'Wanderer Hat',
-    icon: 'HAT',
-    cost: 25,
-    description: 'A classic hat for explorers.',
+    id: 'frame_solar',
+    name: 'Solar Flare Frame',
+    icon: 'FRM',
+    cost: 45,
+    type: 'frame',
+    description: 'Molten gold frame with a warm pulse.',
     longDescription:
-      'A simple traveler hat that fits almost any outfit. Great starter cosmetic for your character.',
+      'A radiant frame forged in ember-light. Its glow gently pulses around your profile like a miniature sunrise.',
   },
   {
-    id: 'cloak_ember',
-    name: 'Ember Cloak',
-    icon: 'CLK',
-    cost: 55,
-    description: 'Warm cloak with ember trim.',
+    id: 'frame_frost',
+    name: 'Frostbite Frame',
+    icon: 'FRM',
+    cost: 50,
+    type: 'frame',
+    description: 'Icy blue frame with a cold shimmer.',
     longDescription:
-      'Dark cloak lined with ember-colored seams. Looks best on night maps and dungeon scenes.',
+      'A crisp frame cut from frozen light. Soft blue highlights sweep across it like wind over ice.',
   },
   {
-    id: 'blade_pixel',
-    name: 'Pixel Blade',
-    icon: 'SWD',
-    cost: 80,
-    description: 'Sharp and very square.',
+    id: 'frame_neon',
+    name: 'Neon Circuit Frame',
+    icon: 'FRM',
+    cost: 60,
+    type: 'frame',
+    description: 'Electric neon frame with arcade energy.',
     longDescription:
-      'A stylized sword skin with chunky pixel edges. Built for players who want a classic retro look.',
+      'A vivid cyber-styled profile frame with shifting magenta and cyan glow, built for loud futuristic flair.',
   },
   {
-    id: 'pet_slime',
-    name: 'Slime Pet',
-    icon: 'PET',
-    cost: 120,
-    description: 'A tiny companion blob.',
+    id: 'frame_royal',
+    name: 'Royal Nova Frame',
+    icon: 'FRM',
+    cost: 75,
+    type: 'frame',
+    description: 'Regal violet-blue frame with a starry drift.',
     longDescription:
-      'A small cosmetic pet that follows your style theme. Friendly, bouncy, and unmistakably cute.',
+      'A polished high-tier frame with luminous blue-violet edges and a slow royal shimmer fit for leaderboard climbers.',
+  },
+  {
+    id: 'frame_blossom',
+    name: 'Blossom Wave Frame',
+    icon: 'FRM',
+    cost: 58,
+    type: 'frame',
+    description: 'Pink-coral frame with soft flowing motion.',
+    longDescription:
+      'A bright pastel frame with a gentle animated sweep, perfect for players who want something stylish and playful.',
   },
 ];
 

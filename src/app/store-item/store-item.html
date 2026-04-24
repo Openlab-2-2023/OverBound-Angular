@@ -2,7 +2,22 @@
   <div class="item-card">
     @if (item) {
       <div class="item-top">
-        <div class="item-preview">{{ item.icon }}</div>
+        <div class="item-preview" [class.frame-preview-card]="isFrameItem()">
+          @if (isFrameItem()) {
+            <div class="frame-preview-stage">
+              <div class="frame-preview-banner"></div>
+              <div class="frame-preview-avatar-shell" [ngClass]="previewFrameClass">
+                @if (previewPhoto) {
+                  <img class="frame-preview-avatar" [src]="previewPhoto" alt="Preview avatar" />
+                } @else {
+                  <span class="frame-preview-fallback">{{ previewInitial }}</span>
+                }
+              </div>
+            </div>
+          } @else {
+            {{ item.icon }}
+          }
+        </div>
         <div class="item-head">
           <h2>{{ item.name }}</h2>
           <p class="item-short">{{ item.description }}</p>
@@ -15,7 +30,9 @@
       <div class="item-body">
         <h3>Item Details</h3>
         <p>{{ item.longDescription }}</p>
-        <p class="item-note">Skin preview support can be added here later.</p>
+        @if (isFrameItem()) {
+          <p class="item-note">Only one frame can be equipped at a time. Buy it once, then equip it from your inventory.</p>
+        }
       </div>
 
       <div class="item-actions">
@@ -41,4 +58,3 @@
     }
   </div>
 </div>
-

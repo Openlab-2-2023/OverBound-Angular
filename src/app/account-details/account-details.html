@@ -1,11 +1,11 @@
 <div class="account-details">
 	@if (activeUser) {
-		<div class="account-card">
+		<div class="account-card" [ngClass]="getEquippedBannerClass()">
 			<h2>{{ viewOnlyMode ? 'Player Profile' : 'Account' }}</h2>
 
 			<div class="profile-row">
 				<div class="avatar-wrapper">
-					<div class="avatar-frame">
+					<div class="avatar-frame" [ngClass]="getEquippedFrameClass()">
 						<img class="avatar" [src]="profilePreview || activeUser?.photoURL || 'assets/pfps'" alt="Profile">
 						@if (isProcessingProfileImage) {
 							<div class="avatar-processing" aria-live="polite">
@@ -46,9 +46,33 @@
 					<div class="account-info">
 						<p><strong>Email:</strong> {{ activeUser.email }}</p>
 						<p><strong>Role:</strong> {{ activeUser.role }}</p>
-						<p class="gold"><strong>Gold:</strong> {{ activeUser.gold || 0 }} <span class="coin">◈</span></p>
+						<p class="gold"><strong>Gold:</strong> <span class="gold-value" style="font-family:'Silkscreen','Pixelify Sans',sans-serif;letter-spacing:.2px">{{ activeUser.gold || 0 }}</span> <span class="coin">◈</span></p>
 					</div>
 				</div>
+			</div>
+
+			<div class="divider"></div>
+
+			<div class="bio-section">
+				<div class="section-head">
+					<h4>Bio</h4>
+					@if (!viewOnlyMode) {
+						@if (!editingBio) {
+							<button class="icon-btn" (click)="startEditBio()" title="Edit bio">✎</button>
+						} @else {
+							<div class="inline-actions">
+								<button class="save-btn" (click)="saveBio()">Save</button>
+								<button class="cancel-btn" (click)="cancelEditBio()">Cancel</button>
+							</div>
+						}
+					}
+				</div>
+				@if (!editingBio || viewOnlyMode) {
+					<p class="bio-copy">{{ activeUser?.bio || 'No bio yet.' }}</p>
+				} @else {
+					<textarea class="bio-input" [(ngModel)]="bioValue" maxlength="180" placeholder="Tell other players a little about yourself"></textarea>
+					<div class="bio-count">{{ (bioValue || '').length }}/180</div>
+				}
 			</div>
 
 			@if (!viewOnlyMode) {
@@ -79,6 +103,9 @@
 						@if (!viewOnlyMode) {
 							<div class="inv-actions">
 								<button class="equip-btn" [class.equipped]="it.equipped" (click)="toggleEquip(it)">{{ it.equipped ? 'Unequip' : 'Equip' }}</button>
+								@if (getCosmeticCategory(it) !== 'other') {
+									<div class="cosmetic-tag">{{ getCosmeticCategory(it) === 'frame' ? 'Profile Frame' : 'Profile Banner' }}</div>
+								}
 								<button class="sell-btn" (click)="sellItem(it)">Sell {{ getSellPrice(it) }} ◈</button>
 							</div>
 						}
@@ -91,9 +118,9 @@
 
 			<div class="account-actions">
 				@if (!viewOnlyMode) {
-					<button class="logout" (click)="logout()">Logout</button>
+					<button type="button" class="logout" (click)="logout()">Logout</button>
 				}
-				<button class="back-btn" (click)="goBack()">Back</button>
+				<button type="button" class="back-btn" (click)="goBack()">Back</button>
 			</div>
 		</div>
 	} @else {

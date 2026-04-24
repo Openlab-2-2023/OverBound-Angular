@@ -1,7 +1,7 @@
 import { Component, signal, ViewChild, ElementRef, OnDestroy, OnInit, ChangeDetectorRef } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { AuthService } from '../services/auth.service';
+import { AuthService, User } from '../services/auth.service';
 import { FIREBASE_SDK_CONFIG } from '../services/firebase.sdk.config';
 import { STORE_ITEMS, StoreItem } from '../store/store-catalog';
 
@@ -17,13 +17,12 @@ export class Start implements OnInit, OnDestroy {
   showCredits = signal(false);
   leaderboardFilter: 'gold-desc' = 'gold-desc';
   leaderboardFilterOpen = false;
-  leaderboardUsers: Array<{ email: string; displayName: string; gold: number; role: string; photoURL?: string; inventory?: Array<{ id: string; name: string; icon: string; equipped?: boolean; cost?: number }> }> = [];
+  leaderboardUsers: Array<{ email: string; displayName: string; gold: number; totalGoldCollected: number; role: string; photoURL?: string; inventory?: Array<{ id: string; name: string; icon: string; equipped?: boolean; cost?: number }> }> = [];
   leaderboardError = '';
   leaderboardLoadedCount = 0;
   leaderboardHint = '';
   storeGold = 0;
-  storeNotice = '';
-  buyingItemId = '';
+  currentUser: User | null = null;
   storeItems: StoreItem[] = STORE_ITEMS;
   leaderboardDiag = 'diagnostics: init';
   leaderboardProjectId = FIREBASE_SDK_CONFIG.projectId || 'n/a';
@@ -41,8 +40,12 @@ export class Start implements OnInit, OnDestroy {
   constructor(private router: Router, private auth: AuthService, private cdr: ChangeDetectorRef) {}
 
   async ngOnInit() {
+    this.refreshCurrentUser();
     this.refreshStoreGold();
-    this.onUserUpdatedListener = () => this.refreshStoreGold();
+    this.onUserUpdatedListener = () => {
+      this.refreshCurrentUser();
+      this.refreshStoreGold();
+    };
     window.addEventListener('ob:user-updated', this.onUserUpdatedListener);
     this.bindAutoHideScrollbars();
     await this.bootstrapLeaderboard();
@@ -109,6 +112,24 @@ export class Start implements OnInit, OnDestroy {
 
   goToAccount() { this.router.navigate(['/account']); }
 
+  get currentUserPhoto(): string {
+    return String(this.currentUser?.photoURL || '').trim();
+  }
+
+  get currentUserInitial(): string {
+    const source = String(this.currentUser?.displayName || this.currentUser?.username || this.currentUser?.email || '?').trim();
+    return (source.charAt(0) || '?').toUpperCase();
+  }
+
+  get currentProfileFrameClass(): string | null {
+    const equippedFrame = this.getEquippedProfileFrameId();
+    return equippedFrame ? `profile-frame-${equippedFrame}` : null;
+  }
+
+  get currentProfileFrameId(): string {
+    return this.getEquippedProfileFrameId();
+  }
+
   onLeaderboardFilterChange(event: Event) {
     const val = (event.target as HTMLSelectElement).value;
     if (val === 'gold-desc') {
@@ -132,12 +153,12 @@ export class Start implements OnInit, OnDestroy {
   get filteredLeaderboard() {
     const rows = this.leaderboardUsers.slice();
     if (this.leaderboardFilter === 'gold-desc') {
-      rows.sort((a, b) => b.gold - a.gold);
+      rows.sort((a, b) => b.totalGoldCollected - a.totalGoldCollected);
     }
     return rows.slice(0, 20);
   }
 
-  openLeaderboardProfile(player: { email: string; displayName: string; gold: number; role: string; photoURL?: string; inventory?: Array<{ id: string; name: string; icon: string; equipped?: boolean; cost?: number }> }, event?: Event) {
+  openLeaderboardProfile(player: { email: string; displayName: string; gold: number; totalGoldCollected: number; role: string; photoURL?: string; inventory?: Array<{ id: string; name: string; icon: string; equipped?: boolean; cost?: number }> }, event?: Event) {
     if (event) event.stopPropagation();
     const email = String(player?.email || '').trim().toLowerCase();
     if (!email) return;
@@ -149,6 +170,7 @@ export class Start implements OnInit, OnDestroy {
           displayName: player.displayName || email.split('@')[0] || 'Player',
           role: player.role || 'Player',
           gold: Number.isFinite(Number(player.gold)) ? Number(player.gold) : 0,
+          totalGoldCollected: Number.isFinite(Number(player.totalGoldCollected)) ? Number(player.totalGoldCollected) : 0,
           photoURL: player.photoURL || '',
           inventory: Array.isArray(player.inventory) ? player.inventory.slice() : [],
         },
@@ -161,39 +183,22 @@ export class Start implements OnInit, OnDestroy {
     this.storeGold = Number.isFinite(Number(current?.gold)) ? Number(current?.gold) : 0;
   }
 
-  isStoreItemOwned(item: StoreItem) {
-    const current = this.auth.getCurrent();
-    const inv = Array.isArray(current?.inventory) ? current!.inventory! : [];
-    return inv.some((it: any) => it?.id === item.id);
+  private refreshCurrentUser() {
+    this.currentUser = this.auth.getCurrent();
   }
 
-  canBuyStoreItem(item: StoreItem) {
-    return this.isLoggedIn() && !this.isStoreItemOwned(item) && this.storeGold >= item.cost;
+  private getEquippedProfileFrameId(): string {
+    const inventory = Array.isArray(this.currentUser?.inventory) ? this.currentUser!.inventory! : [];
+    const equippedFrame = inventory.find((item) => item?.equipped && String(item.id || '').toLowerCase().startsWith('frame_'));
+    return String(equippedFrame?.id || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]/g, '');
   }
 
-  async buyStoreItem(item: StoreItem) {
-    if (!this.isLoggedIn()) {
-      this.storeNotice = 'Log in to buy items.';
-      return;
-    }
-    if (this.buyingItemId) return;
-    this.buyingItemId = item.id;
-    this.storeNotice = '';
-    try {
-      const res = await this.auth.buyStoreItem(item);
-      this.storeNotice = res.message || (res.ok ? 'Purchased.' : 'Purchase failed.');
-      this.refreshStoreGold();
-      if (!res.ok) return;
-      await this.refreshLeaderboard().catch(() => {});
-    } finally {
-      this.buyingItemId = '';
-    }
-  }
 
-  openStoreItem(item: StoreItem, event?: Event) {
-    if (event) event.stopPropagation();
-    this.router.navigate(['/store', item.id], { state: { storeItem: item } });
-  }
+
+
 
   private withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
     return Promise.race([
