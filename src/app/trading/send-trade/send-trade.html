@@ -1,0 +1,183 @@
+<div class="send-trade">
+  <div *ngIf="loading" class="loading-state">
+    <p>Loading players...</p>
+  </div>
+
+  <div *ngIf="!loading && successMessage" class="message success">
+    <p>✓ {{ successMessage }}</p>
+  </div>
+
+  <div *ngIf="!loading && error && availableUsers.length === 0" class="message error">
+    <p>✕ {{ error }}</p>
+  </div>
+
+  <!-- STEP 1: SELECT USER -->
+  <div *ngIf="step === 'selectUser' && !loading" class="step-content">
+    <div class="players-head">
+      <div>
+        <h2>Select a Player to Trade With</h2>
+        <p class="players-subtitle">
+          These are the player accounts that can receive your trade request.
+        </p>
+      </div>
+      <div class="players-count">{{ availablePlayersLabel }}</div>
+    </div>
+
+    <p *ngIf="refreshingUsers" class="players-refreshing">Refreshing player list...</p>
+
+    <div *ngIf="availableUsers.length === 0" class="empty-state">
+      <p>No other players available for trading at the moment.</p>
+    </div>
+
+    <div *ngIf="availableUsers.length > 0" class="users-grid">
+      <div
+        *ngFor="let user of availableUsers"
+        class="user-card"
+        (click)="selectUser(user)"
+      >
+        <div class="user-avatar">
+          <span *ngIf="user.photoURL">
+            <img [src]="user.photoURL" [alt]="user.displayName || user.email" />
+          </span>
+          <span *ngIf="!user.photoURL" class="default-avatar">
+            {{ (user.displayName || user.email || 'U').charAt(0).toUpperCase() }}
+          </span>
+        </div>
+        <h3 class="user-name">{{ user.displayName || user.email }}</h3>
+        <p class="user-email">{{ user.email }}</p>
+        <p class="user-items">
+          {{ (user.inventory && user.inventory.length) || 0 }} items
+        </p>
+        <button class="btn-trade" type="button">Send Trade Request</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: SELECT ITEMS -->
+  <div *ngIf="step === 'selectItems' && !loading && selectedUser" class="step-content">
+    <div class="step-header">
+      <button class="btn-back" (click)="backToUsers()">← Back</button>
+      <h2>Trading with {{ selectedUser.displayName || selectedUser.email }}</h2>
+    </div>
+
+    <div class="items-selection">
+      <!-- MY INVENTORY -->
+      <div class="inventory-section">
+        <h3>Your Items (Select to Offer)</h3>
+        <div *ngIf="currentUserInventory.length === 0" class="empty-inventory">
+          <p>You have no items to offer.</p>
+        </div>
+        <div *ngIf="currentUserInventory.length > 0" class="items-grid">
+          <div
+            *ngFor="let item of currentUserInventory"
+            [class.selected]="isItemOffered(item.id)"
+            class="item-card offer"
+            (click)="toggleOfferItem(item)"
+          >
+            <div class="item-icon">{{ item.icon }}</div>
+            <div class="item-name">{{ item.name }}</div>
+            <div *ngIf="isItemOffered(item.id)" class="selection-badge">✓ Offering</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- THEIR INVENTORY -->
+      <div class="inventory-section">
+        <h3>Their Items (Select to Request)</h3>
+        <div *ngIf="selectedUserInventory.length === 0" class="empty-inventory">
+          <p>They have no items available.</p>
+        </div>
+        <div *ngIf="selectedUserInventory.length > 0" class="items-grid">
+          <div
+            *ngFor="let item of selectedUserInventory"
+            [class.selected]="isItemRequested(item.id)"
+            class="item-card request"
+            (click)="toggleRequestItem(item)"
+          >
+            <div class="item-icon">{{ item.icon }}</div>
+            <div class="item-name">{{ item.name }}</div>
+            <div *ngIf="isItemRequested(item.id)" class="selection-badge">✓ Requesting</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="selection-summary">
+      <p>
+        <strong>Offering:</strong>
+        {{ itemsToOffer.length }} item<span *ngIf="itemsToOffer.length !== 1">s</span>
+      </p>
+      <p>
+        <strong>Requesting:</strong>
+        {{ itemsToRequest.length }} item<span *ngIf="itemsToRequest.length !== 1">s</span>
+      </p>
+    </div>
+
+    <div class="action-buttons">
+      <button class="btn btn-secondary" (click)="backToUsers()">Cancel</button>
+      <button
+        class="btn btn-primary"
+        (click)="proceedToReview()"
+        [disabled]="itemsToOffer.length === 0 && itemsToRequest.length === 0"
+      >
+        Review Offer →
+      </button>
+    </div>
+  </div>
+
+  <!-- STEP 3: REVIEW & CONFIRM -->
+  <div *ngIf="step === 'review' && !loading && selectedUser" class="step-content">
+    <div class="step-header">
+      <button class="btn-back" (click)="backToSelection()">← Back</button>
+      <h2>Review Your Trade Offer</h2>
+    </div>
+
+    <div class="review-container">
+      <div class="trade-summary">
+        <div class="trade-side">
+          <h3>📦 You Offer</h3>
+          <div *ngIf="itemsToOffer.length === 0" class="no-items">Nothing</div>
+          <div *ngIf="itemsToOffer.length > 0" class="summary-items">
+            <div *ngFor="let item of itemsToOffer" class="summary-item">
+              <span class="item-icon">{{ item.icon }}</span>
+              <span class="item-name">{{ item.name }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="exchange-divider">
+          <span class="divider-icon">⇄</span>
+        </div>
+
+        <div class="trade-side">
+          <h3>🎁 You Request</h3>
+          <div *ngIf="itemsToRequest.length === 0" class="no-items">Nothing</div>
+          <div *ngIf="itemsToRequest.length > 0" class="summary-items">
+            <div *ngFor="let item of itemsToRequest" class="summary-item">
+              <span class="item-icon">{{ item.icon }}</span>
+              <span class="item-name">{{ item.name }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="trade-description">
+        You're sending this trade offer to
+        <strong>{{ selectedUser.displayName || selectedUser.email }}</strong>
+      </p>
+
+      <div class="action-buttons">
+        <button class="btn btn-secondary" (click)="backToSelection()" [disabled]="sending">
+          Cancel
+        </button>
+        <button
+          class="btn btn-primary"
+          (click)="sendTrade()"
+          [disabled]="sending"
+        >
+          {{ sending ? '⏳ Sending...' : '✓ Send Trade Offer' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

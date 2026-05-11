@@ -1,0 +1,48 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email != null;
+    }
+
+    function userEmail() {
+      return lower(request.auth.token.email);
+    }
+
+    function isSelf(email) {
+      return isSignedIn() && userEmail() == lower(email);
+    }
+
+    function tradeParticipant() {
+      return isSignedIn()
+        && (
+          lower(resource.data.senderEmail) == userEmail()
+          || lower(resource.data.receiverEmail) == userEmail()
+        );
+    }
+
+    match /users/{email} {
+      allow read: if isSignedIn();
+      allow create: if isSelf(email) && lower(request.resource.data.email) == userEmail();
+      allow update: if isSelf(email) && lower(request.resource.data.email) == userEmail();
+      allow delete: if false;
+    }
+
+    match /trades/{tradeId} {
+      allow read: if tradeParticipant();
+
+      allow create: if isSignedIn()
+        && lower(request.resource.data.senderEmail) == userEmail()
+        && request.resource.data.status == 'pending';
+
+      allow update: if isSignedIn()
+        && (
+          lower(resource.data.senderEmail) == userEmail()
+          || lower(resource.data.receiverEmail) == userEmail()
+        );
+
+      allow delete: if false;
+    }
+  }
+}

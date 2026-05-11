@@ -371,6 +371,11 @@ export class AccountDetails implements OnInit, OnDestroy {
     return 'other';
   }
 
+  viewStoreItem(itemId: string) {
+    if (!itemId) return;
+    this.router.navigate(['/store', itemId]);
+  }
+
   private async loadViewedUser(email: string) {
     this.loadingViewedUser = true;
     const hadStateUser = !!this.viewedUser;

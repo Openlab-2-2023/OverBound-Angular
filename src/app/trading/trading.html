@@ -1,0 +1,117 @@
+<div class="trading-page">
+  <div class="trading-shell">
+    <div class="trading-topbar">
+      <a class="back-link" routerLink="/">← Back to Menu</a>
+    </div>
+
+    <div class="trading-header">
+      <p class="eyebrow">Player Exchange</p>
+      <h1>Trading System</h1>
+      <p class="subtitle">Swap cosmetics and items with other players.</p>
+    </div>
+
+    <div *ngIf="!isLoggedIn()" class="not-logged-in">
+      <p>Please <a routerLink="/login">log in</a> to access trading.</p>
+    </div>
+
+    <div *ngIf="isLoggedIn()" class="trading-tabs">
+      <div class="tabs-header">
+        <button
+          [class.active]="tab === 'received'"
+          (click)="selectTab('received')"
+          class="tab-button"
+          type="button"
+        >
+          <span class="tab-label">Received</span>
+          <span *ngIf="receivedOffers.length > 0" class="badge">{{ receivedOffers.length }}</span>
+        </button>
+        <button
+          [class.active]="tab === 'sent'"
+          (click)="selectTab('sent')"
+          class="tab-button"
+          type="button"
+        >
+          <span class="tab-label">Sent</span>
+          <span *ngIf="sentOffers.length > 0" class="badge">{{ sentOffers.length }}</span>
+        </button>
+        <button
+          [class.active]="tab === 'send'"
+          (click)="selectTab('send')"
+          class="tab-button"
+          type="button"
+        >
+          <span class="tab-label">New Trade</span>
+        </button>
+      </div>
+
+      <div class="tabs-content">
+        <div *ngIf="loading && tab !== 'send'" class="loading">
+          <span class="btn-loading">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+          </span>
+          <p>Loading offers...</p>
+        </div>
+
+        <!-- RECEIVED TAB -->
+        <div *ngIf="tab === 'received' && !loading" class="tab-panel">
+          <received-trades
+            [offers]="receivedOffers"
+            (tradeCompleted)="onTradeCompleted()"
+          ></received-trades>
+        </div>
+
+        <!-- SENT TAB -->
+        <div *ngIf="tab === 'sent' && !loading" class="tab-panel">
+          <div class="sent-offers">
+            <h2>Your Sent Trade Offers</h2>
+            <div *ngIf="sentOffers.length === 0" class="empty-state">
+              <p>You haven't sent any trade offers yet.</p>
+            </div>
+            <div *ngIf="sentOffers.length > 0" class="offers-list">
+              <div *ngFor="let offer of sentOffers" class="offer-card">
+                <div class="offer-header">
+                  <div>
+                    <p class="offer-kicker">Outgoing Offer</p>
+                    <h3>Trade with {{ offer.receiverName }}</h3>
+                  </div>
+                  <span [class]="'status status-' + offer.status">{{ offer.status }}</span>
+                </div>
+                <div class="offer-items">
+                  <div class="items-section">
+                    <h4>You Offer</h4>
+                    <ul class="items-list">
+                      <li *ngFor="let item of offer.itemsOffered">
+                        <span class="item-icon">{{ item.icon }}</span>
+                        <span class="item-name">{{ item.name }}</span>
+                      </li>
+                    </ul>
+                  </div>
+                  <div class="exchange-arrow">⇄</div>
+                  <div class="items-section">
+                    <h4>You Want</h4>
+                    <ul class="items-list">
+                      <li *ngFor="let item of offer.itemsRequested">
+                        <span class="item-icon">{{ item.icon }}</span>
+                        <span class="item-name">{{ item.name }}</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+                <div class="offer-footer">
+                  <small>{{ offer.createdAt | date: 'short' }}</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SEND TAB -->
+        <div *ngIf="tab === 'send'" class="tab-panel">
+          <send-trade (tradeCompleted)="onTradeCompleted()"></send-trade>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

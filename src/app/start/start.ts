@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { AuthService, User } from '../services/auth.service';
 import { FIREBASE_SDK_CONFIG } from '../services/firebase.sdk.config';
 import { STORE_ITEMS, StoreItem } from '../store/store-catalog';
+import { TradingService } from '../services/trading.service';
 
 @Component({
   selector: 'app-start',
@@ -37,7 +38,12 @@ export class Start implements OnInit, OnDestroy {
   @ViewChild('contentWrapper') contentWrapper!: ElementRef;
   @ViewChild('blackOverlay') blackOverlay!: ElementRef;
 
-  constructor(private router: Router, private auth: AuthService, private cdr: ChangeDetectorRef) {}
+  constructor(
+    private router: Router,
+    private auth: AuthService,
+    private cdr: ChangeDetectorRef,
+    private tradingService: TradingService,
+  ) {}
 
   async ngOnInit() {
     this.refreshCurrentUser();
@@ -49,6 +55,9 @@ export class Start implements OnInit, OnDestroy {
     window.addEventListener('ob:user-updated', this.onUserUpdatedListener);
     this.bindAutoHideScrollbars();
     await this.bootstrapLeaderboard();
+    if (this.auth.isLoggedIn()) {
+      this.tradingService.primeAvailableUsers();
+    }
   }
 
   ngOnDestroy() {
@@ -111,6 +120,15 @@ export class Start implements OnInit, OnDestroy {
   }
 
   goToAccount() { this.router.navigate(['/account']); }
+
+  goToTrading() {
+    if (!this.isLoggedIn()) {
+      this.goToLogin();
+      return;
+    }
+    this.tradingService.primeAvailableUsers();
+    this.router.navigate(['/trading']);
+  }
 
   get currentUserPhoto(): string {
     return String(this.currentUser?.photoURL || '').trim();

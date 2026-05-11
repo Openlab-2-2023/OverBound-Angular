@@ -12,6 +12,8 @@
 	padding:20px;
 	position:relative;
 	overflow:hidden;
+	transform:scale(0.9);
+	transform-origin:center;
 }
 
 .login-toast{

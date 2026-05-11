@@ -94,7 +94,7 @@
 			<div class="inventory-section">
 				<h4>{{ viewOnlyMode ? 'Owned Items' : 'Inventory' }}</h4>
 				<div *ngIf="inventory && inventory.length > 0" class="inventory-grid">
-					<div class="inv-item" *ngFor="let it of inventory">
+					<div class="inv-item" *ngFor="let it of inventory" [class.clickable]="viewOnlyMode" (click)="viewOnlyMode && viewStoreItem(it.id)">
 						<div class="inv-icon">{{ it.icon }}</div>
 						<div class="inv-name">{{ it.name }}</div>
 						@if (viewOnlyMode) {
