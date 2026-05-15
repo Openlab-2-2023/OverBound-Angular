@@ -1,9 +1,10 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth.service';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
+import { getStoreItemById } from '../store/store-catalog';
 
 @Component({
   selector: 'app-account-details',
@@ -35,14 +36,14 @@ export class AccountDetails implements OnInit, OnDestroy {
   viewedUserError = '';
   private routeSub: Subscription | null = null;
 
-  constructor(private auth: AuthService, private router: Router, private route: ActivatedRoute) {}
+  constructor(
+    private auth: AuthService,
+    private router: Router,
+    private route: ActivatedRoute,
+    private cdr: ChangeDetectorRef,
+  ) {}
 
   ngOnInit(): void {
-    const u: any = this.user;
-    this.nameValue = u?.displayName || '';
-    this.bioValue = u?.bio || '';
-    this.profilePreview = u?.photoURL || null;
-    this.inventory = (u?.inventory && Array.isArray(u.inventory)) ? u.inventory.slice() : [];
     this.routeSub = this.route.queryParamMap.subscribe(async (params) => {
       const viewedEmail = (params.get('view') || '').trim().toLowerCase();
       const currentEmail = (this.user?.email || '').toLowerCase();
@@ -63,17 +64,30 @@ export class AccountDetails implements OnInit, OnDestroy {
           this.bioValue = this.viewedUser.bio || '';
           this.profilePreview = this.viewedUser.photoURL || null;
           this.inventory = this.viewedUser.inventory || [];
+          this.flushViewState();
         }
         await this.loadViewedUser(viewedEmail);
       } else {
         this.viewOnlyMode = false;
         this.viewedUser = null;
         this.viewedUserError = '';
+        await this.auth.refreshCurrentUserFromDatabase();
         const current: any = this.user;
         this.nameValue = current?.displayName || '';
         this.bioValue = current?.bio || '';
         this.profilePreview = current?.photoURL || null;
         this.inventory = (current?.inventory && Array.isArray(current.inventory)) ? current.inventory.slice() : [];
+        try {
+          console.log('Account inventory diagnostics:', {
+            currentEmail: current?.email || '',
+            inventoryCount: Array.isArray(current?.inventory) ? current.inventory.length : 0,
+            inventoryIds: Array.isArray(current?.inventory)
+              ? current.inventory.map((entry: any) => String(entry?.id || ''))
+              : [],
+            localInventoryCount: Array.isArray(this.inventory) ? this.inventory.length : 0,
+          });
+        } catch {}
+        this.flushViewState();
       }
     });
     // listen for profile updates so we can update preview without full reload (own profile only)
@@ -88,6 +102,7 @@ export class AccountDetails implements OnInit, OnDestroy {
       if (detail && detail.displayName) this.nameValue = detail.displayName;
       if (detail && typeof detail.bio === 'string') this.bioValue = detail.bio;
       if (detail && Array.isArray(detail.inventory)) this.inventory = detail.inventory.slice();
+      this.flushViewState();
     } catch { }
   }
 
@@ -102,6 +117,12 @@ export class AccountDetails implements OnInit, OnDestroy {
 
   get user(): any { return this.auth.getCurrent(); }
   get activeUser(): any { return this.viewOnlyMode ? this.viewedUser : this.user; }
+
+  private flushViewState() {
+    try {
+      this.cdr.detectChanges();
+    } catch {}
+  }
 
   async logout() { await this.auth.logout(); this.router.navigate(['/']); }
   goBack() { this.router.navigate(['/']); }
@@ -342,6 +363,7 @@ export class AccountDetails implements OnInit, OnDestroy {
     this.inventory = (this.user?.inventory && Array.isArray(this.user.inventory))
       ? this.user.inventory.slice()
       : [];
+    this.flushViewState();
   }
 
   getEquippedFrameClass(): string | null {
@@ -369,6 +391,40 @@ export class AccountDetails implements OnInit, OnDestroy {
     if (id.startsWith('frame_')) return 'frame';
     if (id.startsWith('banner_')) return 'banner';
     return 'other';
+  }
+
+  getInventoryItemName(item: any): string {
+    const directName = String(item?.name || '').trim();
+    if (directName) {
+      return directName;
+    }
+
+    const itemId = String(item?.id || '').trim().toLowerCase();
+    const storeItem = itemId ? getStoreItemById(itemId) : null;
+    if (storeItem?.name) {
+      return storeItem.name;
+    }
+
+    return itemId
+      ? itemId
+          .replace(/[_-]+/g, ' ')
+          .replace(/\b\w/g, (char) => char.toUpperCase())
+      : 'Unknown Item';
+  }
+
+  getInventoryItemIcon(item: any): string {
+    const directIcon = String(item?.icon || '').trim();
+    if (directIcon) {
+      return directIcon;
+    }
+
+    const itemId = String(item?.id || '').trim().toLowerCase();
+    const storeItem = itemId ? getStoreItemById(itemId) : null;
+    if (storeItem?.icon) {
+      return storeItem.icon;
+    }
+
+    return 'ITM';
   }
 
   viewStoreItem(itemId: string) {
@@ -415,6 +471,7 @@ export class AccountDetails implements OnInit, OnDestroy {
       this.bioValue = this.viewedUser.bio || '';
       this.profilePreview = this.viewedUser.photoURL || null;
       this.inventory = this.viewedUser.inventory || [];
+      this.flushViewState();
     } catch (e: any) {
       if (!hadStateUser) {
         this.viewedUser = null;
@@ -422,8 +479,10 @@ export class AccountDetails implements OnInit, OnDestroy {
       } else {
         this.viewedUserError = '';
       }
+      this.flushViewState();
     } finally {
       this.loadingViewedUser = false;
+      this.flushViewState();
     }
   }
 

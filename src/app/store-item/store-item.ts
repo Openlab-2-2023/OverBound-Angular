@@ -88,6 +88,19 @@ export class StoreItemPage implements OnInit {
     try {
       const res = await this.auth.buyStoreItem(this.item);
       this.notice = res.message || (res.ok ? 'Purchased.' : 'Purchase failed.');
+      if (res.ok) {
+        try {
+          const current = this.auth.getCurrent();
+          console.log('Store purchase diagnostics:', {
+            itemId: this.item.id,
+            currentEmail: current?.email || '',
+            inventoryCount: Array.isArray(current?.inventory) ? current.inventory.length : 0,
+            inventoryIds: Array.isArray(current?.inventory)
+              ? current.inventory.map((entry: any) => String(entry?.id || ''))
+              : [],
+          });
+        } catch {}
+      }
     } finally {
       this.buying = false;
     }

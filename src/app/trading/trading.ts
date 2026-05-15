@@ -54,6 +54,7 @@ export class TradingComponent implements OnInit, OnDestroy {
     }
 
     this.tab = 'received';
+    this.tradingService.primeAvailableUsers();
     await this.loadOffers();
     this.subscribeToUpdates();
   }
@@ -101,6 +102,9 @@ export class TradingComponent implements OnInit, OnDestroy {
 
   selectTab(tab: 'send' | 'received' | 'sent'): void {
     this.tab = tab;
+    if (tab === 'send') {
+      this.tradingService.primeAvailableUsers();
+    }
   }
 
   isLoggedIn(): boolean {

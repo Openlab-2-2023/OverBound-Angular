@@ -76,12 +76,28 @@ export class AuthService {
             try {
               const remote = await fetchUserFromFirestore(email);
               const local = this.users.find(u => u.email === email) || { email } as User;
-              const merged = { ...local, email, displayName: fbUser.displayName || local.displayName || '', photoURL: fbUser.photoURL || local.photoURL || '', role: this.adminEmails.includes(email) ? 'Admin' : (local.role || 'Player'), ...(remote || {}) } as User;
+              const merged = {
+                ...local,
+                ...(remote || {}),
+                email,
+                displayName: fbUser.displayName || (remote as any)?.displayName || local.displayName || '',
+                photoURL: fbUser.photoURL || (remote as any)?.photoURL || local.photoURL || '',
+                role: this.adminEmails.includes(email) ? 'Admin' : ((remote as any)?.role || local.role || 'Player'),
+                inventory: this.mergeInventoryRecords(
+                  Array.isArray((remote as any)?.inventory)
+                    ? (remote as any).inventory.map((item: any) => ({ ...item }))
+                    : undefined,
+                  Array.isArray(local.inventory)
+                    ? local.inventory.map((item) => ({ ...item }))
+                    : undefined,
+                ),
+              } as User;
               const idx = this.users.findIndex(u => u.email === email);
               if (idx >= 0) this.users[idx] = merged; else this.users.push(merged);
               this.current = merged;
               this.saveUsers();
               this.saveCurrent();
+              try { window.dispatchEvent(new CustomEvent('ob:user-updated', { detail: this.getCurrent() })); } catch {}
             } catch (e) {
               // ignore fetch errors
             }
@@ -321,7 +337,19 @@ export class AuthService {
           'Profile load timed out.',
         );
         if (remote) {
-          const merged = { ...(this.users.find(u => u.email === email) || {} as User), ...remote } as User;
+          const local = (this.users.find(u => u.email === email) || {} as User);
+          const merged = {
+            ...local,
+            ...remote,
+            inventory: this.mergeInventoryRecords(
+              Array.isArray((remote as any)?.inventory)
+                ? (remote as any).inventory.map((item: any) => ({ ...item }))
+                : undefined,
+              Array.isArray(local.inventory)
+                ? local.inventory.map((item) => ({ ...item }))
+                : undefined,
+            ),
+          } as User;
           merged.role = this.adminEmails.includes(merged.email) ? 'Admin' : (merged.role || 'Player');
           if (merged.totalGoldCollected === undefined) merged.totalGoldCollected = 0;
           const idx = this.users.findIndex(x => x.email === merged.email);
@@ -373,7 +401,19 @@ export class AuthService {
     if (isFirebaseEnabled()) {
       fetchUserFromFirestore(email).then(remote => {
         if (remote) {
-          const merged = { ...this.current!, ...remote } as User;
+          const local = this.current!;
+          const merged = {
+            ...local,
+            ...remote,
+            inventory: this.mergeInventoryRecords(
+              Array.isArray((remote as any)?.inventory)
+                ? (remote as any).inventory.map((item: any) => ({ ...item }))
+                : undefined,
+              Array.isArray(local.inventory)
+                ? local.inventory.map((item) => ({ ...item }))
+                : undefined,
+            ),
+          } as User;
           this.current = merged;
           const idx = this.users.findIndex(x => x.email === merged.email);
           if (idx >= 0) this.users[idx] = merged;
@@ -535,6 +575,65 @@ export class AuthService {
       }
     }
     return { ok: true };
+  }
+
+  applyInventorySnapshot(email: string, inventory: Array<{ id: string; name: string; icon: string; equipped?: boolean; cost?: number }>): void {
+    const normalized = String(email || '').trim().toLowerCase();
+    if (!normalized) return;
+
+    const nextInventory = Array.isArray(inventory)
+      ? inventory.map((item) => ({ ...item }))
+      : [];
+
+    const userIdx = this.users.findIndex((user) => String(user.email || '').trim().toLowerCase() === normalized);
+    if (userIdx >= 0) {
+      this.users[userIdx] = {
+        ...this.users[userIdx],
+        inventory: nextInventory.map((item) => ({ ...item })),
+      };
+      this.saveUsers();
+    }
+
+    if (this.current && String(this.current.email || '').trim().toLowerCase() === normalized) {
+      this.current = {
+        ...this.current,
+        inventory: nextInventory.map((item) => ({ ...item })),
+      };
+      this.saveCurrent();
+      try { window.dispatchEvent(new CustomEvent('ob:user-updated', { detail: this.getCurrent() })); } catch {}
+    }
+  }
+
+  private mergeInventoryRecords(
+    remoteInventory: Array<{ id: string; name: string; icon: string; equipped?: boolean; cost?: number }> | undefined,
+    localInventory: Array<{ id: string; name: string; icon: string; equipped?: boolean; cost?: number }> | undefined,
+  ): Array<{ id: string; name: string; icon: string; equipped?: boolean; cost?: number }> {
+    if (!Array.isArray(remoteInventory)) {
+      return Array.isArray(localInventory)
+        ? localInventory
+            .map((item) => ({ ...item, id: String(item?.id || '').trim() }))
+            .filter((item) => !!item.id)
+        : [];
+    }
+
+    const localById = new Map<string, { id: string; name: string; icon: string; equipped?: boolean; cost?: number }>();
+    for (const item of Array.isArray(localInventory) ? localInventory : []) {
+      const id = String(item?.id || '').trim();
+      if (!id) continue;
+      localById.set(id, { ...item, id });
+    }
+
+    return remoteInventory
+      .map((item) => {
+        const id = String(item?.id || '').trim();
+        if (!id) return null;
+        return {
+          ...(localById.get(id) || {}),
+          ...item,
+          id,
+        };
+      })
+      .filter((item): item is { id: string; name: string; icon: string; equipped?: boolean; cost?: number } => !!item);
   }
 
   async buyStoreItem(item: StoreItemInput): Promise<{ ok: boolean; message?: string }> {
@@ -753,6 +852,56 @@ export class AuthService {
         return true;
       })
       .map(({ _id, ...rest }) => rest);
+  }
+
+  async refreshCurrentUserFromDatabase(): Promise<User | null> {
+    const currentEmail = String(this.current?.email || '').trim().toLowerCase();
+    if (!currentEmail || !isFirebaseEnabled()) {
+      return this.getCurrent();
+    }
+
+    try {
+      const remote = await fetchUserFromFirestore(currentEmail);
+      if (!remote) {
+        return this.getCurrent();
+      }
+
+      const local = this.users.find((user) => String(user.email || '').trim().toLowerCase() === currentEmail)
+        || this.current
+        || ({ email: currentEmail } as User);
+
+      const merged = {
+        ...local,
+        ...remote,
+        email: currentEmail,
+        role: this.adminEmails.includes(currentEmail) ? 'Admin' : ((remote as any)?.role || local.role || 'Player'),
+        inventory: this.mergeInventoryRecords(
+          Array.isArray((remote as any)?.inventory)
+            ? (remote as any).inventory.map((item: any) => ({ ...item }))
+            : undefined,
+          Array.isArray(local.inventory)
+            ? local.inventory.map((item) => ({ ...item }))
+            : undefined,
+        ),
+      } as User;
+
+      const userIdx = this.users.findIndex((user) => String(user.email || '').trim().toLowerCase() === currentEmail);
+      if (userIdx >= 0) {
+        this.users[userIdx] = merged;
+      } else {
+        this.users.push(merged);
+      }
+
+      this.current = merged;
+      this.saveUsers();
+      this.saveCurrent();
+      try { window.dispatchEvent(new CustomEvent('ob:user-updated', { detail: this.getCurrent() })); } catch {}
+
+      return this.getCurrent();
+    } catch (error) {
+      console.warn('Failed to refresh current user from Firestore', error);
+      return this.getCurrent();
+    }
   }
 
   async getUserProfileByEmail(email: string): Promise<Partial<User> | null> {

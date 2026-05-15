@@ -46,6 +46,7 @@ export class Start implements OnInit, OnDestroy {
   ) {}
 
   async ngOnInit() {
+    await this.auth.refreshCurrentUserFromDatabase();
     this.refreshCurrentUser();
     this.refreshStoreGold();
     this.onUserUpdatedListener = () => {

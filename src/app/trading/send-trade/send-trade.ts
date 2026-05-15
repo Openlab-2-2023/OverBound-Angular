@@ -1,4 +1,4 @@
-import { Component, OnInit, Output, EventEmitter } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TradingService, InventoryItem, TradeOffer } from '../../services/trading.service';
@@ -33,14 +33,16 @@ export class SendTradeComponent implements OnInit {
   constructor(
     private tradingService: TradingService,
     private authService: AuthService,
+    private cdr: ChangeDetectorRef,
   ) {}
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
+    await this.authService.refreshCurrentUserFromDatabase();
     const cachedUsers = this.tradingService.getCachedAvailableUsers();
     if (cachedUsers.length > 0) {
       this.availableUsers = cachedUsers;
     }
-    this.loadUsers();
+    void this.loadUsers();
     this.loadCurrentUserInventory();
   }
 
@@ -66,12 +68,14 @@ export class SendTradeComponent implements OnInit {
     } finally {
       this.loading = false;
       this.refreshingUsers = false;
+      this.cdr.detectChanges();
     }
   }
 
   loadCurrentUserInventory(): void {
     const current = this.authService.getCurrent();
     this.currentUserInventory = Array.isArray(current?.inventory) ? [...current!.inventory!] : [];
+    this.cdr.detectChanges();
   }
 
   selectUser(user: User): void {

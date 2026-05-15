@@ -192,6 +192,21 @@ export class TradingService {
     return true;
   }
 
+  private takeInventoryItemById(items: InventoryItem[], itemId: string): InventoryItem | null {
+    const normalizedId = String(itemId || '').trim().toLowerCase();
+    if (!normalizedId) {
+      return null;
+    }
+
+    const idx = items.findIndex((item) => String(item?.id || '').trim().toLowerCase() === normalizedId);
+    if (idx < 0) {
+      return null;
+    }
+
+    const [removed] = items.splice(idx, 1);
+    return removed ? this.sanitizeInventoryItem({ ...removed, equipped: false }) : null;
+  }
+
   private storeAvailableUsersCache(users: User[]): User[] {
     this.availableUsersCache = users.map((user) => ({
       ...user,
@@ -507,21 +522,20 @@ export class TradingService {
       const senderInventory = Array.isArray(senderData.inventory) ? [...senderData.inventory] : [];
       const receiverInventory = Array.isArray(receiverData.inventory) ? [...receiverData.inventory] : [];
 
-      // Remove offered items from sender
+      // Move offered items from sender to receiver
       trade.itemsOffered.forEach((item) => {
-        this.removeInventoryItemById(senderInventory, item.id);
+        const transferredItem = this.takeInventoryItemById(senderInventory, item.id);
+        if (transferredItem) {
+          receiverInventory.push(transferredItem);
+        }
       });
 
       // Move requested items from receiver to sender
       trade.itemsRequested.forEach((item) => {
-        if (this.removeInventoryItemById(receiverInventory, item.id)) {
-          senderInventory.push(item);
+        const transferredItem = this.takeInventoryItemById(receiverInventory, item.id);
+        if (transferredItem) {
+          senderInventory.push(transferredItem);
         }
-      });
-
-      // Add offered items to receiver
-      trade.itemsOffered.forEach((item) => {
-        receiverInventory.push(item);
       });
 
       // Use batch write for atomicity
@@ -532,13 +546,8 @@ export class TradingService {
 
       await batch.commit();
 
-      // Update local auth service
-      const currentUser = this.authService.getCurrent();
-      if (currentUser && this.normalizeEmail(currentUser.email) === trade.receiverEmail) {
-        currentUser.inventory = receiverInventory;
-      } else if (currentUser && this.normalizeEmail(currentUser.email) === trade.senderEmail) {
-        currentUser.inventory = senderInventory;
-      }
+      this.authService.applyInventorySnapshot(trade.senderEmail, senderInventory);
+      this.authService.applyInventorySnapshot(trade.receiverEmail, receiverInventory);
 
       return true;
     } catch (error) {
