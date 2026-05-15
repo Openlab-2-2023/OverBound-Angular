@@ -4,11 +4,11 @@
   </div>
 
   <div *ngIf="!loading && successMessage" class="message success">
-    <p>✓ {{ successMessage }}</p>
+    <p>{{ successMessage }}</p>
   </div>
 
   <div *ngIf="!loading && error" class="message error">
-    <p>✕ {{ error }}</p>
+    <p>{{ error }}</p>
   </div>
 
   <!-- STEP 1: SELECT USER -->
@@ -76,7 +76,7 @@
           >
             <div class="item-icon">{{ item.icon }}</div>
             <div class="item-name">{{ item.name }}</div>
-            <div *ngIf="isItemOffered(item.id)" class="selection-badge">✓ Offering</div>
+            <div *ngIf="isItemOffered(item.id)" class="selection-badge">Offering</div>
           </div>
         </div>
       </div>
@@ -96,7 +96,7 @@
           >
             <div class="item-icon">{{ item.icon }}</div>
             <div class="item-name">{{ item.name }}</div>
-            <div *ngIf="isItemRequested(item.id)" class="selection-badge">✓ Requesting</div>
+            <div *ngIf="isItemRequested(item.id)" class="selection-badge">Requesting</div>
           </div>
         </div>
       </div>
@@ -120,7 +120,7 @@
         (click)="proceedToReview()"
         [disabled]="itemsToOffer.length === 0 && itemsToRequest.length === 0"
       >
-        Review Offer →
+        Review Offer
       </button>
     </div>
   </div>
@@ -135,7 +135,7 @@
     <div class="review-container">
       <div class="trade-summary">
         <div class="trade-side">
-          <h3>📦 You Offer</h3>
+          <h3>You Offer</h3>
           <div *ngIf="itemsToOffer.length === 0" class="no-items">Nothing</div>
           <div *ngIf="itemsToOffer.length > 0" class="summary-items">
             <div *ngFor="let item of itemsToOffer" class="summary-item">
@@ -150,7 +150,7 @@
         </div>
 
         <div class="trade-side">
-          <h3>🎁 You Request</h3>
+          <h3>You Request</h3>
           <div *ngIf="itemsToRequest.length === 0" class="no-items">Nothing</div>
           <div *ngIf="itemsToRequest.length > 0" class="summary-items">
             <div *ngFor="let item of itemsToRequest" class="summary-item">
@@ -175,7 +175,7 @@
           (click)="sendTrade()"
           [disabled]="sending"
         >
-          {{ sending ? '⏳ Sending...' : '✓ Send Trade Offer' }}
+          {{ sending ? 'Sending...' : 'Send Trade Offer' }}
         </button>
       </div>
     </div>

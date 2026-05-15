@@ -23,7 +23,7 @@ service cloud.firestore {
     }
 
     match /users/{email} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow create: if isSelf(email) && request.resource.data.email == userEmail();
       allow update: if isSelf(email) && request.resource.data.email == userEmail();
       allow delete: if false;

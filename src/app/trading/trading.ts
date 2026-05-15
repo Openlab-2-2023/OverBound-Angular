@@ -5,6 +5,7 @@ import { TradingService, TradeOffer } from '../services/trading.service';
 import { AuthService } from '../services/auth.service';
 import { SendTradeComponent } from './send-trade';
 import { ReceivedTradesComponent } from './received-trades';
+import { getStoreItemById } from '../store/store-catalog';
 
 @Component({
   selector: 'app-trading',
@@ -94,5 +95,39 @@ export class TradingComponent implements OnInit, OnDestroy {
 
   async onTradeCompleted(): Promise<void> {
     await this.loadOffers();
+  }
+
+  getItemName(item: { id?: string; name?: string } | null | undefined): string {
+    const directName = String(item?.name || '').trim();
+    if (directName) {
+      return directName;
+    }
+
+    const itemId = String(item?.id || '').trim().toLowerCase();
+    const catalogItem = itemId ? getStoreItemById(itemId) : null;
+    if (catalogItem?.name) {
+      return catalogItem.name;
+    }
+
+    return itemId
+      ? itemId
+          .replace(/[_-]+/g, ' ')
+          .replace(/\b\w/g, (char) => char.toUpperCase())
+      : 'Unknown Item';
+  }
+
+  getItemIcon(item: { id?: string; icon?: string } | null | undefined): string {
+    const directIcon = String(item?.icon || '').trim();
+    if (directIcon) {
+      return directIcon;
+    }
+
+    const itemId = String(item?.id || '').trim().toLowerCase();
+    const catalogItem = itemId ? getStoreItemById(itemId) : null;
+    if (catalogItem?.icon) {
+      return catalogItem.icon;
+    }
+
+    return 'ITM';
   }
 }

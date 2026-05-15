@@ -10,7 +10,7 @@
   </div>
 
   <div *ngIf="offers.length === 0" class="empty-state">
-    <p>📭 No pending trade offers at the moment.</p>
+    <p>No pending trade offers at the moment.</p>
   </div>
 
   <div *ngIf="offers.length > 0" class="offers-list">
@@ -22,12 +22,12 @@
 
       <div class="trade-content">
         <div class="trade-section">
-          <h4 class="section-title">📦 They Offer:</h4>
+          <h4 class="section-title">They Offer</h4>
           <div class="items-list">
             <div *ngFor="let item of offer.itemsOffered" class="item-row">
-              <span class="item-icon">{{ item.icon }}</span>
-              <span class="item-name">{{ item.name }}</span>
-              <span *ngIf="item.cost" class="item-cost">{{ item.cost }} 🪙</span>
+              <span class="item-icon">{{ getItemIcon(item) }}</span>
+              <span class="item-name">{{ getItemName(item) }}</span>
+              <span *ngIf="item.cost" class="item-cost">{{ item.cost }} Gold</span>
             </div>
           </div>
         </div>
@@ -35,12 +35,12 @@
         <div class="exchange-icon">⇄</div>
 
         <div class="trade-section">
-          <h4 class="section-title">🎁 They Want:</h4>
+          <h4 class="section-title">They Want</h4>
           <div class="items-list">
             <div *ngFor="let item of offer.itemsRequested" class="item-row">
-              <span class="item-icon">{{ item.icon }}</span>
-              <span class="item-name">{{ item.name }}</span>
-              <span *ngIf="item.cost" class="item-cost">{{ item.cost }} 🪙</span>
+              <span class="item-icon">{{ getItemIcon(item) }}</span>
+              <span class="item-name">{{ getItemName(item) }}</span>
+              <span *ngIf="item.cost" class="item-cost">{{ item.cost }} Gold</span>
             </div>
           </div>
         </div>
@@ -54,14 +54,14 @@
             (click)="acceptTrade(offer)"
             [disabled]="processingId === offer.id"
           >
-            {{ processingId === offer.id ? '⏳ Processing...' : '✓ Accept' }}
+            {{ processingId === offer.id ? 'Processing...' : 'Accept' }}
           </button>
           <button
             class="btn btn-decline"
             (click)="declineTrade(offer)"
             [disabled]="processingId === offer.id"
           >
-            {{ processingId === offer.id ? '⏳ Processing...' : '✕ Decline' }}
+            {{ processingId === offer.id ? 'Processing...' : 'Decline' }}
           </button>
         </div>
       </div>

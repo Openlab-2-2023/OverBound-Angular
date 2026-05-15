@@ -100,8 +100,11 @@
                             <ul class="items-list">
                               @for (item of offer.itemsOffered; track item) {
                                 <li>
-                                  <span class="item-icon">{{ item.icon }}</span>
-                                  <span class="item-name">{{ item.name }}</span>
+                                  <span class="item-icon">{{ getItemIcon(item) }}</span>
+                                  <span class="item-copy">
+                                    <span class="item-name">{{ getItemName(item) }}</span>
+                                    <span class="item-meta">{{ item.id || 'custom-item' }}</span>
+                                  </span>
                                 </li>
                               }
                             </ul>
@@ -112,8 +115,11 @@
                             <ul class="items-list">
                               @for (item of offer.itemsRequested; track item) {
                                 <li>
-                                  <span class="item-icon">{{ item.icon }}</span>
-                                  <span class="item-name">{{ item.name }}</span>
+                                  <span class="item-icon">{{ getItemIcon(item) }}</span>
+                                  <span class="item-copy">
+                                    <span class="item-name">{{ getItemName(item) }}</span>
+                                    <span class="item-meta">{{ item.id || 'custom-item' }}</span>
+                                  </span>
                                 </li>
                               }
                             </ul>

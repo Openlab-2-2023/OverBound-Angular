@@ -49,7 +49,9 @@
   }
 
   .trade-card {
-    background: rgba(255, 255, 255, 0.04);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.03)),
+      rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 16px;
     overflow: hidden;
@@ -88,14 +90,13 @@
 
     .trade-content {
       padding: 20px;
-      display: flex;
-      gap: 15px;
-      align-items: flex-start;
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      gap: 16px;
+      align-items: center;
 
       .trade-section {
-        flex: 1;
-        min-width: 200px;
+        min-width: 0;
 
         .section-title {
           margin: 0 0 10px 0;
@@ -116,10 +117,11 @@
           display: flex;
           align-items: center;
           gap: 10px;
-          padding: 8px 12px;
-          background: rgba(0, 0, 0, 0.28);
+          padding: 10px 12px;
+          background: rgba(11, 13, 21, 0.68);
           border-radius: 12px;
           border-left: 3px solid rgba(255, 186, 87, 0.34);
+          border: 1px solid rgba(255, 255, 255, 0.06);
 
           .item-icon {
             display: inline-flex;
@@ -138,22 +140,29 @@
             flex: 1;
             color: #eee;
             font-weight: 500;
+            word-break: break-word;
           }
 
           .item-cost {
             color: #ffd783;
             font-size: 0.85rem;
             font-weight: 600;
+            white-space: nowrap;
           }
         }
       }
 
       .exchange-icon {
-        font-size: 1.8rem;
+        font-size: 1.5rem;
         color: #ffd7b0;
-        display: flex;
-        align-items: center;
-        flex-shrink: 0;
+        display: grid;
+        place-items: center;
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.03));
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18);
       }
     }
 
@@ -222,6 +231,20 @@
             }
           }
         }
+      }
+    }
+  }
+}
+
+@media (max-width: 820px) {
+  .received-trades {
+    .trade-card {
+      .trade-content {
+        grid-template-columns: 1fr;
+      }
+
+      .exchange-icon {
+        justify-self: center;
       }
     }
   }

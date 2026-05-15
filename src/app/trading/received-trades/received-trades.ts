@@ -1,6 +1,7 @@
 import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TradingService, TradeOffer } from '../../services/trading.service';
+import { getStoreItemById } from '../../store/store-catalog';
 
 @Component({
   selector: 'received-trades',
@@ -64,5 +65,39 @@ export class ReceivedTradesComponent implements OnInit {
     } finally {
       this.processingId = null;
     }
+  }
+
+  getItemName(item: { id?: string; name?: string } | null | undefined): string {
+    const directName = String(item?.name || '').trim();
+    if (directName) {
+      return directName;
+    }
+
+    const itemId = String(item?.id || '').trim().toLowerCase();
+    const catalogItem = itemId ? getStoreItemById(itemId) : null;
+    if (catalogItem?.name) {
+      return catalogItem.name;
+    }
+
+    return itemId
+      ? itemId
+          .replace(/[_-]+/g, ' ')
+          .replace(/\b\w/g, (char) => char.toUpperCase())
+      : 'Unknown Item';
+  }
+
+  getItemIcon(item: { id?: string; icon?: string } | null | undefined): string {
+    const directIcon = String(item?.icon || '').trim();
+    if (directIcon) {
+      return directIcon;
+    }
+
+    const itemId = String(item?.id || '').trim().toLowerCase();
+    const catalogItem = itemId ? getStoreItemById(itemId) : null;
+    if (catalogItem?.icon) {
+      return catalogItem.icon;
+    }
+
+    return 'ITM';
   }
 }
