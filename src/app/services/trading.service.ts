@@ -176,6 +176,21 @@ export class TradingService {
     return [...offers].sort((a, b) => this.getTradeCreatedAtValue(b) - this.getTradeCreatedAtValue(a));
   }
 
+  private removeInventoryItemById(items: InventoryItem[], itemId: string): boolean {
+    const normalizedId = String(itemId || '').trim().toLowerCase();
+    if (!normalizedId) {
+      return false;
+    }
+
+    const idx = items.findIndex((item) => String(item?.id || '').trim().toLowerCase() === normalizedId);
+    if (idx < 0) {
+      return false;
+    }
+
+    items.splice(idx, 1);
+    return true;
+  }
+
   private storeAvailableUsersCache(users: User[]): User[] {
     this.availableUsersCache = users.map((user) => ({
       ...user,
@@ -491,26 +506,13 @@ export class TradingService {
 
       // Remove offered items from sender
       trade.itemsOffered.forEach((item) => {
-        const idx = senderInventory.findIndex((i) => i.id === item.id);
-        if (idx >= 0) {
-          senderInventory.splice(idx, 1);
-        }
+        this.removeInventoryItemById(senderInventory, item.id);
       });
 
-      // Add requested items to sender
+      // Move requested items from receiver to sender
       trade.itemsRequested.forEach((item) => {
-        const idx = receiverInventory.findIndex((i) => i.id === item.id);
-        if (idx >= 0) {
-          receiverInventory.splice(idx, 1);
-        }
-        senderInventory.push(item);
-      });
-
-      // Remove requested items from receiver
-      trade.itemsRequested.forEach((item) => {
-        const idx = receiverInventory.findIndex((i) => i.id === item.id);
-        if (idx >= 0) {
-          receiverInventory.splice(idx, 1);
+        if (this.removeInventoryItemById(receiverInventory, item.id)) {
+          senderInventory.push(item);
         }
       });
 

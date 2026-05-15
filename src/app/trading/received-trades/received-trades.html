@@ -16,8 +16,11 @@
   <div *ngIf="offers.length > 0" class="offers-list">
     <div *ngFor="let offer of offers" class="trade-card">
       <div class="card-header">
-        <h3>{{ offer.senderName }} wants to trade</h3>
-        <span class="badge">NEW</span>
+        <div>
+          <p class="card-kicker">Incoming Offer</p>
+          <h3>Trade with {{ offer.senderName }}</h3>
+        </div>
+        <span class="badge">Pending</span>
       </div>
 
       <div class="trade-content">
@@ -53,7 +56,7 @@
       </div>
 
       <div class="card-footer">
-        <small class="timestamp">Received: {{ offer.createdAt | date: 'short' }}</small>
+        <small class="timestamp">{{ offer.createdAt | date: 'short' }}</small>
         <div class="action-buttons">
           <button
             class="btn btn-accept"
