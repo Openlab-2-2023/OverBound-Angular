@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
-import { initFirebaseIfNeeded, getFirestoreInstance } from './firebase.init';
+import { initFirebaseIfNeeded, getFirestoreInstance, getAuthInstance } from './firebase.init';
 import { AuthService, User } from './auth.service';
+import { FIREBASE_SDK_CONFIG } from './firebase.sdk.config';
 
 export interface InventoryItem {
   id: string;
@@ -30,11 +31,139 @@ export class TradingService {
   private availableUsersCacheAt = 0;
   private availableUsersRequest: Promise<User[]> | null = null;
   private readonly availableUsersCacheTtlMs = 60_000;
+  private tradeDiagnosticsLogged = false;
 
   constructor(private authService: AuthService) {}
 
+  private normalizeEmail(email: string | undefined | null): string {
+    return String(email || '').trim().toLowerCase();
+  }
+
+  private sanitizeInventoryItem(item: InventoryItem): InventoryItem {
+    const sanitized: InventoryItem = {
+      id: String(item?.id || '').trim(),
+      name: String(item?.name || '').trim(),
+      icon: String(item?.icon || '').trim(),
+    };
+
+    if (Number.isFinite(Number(item?.cost))) {
+      sanitized.cost = Number(item.cost);
+    }
+
+    if (typeof item?.equipped === 'boolean') {
+      sanitized.equipped = item.equipped;
+    }
+
+    return sanitized;
+  }
+
+  private normalizeTradeOffer(offer: TradeOffer): TradeOffer {
+    return {
+      ...offer,
+      senderEmail: this.normalizeEmail(offer.senderEmail),
+      senderName: String(offer.senderName || '').trim() || 'Unknown',
+      receiverEmail: this.normalizeEmail(offer.receiverEmail),
+      receiverName: String(offer.receiverName || '').trim() || 'Unknown',
+      itemsOffered: Array.isArray(offer.itemsOffered)
+        ? offer.itemsOffered.map((item) => this.sanitizeInventoryItem(item))
+        : [],
+      itemsRequested: Array.isArray(offer.itemsRequested)
+        ? offer.itemsRequested.map((item) => this.sanitizeInventoryItem(item))
+        : [],
+      status: offer.status || 'pending',
+    };
+  }
+
+  private async hasFirestoreTradeAccess(): Promise<boolean> {
+    await this.authService.waitForFirebaseAuthReady(5000);
+    await initFirebaseIfNeeded();
+
+    const firestore = getFirestoreInstance();
+    const auth = getAuthInstance();
+    const currentUser = this.authService.getCurrent();
+    const currentEmail = this.normalizeEmail(currentUser?.email);
+    const firebaseEmail = this.normalizeEmail(auth?.currentUser?.email);
+
+    return !!firestore && !!currentEmail && !!firebaseEmail && currentEmail === firebaseEmail;
+  }
+
+  private getTradeAccessDiagnostics() {
+    const auth = getAuthInstance();
+    const firestore = getFirestoreInstance();
+    const currentUser = this.authService.getCurrent();
+
+    return {
+      firebaseProjectId: String(FIREBASE_SDK_CONFIG?.projectId || ''),
+      localEmail: this.normalizeEmail(currentUser?.email),
+      firebaseEmail: this.normalizeEmail(auth?.currentUser?.email),
+      firebaseUid: String(auth?.currentUser?.uid || ''),
+      firebaseAuthenticated: !!auth?.currentUser,
+      firestoreReady: !!firestore,
+    };
+  }
+
+  private logTradeAccessDiagnostics(reason: string): void {
+    if (this.tradeDiagnosticsLogged) {
+      return;
+    }
+
+    this.tradeDiagnosticsLogged = true;
+    console.warn(`Trading diagnostics (${reason}):`, this.getTradeAccessDiagnostics());
+  }
+
+  private getTradingAuthError(): Error {
+    return new Error('Trading requires a Firebase-authenticated session. Please log in again with your account.');
+  }
+
+  private isPermissionDeniedError(error: unknown): boolean {
+    const code = String((error as { code?: string } | null)?.code || '');
+    const message = String((error as { message?: string } | null)?.message || '');
+
+    return code.includes('permission-denied') || message.toLowerCase().includes('insufficient permissions');
+  }
+
+  private getTradingPermissionError(): Error {
+    return new Error(
+      'Trading is blocked by Firestore permissions. Make sure the live Firestore rules are deployed and that you are signed in with Firebase Auth.',
+    );
+  }
+
   private isAvailableUsersCacheFresh(): boolean {
     return this.availableUsersCache.length > 0 && Date.now() - this.availableUsersCacheAt < this.availableUsersCacheTtlMs;
+  }
+
+  private getTradeCreatedAtValue(offer: Partial<TradeOffer> & { createdAt?: unknown }): number {
+    const createdAt = offer?.createdAt;
+
+    if (typeof createdAt === 'number' && Number.isFinite(createdAt)) {
+      return createdAt;
+    }
+
+    if (
+      createdAt &&
+      typeof createdAt === 'object'
+    ) {
+      const timestamp = createdAt as {
+        toMillis?: () => number;
+        seconds?: number;
+        nanoseconds?: number;
+      };
+
+      if (typeof timestamp.toMillis === 'function') {
+        return timestamp.toMillis();
+      }
+
+      if (typeof timestamp.seconds === 'number') {
+        const nanoseconds = typeof timestamp.nanoseconds === 'number' ? timestamp.nanoseconds : 0;
+        return (timestamp.seconds * 1000) + Math.floor(nanoseconds / 1_000_000);
+      }
+    }
+
+    return 0;
+  }
+
+  private sortTradesByCreatedAtDesc(offers: TradeOffer[]): TradeOffer[] {
+    return [...offers].sort((a, b) => this.getTradeCreatedAtValue(b) - this.getTradeCreatedAtValue(a));
   }
 
   private storeAvailableUsersCache(users: User[]): User[] {
@@ -190,15 +319,21 @@ export class TradingService {
    */
   async sendTradeOffer(offer: TradeOffer): Promise<string> {
     try {
+      if (!(await this.hasFirestoreTradeAccess())) {
+        this.logTradeAccessDiagnostics('send-auth-check-failed');
+        throw this.getTradingAuthError();
+      }
+
       await initFirebaseIfNeeded();
       const firestore = getFirestoreInstance();
       if (!firestore) throw new Error('Firestore not initialized');
 
       const { collection, addDoc, serverTimestamp } = await import('firebase/firestore');
       const tradesRef = collection(firestore, this.tradeCollectionName);
+      const normalizedOffer = this.normalizeTradeOffer(offer);
 
       const offerData = {
-        ...offer,
+        ...normalizedOffer,
         status: 'pending',
         createdAt: serverTimestamp(),
         expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
@@ -207,6 +342,13 @@ export class TradingService {
       const docRef = await addDoc(tradesRef, offerData);
       return docRef.id;
     } catch (error) {
+      if (this.isPermissionDeniedError(error)) {
+        this.logTradeAccessDiagnostics('send-permission-denied');
+        const permissionError = this.getTradingPermissionError();
+        console.error('Error sending trade offer:', permissionError);
+        throw permissionError;
+      }
+
       console.error('Error sending trade offer:', error);
       throw error;
     }
@@ -217,25 +359,37 @@ export class TradingService {
    */
   async getReceivedOffers(): Promise<TradeOffer[]> {
     try {
+      if (!(await this.hasFirestoreTradeAccess())) {
+        this.logTradeAccessDiagnostics('received-auth-check-failed');
+        return [];
+      }
+
       await initFirebaseIfNeeded();
       const firestore = getFirestoreInstance();
       if (!firestore) return [];
 
-      const currentEmail = this.authService.getCurrent()?.email || '';
+      const currentEmail = this.normalizeEmail(this.authService.getCurrent()?.email);
       if (!currentEmail) return [];
 
-      const { collection, query, where, getDocs, orderBy } = await import('firebase/firestore');
+      const { collection, query, where, getDocs } = await import('firebase/firestore');
       const tradesRef = collection(firestore, this.tradeCollectionName);
       const q = query(
         tradesRef,
         where('receiverEmail', '==', currentEmail),
-        where('status', '==', 'pending'),
-        orderBy('createdAt', 'desc')
+        where('status', '==', 'pending')
       );
 
       const snapshot = await getDocs(q);
-      return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as TradeOffer);
+      return this.sortTradesByCreatedAtDesc(
+        snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as TradeOffer),
+      );
     } catch (error) {
+      if (this.isPermissionDeniedError(error)) {
+        this.logTradeAccessDiagnostics('received-permission-denied');
+        console.error('Error fetching received offers:', this.getTradingPermissionError());
+        return [];
+      }
+
       console.error('Error fetching received offers:', error);
       return [];
     }
@@ -246,24 +400,36 @@ export class TradingService {
    */
   async getSentOffers(): Promise<TradeOffer[]> {
     try {
+      if (!(await this.hasFirestoreTradeAccess())) {
+        this.logTradeAccessDiagnostics('sent-auth-check-failed');
+        return [];
+      }
+
       await initFirebaseIfNeeded();
       const firestore = getFirestoreInstance();
       if (!firestore) return [];
 
-      const currentEmail = this.authService.getCurrent()?.email || '';
+      const currentEmail = this.normalizeEmail(this.authService.getCurrent()?.email);
       if (!currentEmail) return [];
 
-      const { collection, query, where, getDocs, orderBy } = await import('firebase/firestore');
+      const { collection, query, where, getDocs } = await import('firebase/firestore');
       const tradesRef = collection(firestore, this.tradeCollectionName);
       const q = query(
         tradesRef,
-        where('senderEmail', '==', currentEmail),
-        orderBy('createdAt', 'desc')
+        where('senderEmail', '==', currentEmail)
       );
 
       const snapshot = await getDocs(q);
-      return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as TradeOffer);
+      return this.sortTradesByCreatedAtDesc(
+        snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as TradeOffer),
+      );
     } catch (error) {
+      if (this.isPermissionDeniedError(error)) {
+        this.logTradeAccessDiagnostics('sent-permission-denied');
+        console.error('Error fetching sent offers:', this.getTradingPermissionError());
+        return [];
+      }
+
       console.error('Error fetching sent offers:', error);
       return [];
     }
@@ -274,6 +440,11 @@ export class TradingService {
    */
   async acceptTradeOffer(tradeId: string): Promise<boolean> {
     try {
+      if (!(await this.hasFirestoreTradeAccess())) {
+        this.logTradeAccessDiagnostics('accept-auth-check-failed');
+        throw this.getTradingAuthError();
+      }
+
       await initFirebaseIfNeeded();
       const firestore = getFirestoreInstance();
       if (!firestore) throw new Error('Firestore not initialized');
@@ -288,7 +459,7 @@ export class TradingService {
         throw new Error('Trade offer not found');
       }
 
-      const trade = tradeSnap.data() as TradeOffer;
+      const trade = this.normalizeTradeOffer(tradeSnap.data() as TradeOffer);
 
       // Get both users
       const senderRef = doc(firestore, 'users', trade.senderEmail);
@@ -318,7 +489,10 @@ export class TradingService {
 
       // Add requested items to sender
       trade.itemsRequested.forEach((item) => {
-        receiverInventory.splice(receiverInventory.findIndex((i) => i.id === item.id), 1);
+        const idx = receiverInventory.findIndex((i) => i.id === item.id);
+        if (idx >= 0) {
+          receiverInventory.splice(idx, 1);
+        }
         senderInventory.push(item);
       });
 
@@ -345,14 +519,21 @@ export class TradingService {
 
       // Update local auth service
       const currentUser = this.authService.getCurrent();
-      if (currentUser?.email === trade.receiverEmail) {
+      if (currentUser && this.normalizeEmail(currentUser.email) === trade.receiverEmail) {
         currentUser.inventory = receiverInventory;
-      } else if (currentUser?.email === trade.senderEmail) {
+      } else if (currentUser && this.normalizeEmail(currentUser.email) === trade.senderEmail) {
         currentUser.inventory = senderInventory;
       }
 
       return true;
     } catch (error) {
+      if (this.isPermissionDeniedError(error)) {
+        this.logTradeAccessDiagnostics('accept-permission-denied');
+        const permissionError = this.getTradingPermissionError();
+        console.error('Error accepting trade offer:', permissionError);
+        throw permissionError;
+      }
+
       console.error('Error accepting trade offer:', error);
       throw error;
     }
@@ -363,6 +544,11 @@ export class TradingService {
    */
   async declineTradeOffer(tradeId: string): Promise<boolean> {
     try {
+      if (!(await this.hasFirestoreTradeAccess())) {
+        this.logTradeAccessDiagnostics('decline-auth-check-failed');
+        throw this.getTradingAuthError();
+      }
+
       await initFirebaseIfNeeded();
       const firestore = getFirestoreInstance();
       if (!firestore) throw new Error('Firestore not initialized');
@@ -373,6 +559,13 @@ export class TradingService {
 
       return true;
     } catch (error) {
+      if (this.isPermissionDeniedError(error)) {
+        this.logTradeAccessDiagnostics('decline-permission-denied');
+        const permissionError = this.getTradingPermissionError();
+        console.error('Error declining trade offer:', permissionError);
+        throw permissionError;
+      }
+
       console.error('Error declining trade offer:', error);
       throw error;
     }
@@ -383,6 +576,11 @@ export class TradingService {
    */
   async cancelTradeOffer(tradeId: string): Promise<boolean> {
     try {
+      if (!(await this.hasFirestoreTradeAccess())) {
+        this.logTradeAccessDiagnostics('cancel-auth-check-failed');
+        throw this.getTradingAuthError();
+      }
+
       await initFirebaseIfNeeded();
       const firestore = getFirestoreInstance();
       if (!firestore) throw new Error('Firestore not initialized');
@@ -393,6 +591,13 @@ export class TradingService {
 
       return true;
     } catch (error) {
+      if (this.isPermissionDeniedError(error)) {
+        this.logTradeAccessDiagnostics('cancel-permission-denied');
+        const permissionError = this.getTradingPermissionError();
+        console.error('Error cancelling trade offer:', permissionError);
+        throw permissionError;
+      }
+
       console.error('Error cancelling trade offer:', error);
       throw error;
     }
@@ -403,29 +608,65 @@ export class TradingService {
    */
   subscribeToReceivedOffers(callback: (offers: TradeOffer[]) => void): (() => void) | null {
     try {
-      const firestore = getFirestoreInstance();
-      if (!firestore) return null;
-
-      const currentEmail = this.authService.getCurrent()?.email || '';
-      if (!currentEmail) return null;
-
       // Use async IIFE to handle dynamic imports
       (async () => {
-        const { collection, query, where, onSnapshot, orderBy } = await import('firebase/firestore');
+        const hasAccess = await this.hasFirestoreTradeAccess();
+        if (!hasAccess) {
+          this.logTradeAccessDiagnostics('subscription-auth-check-failed');
+          callback([]);
+          return;
+        }
+
+        const firestore = getFirestoreInstance();
+        if (!firestore) {
+          callback([]);
+          return;
+        }
+
+        const currentEmail = this.normalizeEmail(this.authService.getCurrent()?.email);
+        if (!currentEmail) {
+          callback([]);
+          return;
+        }
+
+        const { collection, query, where, onSnapshot } = await import('firebase/firestore');
         const tradesRef = collection(firestore, this.tradeCollectionName);
         const q = query(
           tradesRef,
           where('receiverEmail', '==', currentEmail),
-          where('status', '==', 'pending'),
-          orderBy('createdAt', 'desc')
+          where('status', '==', 'pending')
         );
 
-        onSnapshot(q, (snapshot: any) => {
-          const offers = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }) as TradeOffer);
-          callback(offers);
-        });
+        onSnapshot(
+          q,
+          (snapshot: any) => {
+            const offers = this.sortTradesByCreatedAtDesc(
+              snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }) as TradeOffer),
+            );
+            callback(offers);
+          },
+          (error: unknown) => {
+            if (this.isPermissionDeniedError(error)) {
+              this.logTradeAccessDiagnostics('subscription-permission-denied');
+              console.error('Error subscribing to received offers:', this.getTradingPermissionError());
+              callback([]);
+              return;
+            }
+
+            console.error('Error subscribing to received offers:', error);
+            callback([]);
+          },
+        );
       })().catch((error) => {
+        if (this.isPermissionDeniedError(error)) {
+          this.logTradeAccessDiagnostics('subscription-setup-permission-denied');
+          console.error('Error subscribing to received offers:', this.getTradingPermissionError());
+          callback([]);
+          return;
+        }
+
         console.error('Error subscribing to received offers:', error);
+        callback([]);
       });
 
       return () => {

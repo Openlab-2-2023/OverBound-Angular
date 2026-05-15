@@ -7,40 +7,38 @@ service cloud.firestore {
     }
 
     function userEmail() {
-      return lower(request.auth.token.email);
+      return request.auth.token.email;
     }
 
     function isSelf(email) {
-      return isSignedIn() && userEmail() == lower(email);
+      return isSignedIn() && userEmail() == email;
     }
 
-    function tradeParticipant() {
+    function tradeParticipant(data) {
       return isSignedIn()
         && (
-          lower(resource.data.senderEmail) == userEmail()
-          || lower(resource.data.receiverEmail) == userEmail()
+          data.senderEmail == userEmail()
+          || data.receiverEmail == userEmail()
         );
     }
 
     match /users/{email} {
       allow read: if isSignedIn();
-      allow create: if isSelf(email) && lower(request.resource.data.email) == userEmail();
-      allow update: if isSelf(email) && lower(request.resource.data.email) == userEmail();
+      allow create: if isSelf(email) && request.resource.data.email == userEmail();
+      allow update: if isSelf(email) && request.resource.data.email == userEmail();
       allow delete: if false;
     }
 
     match /trades/{tradeId} {
-      allow read: if tradeParticipant();
+      allow get, list: if tradeParticipant(resource.data);
 
       allow create: if isSignedIn()
-        && lower(request.resource.data.senderEmail) == userEmail()
+        && request.resource.data.senderEmail == userEmail()
         && request.resource.data.status == 'pending';
 
       allow update: if isSignedIn()
-        && (
-          lower(resource.data.senderEmail) == userEmail()
-          || lower(resource.data.receiverEmail) == userEmail()
-        );
+        && tradeParticipant(resource.data)
+        && tradeParticipant(request.resource.data);
 
       allow delete: if false;
     }

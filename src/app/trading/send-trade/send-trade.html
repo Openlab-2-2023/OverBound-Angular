@@ -7,7 +7,7 @@
     <p>✓ {{ successMessage }}</p>
   </div>
 
-  <div *ngIf="!loading && error && availableUsers.length === 0" class="message error">
+  <div *ngIf="!loading && error" class="message error">
     <p>✕ {{ error }}</p>
   </div>
 

@@ -26,17 +26,28 @@ export class TradingComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    if (!this.authService.isLoggedIn()) {
-      return;
-    }
-    this.loadOffers();
-    this.subscribeToUpdates();
+    void this.initializeTrading();
   }
 
   ngOnDestroy(): void {
     if (this.unsubscribe) {
       this.unsubscribe();
     }
+  }
+
+  private async initializeTrading(): Promise<void> {
+    if (!this.authService.isLoggedIn()) {
+      return;
+    }
+
+    await this.authService.waitForFirebaseAuthReady(5000);
+
+    if (!this.authService.isLoggedIn()) {
+      return;
+    }
+
+    await this.loadOffers();
+    this.subscribeToUpdates();
   }
 
   async loadOffers(): Promise<void> {
