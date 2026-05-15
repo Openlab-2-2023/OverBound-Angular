@@ -67,6 +67,31 @@ export class TradingService {
     return sanitized;
   }
 
+  private normalizeTimestampValue(value: unknown): number | undefined {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+
+    if (value && typeof value === 'object') {
+      const timestamp = value as {
+        toMillis?: () => number;
+        seconds?: number;
+        nanoseconds?: number;
+      };
+
+      if (typeof timestamp.toMillis === 'function') {
+        return timestamp.toMillis();
+      }
+
+      if (typeof timestamp.seconds === 'number') {
+        const nanoseconds = typeof timestamp.nanoseconds === 'number' ? timestamp.nanoseconds : 0;
+        return (timestamp.seconds * 1000) + Math.floor(nanoseconds / 1_000_000);
+      }
+    }
+
+    return undefined;
+  }
+
   private normalizeTradeOffer(offer: TradeOffer): TradeOffer {
     return {
       ...offer,
@@ -81,6 +106,8 @@ export class TradingService {
         ? offer.itemsRequested.map((item) => this.sanitizeInventoryItem(item))
         : [],
       status: offer.status || 'pending',
+      createdAt: this.normalizeTimestampValue(offer.createdAt),
+      expiresAt: this.normalizeTimestampValue(offer.expiresAt),
     };
   }
 
@@ -143,33 +170,7 @@ export class TradingService {
   }
 
   private getTradeCreatedAtValue(offer: Partial<TradeOffer> & { createdAt?: unknown }): number {
-    const createdAt = offer?.createdAt;
-
-    if (typeof createdAt === 'number' && Number.isFinite(createdAt)) {
-      return createdAt;
-    }
-
-    if (
-      createdAt &&
-      typeof createdAt === 'object'
-    ) {
-      const timestamp = createdAt as {
-        toMillis?: () => number;
-        seconds?: number;
-        nanoseconds?: number;
-      };
-
-      if (typeof timestamp.toMillis === 'function') {
-        return timestamp.toMillis();
-      }
-
-      if (typeof timestamp.seconds === 'number') {
-        const nanoseconds = typeof timestamp.nanoseconds === 'number' ? timestamp.nanoseconds : 0;
-        return (timestamp.seconds * 1000) + Math.floor(nanoseconds / 1_000_000);
-      }
-    }
-
-    return 0;
+    return this.normalizeTimestampValue(offer?.createdAt) ?? 0;
   }
 
   private sortTradesByCreatedAtDesc(offers: TradeOffer[]): TradeOffer[] {
