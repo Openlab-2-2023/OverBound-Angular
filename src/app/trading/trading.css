@@ -412,11 +412,13 @@
 .item-copy {
   display: flex;
   flex-direction: column;
+  flex: 1;
   min-width: 0;
   gap: 4px;
 }
 
 .item-name {
+  display: block;
   color: #fff;
   font-size: 18px;
   font-weight: 700;
@@ -425,6 +427,7 @@
 }
 
 .item-meta {
+  display: block;
   color: #9db1d9;
   font-size: 13px;
   letter-spacing: 0.6px;

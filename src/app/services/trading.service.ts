@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { initFirebaseIfNeeded, getFirestoreInstance, getAuthInstance } from './firebase.init';
 import { AuthService, User } from './auth.service';
 import { FIREBASE_SDK_CONFIG } from './firebase.sdk.config';
+import { getStoreItemById } from '../store/store-catalog';
 
 export interface InventoryItem {
   id: string;
@@ -40,14 +41,23 @@ export class TradingService {
   }
 
   private sanitizeInventoryItem(item: InventoryItem): InventoryItem {
+    const normalizedId = String(item?.id || '').trim().toLowerCase();
+    const catalogItem = normalizedId ? getStoreItemById(normalizedId) : null;
+    const fallbackName = normalizedId
+      ? normalizedId
+          .replace(/[_-]+/g, ' ')
+          .replace(/\b\w/g, (char) => char.toUpperCase())
+      : 'Unknown Item';
     const sanitized: InventoryItem = {
-      id: String(item?.id || '').trim(),
-      name: String(item?.name || '').trim(),
-      icon: String(item?.icon || '').trim(),
+      id: normalizedId,
+      name: String(item?.name || catalogItem?.name || fallbackName).trim(),
+      icon: String(item?.icon || catalogItem?.icon || 'ITM').trim(),
     };
 
     if (Number.isFinite(Number(item?.cost))) {
       sanitized.cost = Number(item.cost);
+    } else if (Number.isFinite(Number(catalogItem?.cost))) {
+      sanitized.cost = Number(catalogItem?.cost);
     }
 
     if (typeof item?.equipped === 'boolean') {
@@ -381,7 +391,7 @@ export class TradingService {
 
       const snapshot = await getDocs(q);
       return this.sortTradesByCreatedAtDesc(
-        snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as TradeOffer),
+        snapshot.docs.map((doc) => this.normalizeTradeOffer({ id: doc.id, ...doc.data() } as TradeOffer)),
       );
     } catch (error) {
       if (this.isPermissionDeniedError(error)) {
@@ -421,7 +431,7 @@ export class TradingService {
 
       const snapshot = await getDocs(q);
       return this.sortTradesByCreatedAtDesc(
-        snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as TradeOffer),
+        snapshot.docs.map((doc) => this.normalizeTradeOffer({ id: doc.id, ...doc.data() } as TradeOffer)),
       );
     } catch (error) {
       if (this.isPermissionDeniedError(error)) {
@@ -641,7 +651,9 @@ export class TradingService {
           q,
           (snapshot: any) => {
             const offers = this.sortTradesByCreatedAtDesc(
-              snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }) as TradeOffer),
+              snapshot.docs.map((doc: any) =>
+                this.normalizeTradeOffer({ id: doc.id, ...doc.data() } as TradeOffer),
+              ),
             );
             callback(offers);
           },

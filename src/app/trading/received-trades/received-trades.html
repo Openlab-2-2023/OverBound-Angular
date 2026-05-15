@@ -26,7 +26,10 @@
           <div class="items-list">
             <div *ngFor="let item of offer.itemsOffered" class="item-row">
               <span class="item-icon">{{ getItemIcon(item) }}</span>
-              <span class="item-name">{{ getItemName(item) }}</span>
+              <span class="item-copy">
+                <span class="item-name">{{ getItemName(item) }}</span>
+                <span class="item-meta">{{ item.id || 'custom-item' }}</span>
+              </span>
               <span *ngIf="item.cost" class="item-cost">{{ item.cost }} Gold</span>
             </div>
           </div>
@@ -39,7 +42,10 @@
           <div class="items-list">
             <div *ngFor="let item of offer.itemsRequested" class="item-row">
               <span class="item-icon">{{ getItemIcon(item) }}</span>
-              <span class="item-name">{{ getItemName(item) }}</span>
+              <span class="item-copy">
+                <span class="item-name">{{ getItemName(item) }}</span>
+                <span class="item-meta">{{ item.id || 'custom-item' }}</span>
+              </span>
               <span *ngIf="item.cost" class="item-cost">{{ item.cost }} Gold</span>
             </div>
           </div>

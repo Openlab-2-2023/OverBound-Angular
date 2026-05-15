@@ -115,9 +115,9 @@
 
         .item-row {
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           gap: 10px;
-          padding: 10px 12px;
+          padding: 12px 14px;
           background: rgba(11, 13, 21, 0.68);
           border-radius: 12px;
           border-left: 3px solid rgba(255, 186, 87, 0.34);
@@ -136,10 +136,26 @@
             flex-shrink: 0;
           }
 
-          .item-name {
+          .item-copy {
+            display: flex;
             flex: 1;
+            flex-direction: column;
+            min-width: 0;
+            gap: 4px;
+          }
+
+          .item-name {
             color: #eee;
-            font-weight: 500;
+            font-weight: 700;
+            word-break: break-word;
+            line-height: 1.2;
+          }
+
+          .item-meta {
+            color: #9db1d9;
+            font-size: 0.74rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
             word-break: break-word;
           }
 
@@ -148,6 +164,7 @@
             font-size: 0.85rem;
             font-weight: 600;
             white-space: nowrap;
+            align-self: center;
           }
         }
       }
