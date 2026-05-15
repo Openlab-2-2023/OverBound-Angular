@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { TradingService, TradeOffer } from '../services/trading.service';
@@ -19,11 +19,13 @@ export class TradingComponent implements OnInit, OnDestroy {
   receivedOffers: TradeOffer[] = [];
   sentOffers: TradeOffer[] = [];
   loading = false;
-  unsubscribe: (() => void) | null = null;
+  receivedUnsubscribe: (() => void) | null = null;
+  sentUnsubscribe: (() => void) | null = null;
 
   constructor(
     private tradingService: TradingService,
     private authService: AuthService,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -31,8 +33,12 @@ export class TradingComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    if (this.unsubscribe) {
-      this.unsubscribe();
+    if (this.receivedUnsubscribe) {
+      this.receivedUnsubscribe();
+    }
+
+    if (this.sentUnsubscribe) {
+      this.sentUnsubscribe();
     }
   }
 
@@ -47,6 +53,7 @@ export class TradingComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.tab = 'received';
     await this.loadOffers();
     this.subscribeToUpdates();
   }
@@ -76,12 +83,19 @@ export class TradingComponent implements OnInit, OnDestroy {
       console.error('Error loading offers:', error);
     } finally {
       this.loading = false;
+      this.cdr.detectChanges();
     }
   }
 
   subscribeToUpdates(): void {
-    this.unsubscribe = this.tradingService.subscribeToReceivedOffers((offers) => {
+    this.receivedUnsubscribe = this.tradingService.subscribeToReceivedOffers((offers) => {
       this.receivedOffers = offers;
+      this.cdr.detectChanges();
+    });
+
+    this.sentUnsubscribe = this.tradingService.subscribeToSentOffers((offers) => {
+      this.sentOffers = offers;
+      this.cdr.detectChanges();
     });
   }
 

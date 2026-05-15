@@ -446,7 +446,9 @@ export class TradingService {
 
       const snapshot = await getDocs(q);
       return this.sortTradesByCreatedAtDesc(
-        snapshot.docs.map((doc) => this.normalizeTradeOffer({ id: doc.id, ...doc.data() } as TradeOffer)),
+        snapshot.docs
+          .map((doc) => this.normalizeTradeOffer({ id: doc.id, ...doc.data() } as TradeOffer))
+          .filter((offer) => offer.status === 'pending'),
       );
     } catch (error) {
       if (this.isPermissionDeniedError(error)) {
@@ -620,6 +622,8 @@ export class TradingService {
    */
   subscribeToReceivedOffers(callback: (offers: TradeOffer[]) => void): (() => void) | null {
     try {
+      let unsubscribeSnapshot: (() => void) | null = null;
+
       // Use async IIFE to handle dynamic imports
       (async () => {
         const hasAccess = await this.hasFirestoreTradeAccess();
@@ -649,7 +653,7 @@ export class TradingService {
           where('status', '==', 'pending')
         );
 
-        onSnapshot(
+        unsubscribeSnapshot = onSnapshot(
           q,
           (snapshot: any) => {
             const offers = this.sortTradesByCreatedAtDesc(
@@ -684,10 +688,85 @@ export class TradingService {
       });
 
       return () => {
-        // Unsubscribe handled by component cleanup
+        if (unsubscribeSnapshot) {
+          unsubscribeSnapshot();
+        }
       };
     } catch (error) {
       console.error('Error setting up received offers subscription:', error);
+      return null;
+    }
+  }
+
+  subscribeToSentOffers(callback: (offers: TradeOffer[]) => void): (() => void) | null {
+    try {
+      let unsubscribeSnapshot: (() => void) | null = null;
+
+      (async () => {
+        const hasAccess = await this.hasFirestoreTradeAccess();
+        if (!hasAccess) {
+          callback([]);
+          return;
+        }
+
+        const firestore = getFirestoreInstance();
+        if (!firestore) {
+          callback([]);
+          return;
+        }
+
+        const currentEmail = this.normalizeEmail(this.authService.getCurrent()?.email);
+        if (!currentEmail) {
+          callback([]);
+          return;
+        }
+
+        const { collection, query, where, onSnapshot } = await import('firebase/firestore');
+        const tradesRef = collection(firestore, this.tradeCollectionName);
+        const q = query(
+          tradesRef,
+          where('senderEmail', '==', currentEmail),
+        );
+
+        unsubscribeSnapshot = onSnapshot(
+          q,
+          (snapshot: any) => {
+            const offers = this.sortTradesByCreatedAtDesc(
+              snapshot.docs
+                .map((doc: any) => this.normalizeTradeOffer({ id: doc.id, ...doc.data() } as TradeOffer))
+                .filter((offer: TradeOffer) => offer.status === 'pending'),
+            );
+            callback(offers);
+          },
+          (error: unknown) => {
+            if (this.isPermissionDeniedError(error)) {
+              console.error('Error subscribing to sent offers:', this.getTradingPermissionError());
+              callback([]);
+              return;
+            }
+
+            console.error('Error subscribing to sent offers:', error);
+            callback([]);
+          },
+        );
+      })().catch((error) => {
+        if (this.isPermissionDeniedError(error)) {
+          console.error('Error subscribing to sent offers:', this.getTradingPermissionError());
+          callback([]);
+          return;
+        }
+
+        console.error('Error subscribing to sent offers:', error);
+        callback([]);
+      });
+
+      return () => {
+        if (unsubscribeSnapshot) {
+          unsubscribeSnapshot();
+        }
+      };
+    } catch (error) {
+      console.error('Error setting up sent offers subscription:', error);
       return null;
     }
   }
