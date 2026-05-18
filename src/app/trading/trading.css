@@ -111,7 +111,7 @@
 
 .eyebrow {
   margin: 0 0 10px;
-  font-size: 15px;
+  font-size: 25px;
   letter-spacing: 2.4px;
   text-transform: uppercase;
   color: #ffd7b0;
@@ -164,10 +164,10 @@
 .tab-button {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 16px;
   min-height: 54px;
-  padding: 0 18px;
+  padding: 0 20px 0 22px;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.09);
   background: linear-gradient(180deg, rgba(27, 27, 33, 0.96), rgba(15, 15, 20, 0.98));
@@ -218,18 +218,57 @@
   z-index: 1;
 }
 
+.tab-label {
+  line-height: 1;
+}
+
 .badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 28px;
-  height: 28px;
-  padding: 0 8px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #ff7a20, #ffb347, #2f6bff);
-  color: #fff;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 11px;
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
+    linear-gradient(135deg, rgba(255, 129, 45, 0.22), rgba(61, 109, 255, 0.2)),
+    #171922;
+  border: 1px solid rgba(120, 160, 255, 0.28);
+  color: #ffd58f;
   font-family: "Silkscreen", "Pixelify Sans", sans-serif;
-  font-size: 12px;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1;
+  text-shadow: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 6px 14px rgba(0, 0, 0, 0.24);
+  flex-shrink: 0;
+  letter-spacing: 0;
+  position: relative;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.badge::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(255, 140, 56, 0.22), rgba(70, 119, 255, 0.24));
+  opacity: 0.85;
+  pointer-events: none;
+  z-index: -2;
+}
+
+.badge::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: 11px;
+  background: linear-gradient(180deg, rgba(21, 24, 34, 0.86), rgba(21, 24, 34, 0.94));
+  pointer-events: none;
+  z-index: -1;
 }
 
 .tabs-content {
@@ -320,6 +359,14 @@
   color: #9db1d9;
 }
 
+.offer-status-copy {
+  margin: 10px 0 0;
+  max-width: 48ch;
+  color: #d5deef;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
 .status {
   display: inline-flex;
   align-items: center;
@@ -350,6 +397,12 @@
   color: #ffd1d1;
   background: rgba(90, 25, 25, 0.68);
   border-color: rgba(255, 120, 120, 0.24);
+}
+
+.status-cancelled {
+  color: #e5e7ef;
+  background: rgba(64, 67, 79, 0.68);
+  border-color: rgba(183, 191, 214, 0.24);
 }
 
 .offer-items {

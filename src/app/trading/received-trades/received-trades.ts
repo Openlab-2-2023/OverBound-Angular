@@ -22,8 +22,12 @@ export class ReceivedTradesComponent implements OnInit {
 
   ngOnInit(): void {}
 
+  isPending(offer: TradeOffer): boolean {
+    return offer.status === 'pending';
+  }
+
   async acceptTrade(offer: TradeOffer): Promise<void> {
-    if (!offer.id) return;
+    if (!offer.id || !this.isPending(offer)) return;
 
     this.processingId = offer.id;
     this.error = null;
@@ -46,7 +50,7 @@ export class ReceivedTradesComponent implements OnInit {
   }
 
   async declineTrade(offer: TradeOffer): Promise<void> {
-    if (!offer.id) return;
+    if (!offer.id || !this.isPending(offer)) return;
 
     this.processingId = offer.id;
     this.error = null;
@@ -99,5 +103,44 @@ export class ReceivedTradesComponent implements OnInit {
     }
 
     return 'ITM';
+  }
+
+  getOfferStatusLabel(offer: TradeOffer): string {
+    switch (offer.status) {
+      case 'accepted':
+        return 'Accepted';
+      case 'declined':
+        return 'Declined';
+      case 'cancelled':
+        return 'Cancelled';
+      case 'completed':
+        return 'Completed';
+      default:
+        return 'Pending';
+    }
+  }
+
+  getOfferStatusMessage(offer: TradeOffer): string {
+    const directMessage = String(offer.statusMessage || '').trim();
+    if (directMessage) {
+      return directMessage;
+    }
+
+    switch (offer.status) {
+      case 'accepted':
+        return `You accepted ${offer.senderName}'s trade offer.`;
+      case 'declined':
+        return `You declined ${offer.senderName}'s trade offer.`;
+      case 'cancelled':
+        return `${offer.senderName} cancelled this trade offer.`;
+      case 'completed':
+        return 'This trade was completed.';
+      default:
+        return 'Waiting for your response.';
+    }
+  }
+
+  getOfferTimestamp(offer: TradeOffer): number | undefined {
+    return offer.resolvedAt || offer.createdAt;
   }
 }

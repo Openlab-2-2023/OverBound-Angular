@@ -89,10 +89,11 @@
                       <div class="offer-card">
                         <div class="offer-header">
                           <div>
-                            <p class="offer-kicker">Outgoing Offer</p>
+                            <p class="offer-kicker">{{ offer.status === 'pending' ? 'Outgoing Offer' : 'Trade Update' }}</p>
                             <h3>Trade with {{ offer.receiverName }}</h3>
+                            <p class="offer-status-copy">{{ getOfferStatusMessage(offer) }}</p>
                           </div>
-                          <span [class]="'status status-' + offer.status">{{ offer.status }}</span>
+                          <span [class]="'status status-' + offer.status">{{ getOfferStatusLabel(offer) }}</span>
                         </div>
                         <div class="offer-items">
                           <div class="items-section">
@@ -126,7 +127,7 @@
                           </div>
                         </div>
                         <div class="offer-footer">
-                          <small>{{ offer.createdAt | date: 'short' }}</small>
+                          <small>{{ getOfferTimestamp(offer) | date: 'short' }}</small>
                         </div>
                       </div>
                     }

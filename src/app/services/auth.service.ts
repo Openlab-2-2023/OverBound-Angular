@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { isFirebaseEnabled, initFirebaseIfNeeded, getAuthInstance, saveUserToFirestore, fetchUserFromFirestore, fetchAllUsersFromFirestore, subscribeAllUsersFromFirestore, authCreateUser, authSignIn, authSignOut, authUpdatePassword, authUpdateUserProfile, diagnoseFirestoreUserCollections, authSendPasswordResetEmail, authVerifyPasswordResetCode, authConfirmPasswordReset, authFetchSignInMethodsForEmail } from './firebase.init';
+import { isFirebaseEnabled, initFirebaseIfNeeded, getAuthInstance, getFirestoreInstance, saveUserToFirestore, fetchUserFromFirestore, fetchAllUsersFromFirestore, subscribeAllUsersFromFirestore, authCreateUser, authSignIn, authSignOut, authUpdatePassword, authUpdateUserProfile, diagnoseFirestoreUserCollections, authSendPasswordResetEmail, authVerifyPasswordResetCode, authConfirmPasswordReset, authFetchSignInMethodsForEmail } from './firebase.init';
 import { getStoreItemById } from '../store/store-catalog';
 
 export type Role = 'Admin' | 'Player';
@@ -30,6 +30,7 @@ export class AuthService {
   private current: User | null = null;
   private adminEmails: string[] = ['sebokubinec7@gmail.com', 'bojkosam@gmail.com'];
   private readonly authRequestTimeoutMs = 9000;
+  private currentUserProfileUnsubscribe: (() => void) | null = null;
 
   constructor() {
     const raw = localStorage.getItem(this.storageUsersKey);
@@ -98,10 +99,12 @@ export class AuthService {
               this.saveUsers();
               this.saveCurrent();
               try { window.dispatchEvent(new CustomEvent('ob:user-updated', { detail: this.getCurrent() })); } catch {}
+              this.startCurrentUserProfileSync(email);
             } catch (e) {
               // ignore fetch errors
             }
           } else {
+            this.stopCurrentUserProfileSync();
             this.current = null;
             this.saveCurrent();
           }
@@ -119,8 +122,64 @@ export class AuthService {
   }
 
   private clearCurrentSession() {
+    this.stopCurrentUserProfileSync();
     this.current = null;
     this.saveCurrent();
+  }
+
+  private stopCurrentUserProfileSync() {
+    if (this.currentUserProfileUnsubscribe) {
+      this.currentUserProfileUnsubscribe();
+      this.currentUserProfileUnsubscribe = null;
+    }
+  }
+
+  private async startCurrentUserProfileSync(email: string) {
+    const normalized = String(email || '').trim().toLowerCase();
+    if (!normalized || !isFirebaseEnabled()) return;
+
+    this.stopCurrentUserProfileSync();
+
+    await initFirebaseIfNeeded();
+    const firestore = getFirestoreInstance();
+    if (!firestore) return;
+
+    try {
+      const { doc, onSnapshot } = await import('firebase/firestore');
+      const ref = doc(firestore, 'users', normalized);
+      this.currentUserProfileUnsubscribe = onSnapshot(ref, (snap: any) => {
+        if (!snap?.exists?.()) return;
+
+        const remote = snap.data() as Partial<User>;
+        const local = this.users.find((user) => String(user.email || '').trim().toLowerCase() === normalized)
+          || this.current
+          || ({ email: normalized } as User);
+
+        const merged = {
+          ...local,
+          ...remote,
+          email: normalized,
+          role: this.adminEmails.includes(normalized) ? 'Admin' : ((remote as any)?.role || local.role || 'Player'),
+          inventory: this.mergeInventoryRecords(
+            Array.isArray((remote as any)?.inventory)
+              ? (remote as any).inventory.map((item: any) => ({ ...item }))
+              : undefined,
+            Array.isArray(local.inventory)
+              ? local.inventory.map((item) => ({ ...item }))
+              : undefined,
+          ),
+        } as User;
+
+        const idx = this.users.findIndex((user) => String(user.email || '').trim().toLowerCase() === normalized);
+        if (idx >= 0) this.users[idx] = merged; else this.users.push(merged);
+        this.current = merged;
+        this.saveUsers();
+        this.saveCurrent();
+        try { window.dispatchEvent(new CustomEvent('ob:user-updated', { detail: this.getCurrent() })); } catch {}
+      });
+    } catch (error) {
+      console.warn('Failed to subscribe current user profile', error);
+    }
   }
 
   private withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
@@ -357,6 +416,7 @@ export class AuthService {
           this.saveUsers();
           this.current = merged;
           this.saveCurrent();
+          await this.startCurrentUserProfileSync(email);
         } else {
           const local = this.users.find(u => u.email === email) || {} as User;
           const username = local.username || email.split('@')[0];
@@ -377,6 +437,7 @@ export class AuthService {
           this.saveUsers();
           this.current = merged;
           this.saveCurrent();
+          await this.startCurrentUserProfileSync(email);
           // persist initial profile to Firestore
           try { await saveUserToFirestore(merged); } catch { /* ignore */ }
         }
@@ -550,8 +611,11 @@ export class AuthService {
     try { window.dispatchEvent(new CustomEvent('ob:user-updated', { detail: this.getCurrent() })); } catch {}
     // Keep UI snappy: sync to Firebase in background instead of blocking user flow.
     if (isFirebaseEnabled()) {
-      if (options?.waitForCloud) {
-        const timeoutMs = Math.max(1000, options.cloudTimeoutMs ?? 4500);
+      const shouldWaitForCloud = options?.waitForCloud
+        ?? ('inventory' in updates || 'gold' in updates || 'totalGoldCollected' in updates);
+
+      if (shouldWaitForCloud) {
+        const timeoutMs = Math.max(1000, options?.cloudTimeoutMs ?? 4500);
         const syncPromise = this.syncProfileToFirebase(email, updates);
         try {
           await Promise.race([
@@ -896,6 +960,7 @@ export class AuthService {
       this.saveUsers();
       this.saveCurrent();
       try { window.dispatchEvent(new CustomEvent('ob:user-updated', { detail: this.getCurrent() })); } catch {}
+      await this.startCurrentUserProfileSync(currentEmail);
 
       return this.getCurrent();
     } catch (error) {

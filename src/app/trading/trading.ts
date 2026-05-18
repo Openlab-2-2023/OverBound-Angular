@@ -115,6 +115,45 @@ export class TradingComponent implements OnInit, OnDestroy {
     await this.loadOffers();
   }
 
+  getOfferStatusLabel(offer: TradeOffer): string {
+    switch (offer.status) {
+      case 'accepted':
+        return 'Accepted';
+      case 'declined':
+        return 'Declined';
+      case 'cancelled':
+        return 'Cancelled';
+      case 'completed':
+        return 'Completed';
+      default:
+        return 'Pending';
+    }
+  }
+
+  getOfferStatusMessage(offer: TradeOffer): string {
+    const directMessage = String(offer.statusMessage || '').trim();
+    if (directMessage) {
+      return directMessage;
+    }
+
+    switch (offer.status) {
+      case 'accepted':
+        return `${offer.receiverName} accepted your trade offer.`;
+      case 'declined':
+        return `${offer.receiverName} declined your trade offer.`;
+      case 'cancelled':
+        return 'This trade offer was cancelled.';
+      case 'completed':
+        return 'This trade was completed.';
+      default:
+        return 'Waiting for a response.';
+    }
+  }
+
+  getOfferTimestamp(offer: TradeOffer): number | undefined {
+    return offer.resolvedAt || offer.createdAt;
+  }
+
   getItemName(item: { id?: string; name?: string } | null | undefined): string {
     const directName = String(item?.name || '').trim();
     if (directName) {

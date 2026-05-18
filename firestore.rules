@@ -51,7 +51,24 @@ service cloud.firestore {
         && tradeParticipant(resource.data)
         && tradeParticipant(request.resource.data);
 
-      allow delete: if false;
+      allow delete: if isSignedIn()
+        && tradeParticipant(resource.data);
+    }
+
+    match /tradeNotifications/{notificationId} {
+      allow get, list: if tradeParticipant(resource.data);
+
+      allow create: if isSignedIn()
+        && tradeParticipant(request.resource.data)
+        && (
+          request.resource.data.status == 'accepted'
+          || request.resource.data.status == 'declined'
+          || request.resource.data.status == 'cancelled'
+        );
+
+      allow update: if false;
+      allow delete: if isSignedIn()
+        && tradeParticipant(resource.data);
     }
   }
 }

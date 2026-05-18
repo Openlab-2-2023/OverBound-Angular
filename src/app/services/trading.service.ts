@@ -20,14 +20,18 @@ export interface TradeOffer {
   receiverName: string;
   itemsOffered: InventoryItem[];
   itemsRequested: InventoryItem[];
-  status: 'pending' | 'accepted' | 'declined' | 'completed';
+  status: 'pending' | 'accepted' | 'declined' | 'completed' | 'cancelled';
   createdAt?: number;
   expiresAt?: number;
+  resolvedAt?: number;
+  statusMessage?: string;
 }
 
 @Injectable({ providedIn: 'root' })
 export class TradingService {
   private tradeCollectionName = 'trades';
+  private tradeNotificationCollectionName = 'tradeNotifications';
+  private readonly resolvedTradeRetentionMs = 3 * 24 * 60 * 60 * 1000;
   private availableUsersCache: User[] = [];
   private availableUsersCacheAt = 0;
   private availableUsersRequest: Promise<User[]> | null = null;
@@ -93,7 +97,7 @@ export class TradingService {
   }
 
   private normalizeTradeOffer(offer: TradeOffer): TradeOffer {
-    return {
+    const normalizedOffer: TradeOffer = {
       ...offer,
       senderEmail: this.normalizeEmail(offer.senderEmail),
       senderName: String(offer.senderName || '').trim() || 'Unknown',
@@ -109,6 +113,18 @@ export class TradingService {
       createdAt: this.normalizeTimestampValue(offer.createdAt),
       expiresAt: this.normalizeTimestampValue(offer.expiresAt),
     };
+
+    const resolvedAt = this.normalizeTimestampValue((offer as TradeOffer & { resolvedAt?: unknown }).resolvedAt);
+    if (resolvedAt !== undefined) {
+      normalizedOffer.resolvedAt = resolvedAt;
+    }
+
+    const statusMessage = String((offer as TradeOffer & { statusMessage?: string }).statusMessage || '').trim();
+    if (statusMessage) {
+      normalizedOffer.statusMessage = statusMessage;
+    }
+
+    return normalizedOffer;
   }
 
   private async hasFirestoreTradeAccess(): Promise<boolean> {
@@ -173,8 +189,76 @@ export class TradingService {
     return this.normalizeTimestampValue(offer?.createdAt) ?? 0;
   }
 
+  private getTradeSortValue(offer: Partial<TradeOffer> & { createdAt?: unknown; resolvedAt?: unknown }): number {
+    return this.normalizeTimestampValue(offer?.resolvedAt) ?? this.getTradeCreatedAtValue(offer);
+  }
+
   private sortTradesByCreatedAtDesc(offers: TradeOffer[]): TradeOffer[] {
-    return [...offers].sort((a, b) => this.getTradeCreatedAtValue(b) - this.getTradeCreatedAtValue(a));
+    return [...offers].sort((a, b) => this.getTradeSortValue(b) - this.getTradeSortValue(a));
+  }
+
+  private isTradeExpired(offer: Partial<TradeOffer> & { expiresAt?: unknown }): boolean {
+    const expiresAt = this.normalizeTimestampValue(offer?.expiresAt);
+    return expiresAt !== undefined && expiresAt <= Date.now();
+  }
+
+  private filterActiveTrades(offers: TradeOffer[]): TradeOffer[] {
+    return offers.filter((offer) => !this.isTradeExpired(offer));
+  }
+
+  private async deleteTradeNotificationsByIds(ids: string[]): Promise<void> {
+    const uniqueIds = [...new Set(ids.map((id) => String(id || '').trim()).filter(Boolean))];
+    if (uniqueIds.length === 0) {
+      return;
+    }
+
+    await initFirebaseIfNeeded();
+    const firestore = getFirestoreInstance();
+    if (!firestore) {
+      return;
+    }
+
+    try {
+      const { doc, writeBatch } = await import('firebase/firestore');
+      const batch = writeBatch(firestore);
+      for (const id of uniqueIds) {
+        batch.delete(doc(firestore, this.tradeNotificationCollectionName, id));
+      }
+      await batch.commit();
+    } catch (error) {
+      console.warn('Failed to delete expired trade notifications', error);
+    }
+  }
+
+  private async cleanupExpiredTradeNotifications(userEmail: string): Promise<void> {
+    const normalizedEmail = this.normalizeEmail(userEmail);
+    if (!normalizedEmail) {
+      return;
+    }
+
+    await initFirebaseIfNeeded();
+    const firestore = getFirestoreInstance();
+    if (!firestore) {
+      return;
+    }
+
+    try {
+      const { collection, getDocs, query, where } = await import('firebase/firestore');
+      const notificationsRef = collection(firestore, this.tradeNotificationCollectionName);
+      const [senderSnapshot, receiverSnapshot] = await Promise.all([
+        getDocs(query(notificationsRef, where('senderEmail', '==', normalizedEmail))),
+        getDocs(query(notificationsRef, where('receiverEmail', '==', normalizedEmail))),
+      ]);
+      const expiredIds = [...senderSnapshot.docs, ...receiverSnapshot.docs]
+        .map((doc) => this.normalizeTradeOffer({ id: doc.id, ...doc.data() } as TradeOffer))
+        .filter((offer) => this.isTradeExpired(offer))
+        .map((offer) => String(offer.id || '').trim())
+        .filter(Boolean);
+
+      await this.deleteTradeNotificationsByIds(expiredIds);
+    } catch (error) {
+      console.warn('Failed to clean up expired trade notifications', error);
+    }
   }
 
   private removeInventoryItemById(items: InventoryItem[], itemId: string): boolean {
@@ -248,7 +332,6 @@ export class TradingService {
         const seen = new Set<string>();
         return users
           .filter((user) => !!user?.email)
-          .filter((user) => String(user.role || 'Player') === 'Player')
           .map((user) => ({
             ...user,
             email: String(user.email || '').trim().toLowerCase(),
@@ -270,10 +353,9 @@ export class TradingService {
 
       if (firestore) {
         try {
-          const { collection, getDocs, query, where } = await import('firebase/firestore');
+          const { collection, getDocs } = await import('firebase/firestore');
           const usersRef = collection(firestore, 'users');
-          const playersQuery = query(usersRef, where('role', '==', 'Player'));
-          const snapshot = await getDocs(playersQuery);
+          const snapshot = await getDocs(usersRef);
 
           const remoteUsers = snapshot.docs.map((doc) => {
             const data = doc.data() as Partial<User>;
@@ -369,15 +451,16 @@ export class TradingService {
       const firestore = getFirestoreInstance();
       if (!firestore) throw new Error('Firestore not initialized');
 
-      const { collection, addDoc, serverTimestamp } = await import('firebase/firestore');
+      const { collection, addDoc, serverTimestamp, Timestamp } = await import('firebase/firestore');
       const tradesRef = collection(firestore, this.tradeCollectionName);
       const normalizedOffer = this.normalizeTradeOffer(offer);
+      const expiresAt = Timestamp.fromMillis(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
       const offerData = {
         ...normalizedOffer,
         status: 'pending',
         createdAt: serverTimestamp(),
-        expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
+        expiresAt,
       };
 
       const docRef = await addDoc(tradesRef, offerData);
@@ -411,19 +494,29 @@ export class TradingService {
 
       const currentEmail = this.normalizeEmail(this.authService.getCurrent()?.email);
       if (!currentEmail) return [];
+      await this.cleanupExpiredTradeNotifications(currentEmail);
 
       const { collection, query, where, getDocs } = await import('firebase/firestore');
       const tradesRef = collection(firestore, this.tradeCollectionName);
-      const q = query(
-        tradesRef,
-        where('receiverEmail', '==', currentEmail),
-        where('status', '==', 'pending')
-      );
+      const notificationsRef = collection(firestore, this.tradeNotificationCollectionName);
+      const [pendingSnapshot, notificationSnapshot] = await Promise.all([
+        getDocs(query(
+          tradesRef,
+          where('receiverEmail', '==', currentEmail),
+          where('status', '==', 'pending')
+        )),
+        getDocs(query(notificationsRef, where('receiverEmail', '==', currentEmail))),
+      ]);
 
-      const snapshot = await getDocs(q);
-      return this.sortTradesByCreatedAtDesc(
-        snapshot.docs.map((doc) => this.normalizeTradeOffer({ id: doc.id, ...doc.data() } as TradeOffer)),
-      );
+      const pendingOffers = pendingSnapshot.docs
+        .map((doc) => this.normalizeTradeOffer({ id: doc.id, ...doc.data() } as TradeOffer))
+        .filter((offer) => !this.isTradeExpired(offer));
+
+      const notifications = notificationSnapshot.docs
+        .map((doc) => this.normalizeTradeOffer({ id: doc.id, ...doc.data() } as TradeOffer))
+        .filter((offer) => !this.isTradeExpired(offer));
+
+      return this.sortTradesByCreatedAtDesc([...pendingOffers, ...notifications]);
     } catch (error) {
       if (this.isPermissionDeniedError(error)) {
         this.logTradeAccessDiagnostics('received-permission-denied');
@@ -452,20 +545,26 @@ export class TradingService {
 
       const currentEmail = this.normalizeEmail(this.authService.getCurrent()?.email);
       if (!currentEmail) return [];
+      await this.cleanupExpiredTradeNotifications(currentEmail);
 
       const { collection, query, where, getDocs } = await import('firebase/firestore');
       const tradesRef = collection(firestore, this.tradeCollectionName);
-      const q = query(
-        tradesRef,
-        where('senderEmail', '==', currentEmail)
-      );
+      const notificationsRef = collection(firestore, this.tradeNotificationCollectionName);
+      const [pendingSnapshot, notificationSnapshot] = await Promise.all([
+        getDocs(query(tradesRef, where('senderEmail', '==', currentEmail))),
+        getDocs(query(notificationsRef, where('senderEmail', '==', currentEmail))),
+      ]);
 
-      const snapshot = await getDocs(q);
-      return this.sortTradesByCreatedAtDesc(
-        snapshot.docs
-          .map((doc) => this.normalizeTradeOffer({ id: doc.id, ...doc.data() } as TradeOffer))
-          .filter((offer) => offer.status === 'pending'),
-      );
+      const pendingOffers = pendingSnapshot.docs
+        .map((doc) => this.normalizeTradeOffer({ id: doc.id, ...doc.data() } as TradeOffer))
+        .filter((offer) => offer.status === 'pending')
+        .filter((offer) => !this.isTradeExpired(offer));
+
+      const notifications = notificationSnapshot.docs
+        .map((doc) => this.normalizeTradeOffer({ id: doc.id, ...doc.data() } as TradeOffer))
+        .filter((offer) => !this.isTradeExpired(offer));
+
+      return this.sortTradesByCreatedAtDesc([...pendingOffers, ...notifications]);
     } catch (error) {
       if (this.isPermissionDeniedError(error)) {
         this.logTradeAccessDiagnostics('sent-permission-denied');
@@ -492,7 +591,7 @@ export class TradingService {
       const firestore = getFirestoreInstance();
       if (!firestore) throw new Error('Firestore not initialized');
 
-      const { doc, getDoc, updateDoc, writeBatch } = await import('firebase/firestore');
+      const { doc, getDoc, writeBatch, Timestamp } = await import('firebase/firestore');
 
       // Get the trade offer
       const tradeRef = doc(firestore, this.tradeCollectionName, tradeId);
@@ -502,7 +601,10 @@ export class TradingService {
         throw new Error('Trade offer not found');
       }
 
-      const trade = this.normalizeTradeOffer(tradeSnap.data() as TradeOffer);
+      const trade = this.normalizeTradeOffer({ id: tradeSnap.id, ...tradeSnap.data() } as TradeOffer);
+      if (trade.status !== 'pending') {
+        throw new Error('This trade offer is no longer pending.');
+      }
 
       // Get both users
       const senderRef = doc(firestore, 'users', trade.senderEmail);
@@ -542,7 +644,18 @@ export class TradingService {
       const batch = writeBatch(firestore);
       batch.update(senderRef, { inventory: senderInventory });
       batch.update(receiverRef, { inventory: receiverInventory });
-      batch.update(tradeRef, { status: 'completed', completedAt: Date.now() });
+      const resolvedAt = Date.now();
+      const resolvedAtTimestamp = Timestamp.fromMillis(resolvedAt);
+      const expiresAt = Timestamp.fromMillis(resolvedAt + this.resolvedTradeRetentionMs);
+      const notificationRef = doc(firestore, this.tradeNotificationCollectionName, `${tradeId}_accepted`);
+      batch.set(notificationRef, {
+        ...trade,
+        status: 'accepted',
+        resolvedAt: resolvedAtTimestamp,
+        expiresAt,
+        statusMessage: `${trade.receiverName} accepted your trade offer.`,
+      });
+      batch.delete(tradeRef);
 
       await batch.commit();
 
@@ -577,9 +690,32 @@ export class TradingService {
       const firestore = getFirestoreInstance();
       if (!firestore) throw new Error('Firestore not initialized');
 
-      const { doc, updateDoc } = await import('firebase/firestore');
+      const { doc, getDoc, writeBatch, Timestamp } = await import('firebase/firestore');
       const tradeRef = doc(firestore, this.tradeCollectionName, tradeId);
-      await updateDoc(tradeRef, { status: 'declined', declinedAt: Date.now() });
+      const tradeSnap = await getDoc(tradeRef);
+      if (!tradeSnap.exists()) {
+        throw new Error('Trade offer not found');
+      }
+
+      const trade = this.normalizeTradeOffer({ id: tradeSnap.id, ...tradeSnap.data() } as TradeOffer);
+      if (trade.status !== 'pending') {
+        throw new Error('This trade offer is no longer pending.');
+      }
+
+      const resolvedAt = Date.now();
+      const resolvedAtTimestamp = Timestamp.fromMillis(resolvedAt);
+      const expiresAt = Timestamp.fromMillis(resolvedAt + this.resolvedTradeRetentionMs);
+      const notificationRef = doc(firestore, this.tradeNotificationCollectionName, `${tradeId}_declined`);
+      const batch = writeBatch(firestore);
+      batch.set(notificationRef, {
+        ...trade,
+        status: 'declined',
+        resolvedAt: resolvedAtTimestamp,
+        expiresAt,
+        statusMessage: `${trade.receiverName} declined your trade offer.`,
+      });
+      batch.delete(tradeRef);
+      await batch.commit();
 
       return true;
     } catch (error) {
@@ -609,9 +745,26 @@ export class TradingService {
       const firestore = getFirestoreInstance();
       if (!firestore) throw new Error('Firestore not initialized');
 
-      const { doc, updateDoc } = await import('firebase/firestore');
+      const { doc, getDoc, writeBatch, Timestamp } = await import('firebase/firestore');
       const tradeRef = doc(firestore, this.tradeCollectionName, tradeId);
-      await updateDoc(tradeRef, { status: 'declined', cancelledAt: Date.now() });
+      const tradeSnap = await getDoc(tradeRef);
+      if (!tradeSnap.exists()) {
+        return true;
+      }
+
+      const resolvedAt = Date.now();
+      const trade = this.normalizeTradeOffer({ id: tradeSnap.id, ...tradeSnap.data() } as TradeOffer);
+      const batch = writeBatch(firestore);
+      const notificationRef = doc(firestore, this.tradeNotificationCollectionName, `${tradeId}_cancelled`);
+      batch.set(notificationRef, {
+        ...trade,
+        status: 'cancelled',
+        resolvedAt: Timestamp.fromMillis(resolvedAt),
+        expiresAt: Timestamp.fromMillis(resolvedAt + this.resolvedTradeRetentionMs),
+        statusMessage: `${trade.senderName} cancelled this trade offer.`,
+      });
+      batch.delete(tradeRef);
+      await batch.commit();
 
       return true;
     } catch (error) {
@@ -632,7 +785,11 @@ export class TradingService {
    */
   subscribeToReceivedOffers(callback: (offers: TradeOffer[]) => void): (() => void) | null {
     try {
-      let unsubscribeSnapshot: (() => void) | null = null;
+      let unsubscribePending: (() => void) | null = null;
+      let unsubscribeNotifications: (() => void) | null = null;
+      let pendingOffers: TradeOffer[] = [];
+      let notifications: TradeOffer[] = [];
+      const emitOffers = () => callback(this.sortTradesByCreatedAtDesc([...pendingOffers, ...notifications]));
 
       // Use async IIFE to handle dynamic imports
       (async () => {
@@ -657,21 +814,21 @@ export class TradingService {
 
         const { collection, query, where, onSnapshot } = await import('firebase/firestore');
         const tradesRef = collection(firestore, this.tradeCollectionName);
-        const q = query(
+        const notificationsRef = collection(firestore, this.tradeNotificationCollectionName);
+        const pendingQuery = query(
           tradesRef,
           where('receiverEmail', '==', currentEmail),
           where('status', '==', 'pending')
         );
+        const notificationsQuery = query(notificationsRef, where('receiverEmail', '==', currentEmail));
 
-        unsubscribeSnapshot = onSnapshot(
-          q,
+        unsubscribePending = onSnapshot(
+          pendingQuery,
           (snapshot: any) => {
-            const offers = this.sortTradesByCreatedAtDesc(
-              snapshot.docs.map((doc: any) =>
-                this.normalizeTradeOffer({ id: doc.id, ...doc.data() } as TradeOffer),
-              ),
-            );
-            callback(offers);
+            pendingOffers = snapshot.docs
+              .map((doc: any) => this.normalizeTradeOffer({ id: doc.id, ...doc.data() } as TradeOffer))
+              .filter((offer: TradeOffer) => !this.isTradeExpired(offer));
+            emitOffers();
           },
           (error: unknown) => {
             if (this.isPermissionDeniedError(error)) {
@@ -682,6 +839,34 @@ export class TradingService {
             }
 
             console.error('Error subscribing to received offers:', error);
+            callback([]);
+          },
+        );
+
+        unsubscribeNotifications = onSnapshot(
+          notificationsQuery,
+          (snapshot: any) => {
+            const normalizedNotifications = snapshot.docs
+              .map((doc: any) => this.normalizeTradeOffer({ id: doc.id, ...doc.data() } as TradeOffer));
+            const expiredIds = normalizedNotifications
+              .filter((offer: TradeOffer) => this.isTradeExpired(offer))
+              .map((offer: TradeOffer) => String(offer.id || '').trim())
+              .filter(Boolean);
+            notifications = this.filterActiveTrades(normalizedNotifications);
+            if (expiredIds.length > 0) {
+              void this.deleteTradeNotificationsByIds(expiredIds);
+            }
+            emitOffers();
+          },
+          (error: unknown) => {
+            if (this.isPermissionDeniedError(error)) {
+              this.logTradeAccessDiagnostics('received-notifications-permission-denied');
+              console.error('Error subscribing to received trade notifications:', this.getTradingPermissionError());
+              callback([]);
+              return;
+            }
+
+            console.error('Error subscribing to received trade notifications:', error);
             callback([]);
           },
         );
@@ -698,9 +883,8 @@ export class TradingService {
       });
 
       return () => {
-        if (unsubscribeSnapshot) {
-          unsubscribeSnapshot();
-        }
+        if (unsubscribePending) unsubscribePending();
+        if (unsubscribeNotifications) unsubscribeNotifications();
       };
     } catch (error) {
       console.error('Error setting up received offers subscription:', error);
@@ -710,7 +894,11 @@ export class TradingService {
 
   subscribeToSentOffers(callback: (offers: TradeOffer[]) => void): (() => void) | null {
     try {
-      let unsubscribeSnapshot: (() => void) | null = null;
+      let unsubscribePending: (() => void) | null = null;
+      let unsubscribeNotifications: (() => void) | null = null;
+      let pendingOffers: TradeOffer[] = [];
+      let notifications: TradeOffer[] = [];
+      const emitOffers = () => callback(this.sortTradesByCreatedAtDesc([...pendingOffers, ...notifications]));
 
       (async () => {
         const hasAccess = await this.hasFirestoreTradeAccess();
@@ -733,20 +921,18 @@ export class TradingService {
 
         const { collection, query, where, onSnapshot } = await import('firebase/firestore');
         const tradesRef = collection(firestore, this.tradeCollectionName);
-        const q = query(
-          tradesRef,
-          where('senderEmail', '==', currentEmail),
-        );
+        const notificationsRef = collection(firestore, this.tradeNotificationCollectionName);
+        const pendingQuery = query(tradesRef, where('senderEmail', '==', currentEmail));
+        const notificationsQuery = query(notificationsRef, where('senderEmail', '==', currentEmail));
 
-        unsubscribeSnapshot = onSnapshot(
-          q,
+        unsubscribePending = onSnapshot(
+          pendingQuery,
           (snapshot: any) => {
-            const offers = this.sortTradesByCreatedAtDesc(
-              snapshot.docs
-                .map((doc: any) => this.normalizeTradeOffer({ id: doc.id, ...doc.data() } as TradeOffer))
-                .filter((offer: TradeOffer) => offer.status === 'pending'),
-            );
-            callback(offers);
+            pendingOffers = snapshot.docs
+              .map((doc: any) => this.normalizeTradeOffer({ id: doc.id, ...doc.data() } as TradeOffer))
+              .filter((offer: TradeOffer) => offer.status === 'pending')
+              .filter((offer: TradeOffer) => !this.isTradeExpired(offer));
+            emitOffers();
           },
           (error: unknown) => {
             if (this.isPermissionDeniedError(error)) {
@@ -756,6 +942,33 @@ export class TradingService {
             }
 
             console.error('Error subscribing to sent offers:', error);
+            callback([]);
+          },
+        );
+
+        unsubscribeNotifications = onSnapshot(
+          notificationsQuery,
+          (snapshot: any) => {
+            const normalizedNotifications = snapshot.docs
+              .map((doc: any) => this.normalizeTradeOffer({ id: doc.id, ...doc.data() } as TradeOffer));
+            const expiredIds = normalizedNotifications
+              .filter((offer: TradeOffer) => this.isTradeExpired(offer))
+              .map((offer: TradeOffer) => String(offer.id || '').trim())
+              .filter(Boolean);
+            notifications = this.filterActiveTrades(normalizedNotifications);
+            if (expiredIds.length > 0) {
+              void this.deleteTradeNotificationsByIds(expiredIds);
+            }
+            emitOffers();
+          },
+          (error: unknown) => {
+            if (this.isPermissionDeniedError(error)) {
+              console.error('Error subscribing to trade notifications:', this.getTradingPermissionError());
+              callback([]);
+              return;
+            }
+
+            console.error('Error subscribing to trade notifications:', error);
             callback([]);
           },
         );
@@ -771,9 +984,8 @@ export class TradingService {
       });
 
       return () => {
-        if (unsubscribeSnapshot) {
-          unsubscribeSnapshot();
-        }
+        if (unsubscribePending) unsubscribePending();
+        if (unsubscribeNotifications) unsubscribeNotifications();
       };
     } catch (error) {
       console.error('Error setting up sent offers subscription:', error);

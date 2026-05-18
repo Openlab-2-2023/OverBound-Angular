@@ -10,17 +10,18 @@
   </div>
 
   <div *ngIf="offers.length === 0" class="empty-state">
-    <p>No pending trade offers at the moment.</p>
+    <p>No trade offers or recent trade updates at the moment.</p>
   </div>
 
   <div *ngIf="offers.length > 0" class="offers-list">
     <div *ngFor="let offer of offers" class="trade-card">
       <div class="card-header">
         <div>
-          <p class="card-kicker">Incoming Offer</p>
+          <p class="card-kicker">{{ isPending(offer) ? 'Incoming Offer' : 'Trade Update' }}</p>
           <h3>Trade with {{ offer.senderName }}</h3>
+          <p class="status-copy">{{ getOfferStatusMessage(offer) }}</p>
         </div>
-        <span class="badge">Pending</span>
+        <span class="badge" [ngClass]="'badge-' + offer.status">{{ getOfferStatusLabel(offer) }}</span>
       </div>
 
       <div class="trade-content">
@@ -56,8 +57,8 @@
       </div>
 
       <div class="card-footer">
-        <small class="timestamp">{{ offer.createdAt | date: 'short' }}</small>
-        <div class="action-buttons">
+        <small class="timestamp">{{ getOfferTimestamp(offer) | date: 'short' }}</small>
+        <div *ngIf="isPending(offer)" class="action-buttons">
           <button
             class="btn btn-accept"
             (click)="acceptTrade(offer)"
