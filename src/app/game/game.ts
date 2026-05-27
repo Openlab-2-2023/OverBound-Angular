@@ -1,4 +1,4 @@
-import { Component, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, AfterViewInit, NgZone, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 @Component({
@@ -8,10 +8,10 @@ import { AuthService } from '../services/auth.service';
   templateUrl: './game.html',
   styleUrl: './game.css',
 })
-export class GameComponent implements AfterViewInit {
+export class GameComponent implements AfterViewInit, OnDestroy {
   @ViewChild('gameCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
 
-  constructor(private router: Router, private auth: AuthService) {}
+  constructor(private router: Router, private auth: AuthService, private zone: NgZone) {}
 
   ngAfterViewInit() {
     const canvas = this.canvasRef.nativeElement;
@@ -55,11 +55,20 @@ export class GameComponent implements AfterViewInit {
     };
 
     (window as any).goToEndScreen = () => {
-      this.router.navigate(['/end']);
+      this.zone.run(() => {
+        this.router.navigate(['/end']);
+      });
     };
 
-    (window as any).startGame();
+    this.zone.runOutsideAngular(() => {
+      (window as any).startGame();
+    });
+  }
+
+  ngOnDestroy() {
+    if (typeof (window as any).stopGame === 'function') {
+      (window as any).stopGame();
+    }
   }
 
 }
-

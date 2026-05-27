@@ -5,9 +5,6 @@ let keys = {
   a: {
     pressed: false,
   },
-  p: {
-    pressed: false,
-  },
   s: {
     pressed: false,
   },
@@ -39,35 +36,23 @@ window.addEventListener("keydown", (event) => {
       //duckujes 
       keys.s.pressed = true;
       break;
-      /*
-    case "KeyP":
-      //charge kolagenbar
-      keys.p.pressed = true;
-        
-      break;
-      */
     case "Space":
     case "KeyW":
-      
-      if(keys.s.pressed && player.velocity.y == 0 && kolagen.kolagenbar <= -28) {
+      if(keys.s.pressed && player.velocity.y == 0) {
         if(currentDifficulty === 'normal') {
           player.velocity.y = -60;
-          kolagen.kolagenbar = kolagen.kolagenbar + 28;
         } else {
           player.velocity.y = -20;
-          kolagen.kolagenbar = kolagen.kolagenbar + 28;
         }
         
         keys.s.pressed = false
       }
       //maly jump
-      if(player.velocity.y == 0 && kolagen.kolagenbar <= -14) {
+      if(player.velocity.y == 0) {
         if(currentDifficulty === 'normal') {
           player.velocity.y = -50;
-          kolagen.kolagenbar = kolagen.kolagenbar + 14;
         } else {
           player.velocity.y = -17;
-          kolagen.kolagenbar = kolagen.kolagenbar + 14;
         }
         
       }
@@ -103,14 +88,6 @@ window.addEventListener("keyup", (event) => {
       keys.a.pressed = false;
       player.switchSprite('idleLeft')
       break;
-    case "KeyP":
-      keys.p.pressed = false;
-      if(player.lastDirection === 'right') {
-        player.switchSprite('idleRight')
-      } else if(player.lastDirection === 'left') {
-        player.switchSprite('idleLeft')
-      }
-      break;
     case "KeyS":
       keys.s.pressed = false;
       if(player.lastDirection === 'right') {
@@ -139,10 +116,7 @@ window.addEventListener('keydown', (event) => {
   if (event.repeat) return;
   switch(event.code) {
     case "KeyO":
-      if(kolagen.kolagenbar <= -28) {
-        keys.o.pressed = true
-        kolagen.kolagenbar = kolagen.kolagenbar + 28;
-      }
+      keys.o.pressed = true
       break;
   }
 });

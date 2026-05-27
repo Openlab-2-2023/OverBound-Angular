@@ -13,7 +13,6 @@ let enemies;
 const overlay = {
   opacity: 0
 }
-const kolagen = new Kolagen()
 let level = 1
 let levels = {
   1: { 
@@ -28,16 +27,16 @@ let levels = {
       });
 
       foregrounds = [
-        new Sprite({
-          position: {
-            x: 3000,
-            y: 2500,
-          },
-          imageSrc: '/assets/sprites/levels/foreground.png',
+        // new Sprite({
+        //   position: {
+        //     x: 3000,
+        //     y: 2500,
+        //   },
+        //   imageSrc: '',
 
 
           
-        }),
+        // }),
 
 
 
@@ -86,42 +85,42 @@ let levels = {
         })
       ]
       animals = [
-        new Sprite ({
-          position: {
-            x:0,
-            y:0
-          },
-          imageSrc: '',
-          frameRate: 4,
-          frameBuffer: 8,
-          loop:true
-        })
+        // new Sprite ({
+        //   position: {
+        //     x:0,
+        //     y:0
+        //   },
+        //   imageSrc: '',
+        //   frameRate: 4,
+        //   frameBuffer: 8,
+        //   loop:true
+        // })
       ]
 
       risks = [
-        new Sprite ({
-          position: {
-            x:700,
-            y:400
-          },
-          imageSrc: '',
-          frameRate: 6,
-          frameBuffer: 8,
-          loop:true
-        })
+        // new Sprite ({
+        //   position: {
+        //     x:700,
+        //     y:400
+        //   },
+        //   imageSrc: '',
+        //   frameRate: 6,
+        //   frameBuffer: 8,
+        //   loop:true
+        // })
       ]
       clouds = [
-        new Sprite ({
-          position: {
-            x:1200,
-            y:600
-          },
-          imageSrc: '',
-          frameRate: 5,
-          frameBuffer: 13,
-          loop:true,
+        // new Sprite ({
+        //   position: {
+        //     x:1200,
+        //     y:600
+        //   },
+        //   imageSrc: '',
+        //   frameRate: 5,
+        //   frameBuffer: 13,
+        //   loop:true,
           
-        })
+        // })
       ]
     }
   },
@@ -188,17 +187,12 @@ let levels = {
       ]
 
       enemies = [
-        new Enemy({
+        createEnemy({
           position: { x: 2800, y: 3000 },
-          imageSrc: enemyConfig.imageSrc,
-          frameRate: enemyConfig.frameRate,
-          frameBuffer: enemyConfig.frameBuffer,
-          loop: enemyConfig.loop,
-          animations: enemyConfig.animations,
           collisionBlocks: collisionBlocks,
           patrolCenterX: 2800,
-          patrolRange: 900, 
-          patrolDirection: 1, 
+          patrolRange: 900,
+          patrolDirection: 1,
           patrolSpeed: 5,
           health: 3
         })
@@ -279,13 +273,8 @@ let levels = {
       ]
 
       enemies = [
-        new Enemy({
+        createEnemy({
           position: { x: 3300, y: 4500 },
-          imageSrc: enemyConfig.imageSrc,
-          frameRate: enemyConfig.frameRate,
-          frameBuffer: enemyConfig.frameBuffer,
-          loop: enemyConfig.loop,
-          animations: enemyConfig.animations,
           collisionBlocks: collisionBlocks,
           patrolCenterX: 3040,
           patrolRange: 400, 
@@ -294,13 +283,8 @@ let levels = {
           health: 3
         }),
 
-        new Enemy({
+        createEnemy({
           position: { x: 4670, y: 1860 },
-          imageSrc: enemyConfig.imageSrc,
-          frameRate: enemyConfig.frameRate,
-          frameBuffer: enemyConfig.frameBuffer,
-          loop: enemyConfig.loop,
-          animations: enemyConfig.animations,
           collisionBlocks: collisionBlocks,
           patrolCenterX: 4670,
           patrolRange: 400, 
@@ -309,13 +293,8 @@ let levels = {
           health: 3
         }),
 
-        new Enemy({
+        createEnemy({
           position: { x: 6670, y: 3540 },
-          imageSrc: enemyConfig.imageSrc,
-          frameRate: enemyConfig.frameRate,
-          frameBuffer: enemyConfig.frameBuffer,
-          loop: enemyConfig.loop,
-          animations: enemyConfig.animations,
           collisionBlocks: collisionBlocks,
           patrolCenterX: 6670,
           patrolRange: 400, 
