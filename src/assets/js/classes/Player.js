@@ -58,6 +58,9 @@ class Player extends Sprite  {
     this.knockbackFrames = 0
 
     this.gravity = 2
+    this.maxHealth = 4
+    this.health = this.maxHealth
+    this.isDead = false
 
     this.collisionBlocks = collisionBlocks
 
@@ -67,10 +70,17 @@ class Player extends Sprite  {
     // simple melee attack state
     this.isAttacking = false
     this.attackFramesRemaining = 0
+    this.attackAnimationFrames = 0
     this.attackCooldownFrames = 0
 
   }
   update() {  
+    if (this.isDead) {
+      this.velocity.x = 0
+      this.velocity.y = 0
+      return
+    }
+
     this.position.x += this.velocity.x
     this.updateHitBox()
     this.checkForHorizontalCollisions()
@@ -90,6 +100,12 @@ class Player extends Sprite  {
         this.isAttacking = false
       }
     }
+    if (this.attackAnimationFrames > 0) {
+      this.attackAnimationFrames--
+      if (this.attackAnimationFrames === 0) {
+        this.switchSprite(this.lastDirection === 'right' ? 'idleRight' : 'idleLeft')
+      }
+    }
     if (this.attackCooldownFrames > 0) {
       this.attackCooldownFrames--
     }
@@ -97,13 +113,76 @@ class Player extends Sprite  {
   }
 
   switchSprite(name) {
-    if(this.image === this.animations[name].image) return
+    const animation = this.animations[name]
+    if (!animation) return
+    if (name === 'perish') {
+      this.isAttacking = false
+      this.attackFramesRemaining = 0
+      this.attackAnimationFrames = 0
+    }
+    if (this.attackAnimationFrames > 0 && !name.startsWith('attack') && name !== 'perish') return
+    if(this.currentAnimation === animation) return
     this.currentFrame = 0
-    this.image = this.animations[name].image
-    this.frameRate = this.animations[name].frameRate
-    this.frameBuffer = this.animations[name].frameBuffer
-    this.loop = this.animations[name].loop
-    this.currentAnimation = this.animations[name]
+    this.elapsedFrames = 0
+    this.image = animation.image
+    this.frameRate = animation.frameRate
+    this.frameBuffer = animation.frameBuffer
+    this.loop = animation.loop
+    this.flipX = animation.flipX || false
+    this.drawScale = animation.drawScale || 1
+    this.drawOffsetX = animation.drawOffsetX || 0
+    this.drawOffsetY = animation.drawOffsetY || 0
+    this.currentAnimation = animation
+  }
+
+  resetHealth() {
+    this.health = this.maxHealth
+    this.isDead = false
+    this.invulnerableFrames = 0
+    this.knockbackFrames = 0
+    this.velocity.x = 0
+    this.velocity.y = 0
+  }
+
+  takeDamage(amount = 1) {
+    if (this.isDead || this.invulnerableFrames > 0) return false
+
+    this.health = Math.max(0, this.health - amount)
+
+    if (this.health === 0) {
+      this.die()
+      return 'dead'
+    }
+
+    this.invulnerableFrames = 60
+    return true
+  }
+
+  die() {
+    if (this.isDead) return
+
+    this.isDead = true
+    this.isAttacking = false
+    this.attackFramesRemaining = 0
+    this.attackAnimationFrames = 0
+    this.attackCooldownFrames = 0
+    this.knockbackFrames = 0
+    this.invulnerableFrames = 0
+    this.velocity.x = 0
+    this.velocity.y = 0
+
+    level = 1
+    this.resetHealth()
+
+    if (levels[level] && typeof levels[level].init === 'function') {
+      levels[level].init()
+    }
+
+    this.switchSprite('idleRight')
+
+    if (typeof overlay !== 'undefined') {
+      overlay.opacity = 0
+    }
   }
 
    updateHitBox() {
@@ -119,14 +198,20 @@ class Player extends Sprite  {
       
     }
     
-    c.fillStyle = "rgba(0,0,255,0.0)"
-    c.fillRect(this.hitbox.position.x, this.hitbox.position.y, this.hitbox.width, this.hitbox.height)
+    if (window.DEBUG_HITBOXES) {
+      c.fillStyle = "rgba(0,0,255,0.35)"
+      c.fillRect(this.hitbox.position.x, this.hitbox.position.y, this.hitbox.width, this.hitbox.height)
+    }
   }
 
   checkForHorizontalCollisions() {
     //horizontalne kolizie
-    for(let i = 0; i < this.collisionBlocks.length; i++) {
-      const collisionBlock = this.collisionBlocks[i]
+    const collisionBlocks = typeof this.collisionBlocks.getNearby === 'function'
+      ? this.collisionBlocks.getNearby(this.hitbox)
+      : this.collisionBlocks
+
+    for(let i = 0; i < collisionBlocks.length; i++) {
+      const collisionBlock = collisionBlocks[i]
 
       if(this.hitbox.position.x <= collisionBlock.position.x + collisionBlock.width &&
         this.hitbox.position.x + this.hitbox.width >= collisionBlock.position.x &&
@@ -159,8 +244,12 @@ class Player extends Sprite  {
 
   checkForVerticalCollisions() {
     //vertikalne kolizie
-    for(let i = 0; i < this.collisionBlocks.length; i++) {
-      const collisionBlock = this.collisionBlocks[i]
+    const collisionBlocks = typeof this.collisionBlocks.getNearby === 'function'
+      ? this.collisionBlocks.getNearby(this.hitbox)
+      : this.collisionBlocks
+
+    for(let i = 0; i < collisionBlocks.length; i++) {
+      const collisionBlock = collisionBlocks[i]
 
       if(this.hitbox.position.x <= collisionBlock.position.x + collisionBlock.width &&
         this.hitbox.position.x + this.hitbox.width >= collisionBlock.position.x &&
@@ -185,6 +274,8 @@ class Player extends Sprite  {
   }
 
 playerMovement() {
+  if (this.isDead) return
+
   if (!keys.s.pressed) {
     if(currentDifficulty === 'normal') {
       if (keys.d.pressed) {
@@ -212,8 +303,6 @@ playerMovement() {
       this.movePlayer(4.5, 'runRight', 'right');
     } else if (keys.a.pressed) {
       this.movePlayer(-4.5, 'runLeft', 'left');
-    } else if (keys.p.pressed && !keys.d.pressed && !keys.a.pressed) {
-      this.chargePlayer();
     } 
     }
   } else if(keys.s.pressed) {
@@ -232,16 +321,7 @@ movePlayer(velocity, sprite, direction) {
   player.switchSprite(sprite);
   player.lastDirection = direction;
 }
-/*
-chargePlayer() {
-  if (kolagen.kolagenbar > -70) {
-    kolagen.kolagenbar--;
-    player.switchSprite(player.lastDirection === 'right' ? 'charge' : 'chargeLeft');
-  } else {
-    player.switchSprite(player.lastDirection === 'right' ? 'idleRight' : 'idleLeft');
-  }
-}
-*/
+
 crouchPlayer() {
   player.switchSprite(player.lastDirection === 'right' ? 'crouch' : 'crouchLeft');
 }
@@ -265,7 +345,6 @@ detectRisk() {
         player.hitbox.position.y <= risk.position.y + risk.height) {
           player.position.x = player.levelSpawnPosition.x
           player.position.y = player.levelSpawnPosition.y
-          kolagen.kolagenbar = -70          
         }
   }
 }
@@ -273,14 +352,21 @@ detectRisk() {
   // Triggered from inputs when the player presses I
   performAttack() {
     // don't start a new attack if we're still attacking or on cooldown
-    if (this.attackFramesRemaining > 0 || this.attackCooldownFrames > 0) return
+    if (this.attackAnimationFrames > 0 || this.attackCooldownFrames > 0) return
+
+    const animationName = this.lastDirection === 'left' ? 'attackLeft' : 'attackRight'
+    const animation = this.animations[animationName]
+    const animationFrames = animation
+      ? animation.frameRate * animation.frameBuffer
+      : 10
 
     this.isAttacking = true
-    this.attackFramesRemaining = 10   // how many frames the hitbox is “active”
-    this.attackCooldownFrames = 25    // short delay before next attack
+    this.attackFramesRemaining = Math.min(10, animationFrames)   // how many frames the hitbox is active
+    this.attackAnimationFrames = animationFrames
+    this.attackCooldownFrames = animationFrames + 4              // short delay before next attack
+    this.switchSprite(animationName)
 
     // basic melee hitbox in front of the player
-    const range = 180
     const attackWidth = 140
     const attackHeight = this.hitbox.height
     const facingLeft = this.lastDirection === 'left'
@@ -296,14 +382,15 @@ detectRisk() {
       height: attackHeight
     }
 
-    // optional: invisible debug rect kept transparent
-    c.fillStyle = "rgba(255,0,0,0.0)"
-    c.fillRect(
-      attackBox.position.x,
-      attackBox.position.y,
-      attackBox.width,
-      attackBox.height
-    )
+    if (window.DEBUG_HITBOXES) {
+      c.fillStyle = "rgba(255,0,0,0.35)"
+      c.fillRect(
+        attackBox.position.x,
+        attackBox.position.y,
+        attackBox.width,
+        attackBox.height
+      )
+    }
 
     if (typeof enemies === 'undefined') return
 
@@ -340,7 +427,7 @@ detectRisk() {
 detectEnemy() {
     // temporary immunity: ignore new hits while invulnerable
     // also ignore enemy hits while near an NPC so talking isn't interrupted
-    if (player.invulnerableFrames > 0 || player.nearNpc) return
+    if (player.isDead || player.invulnerableFrames > 0 || player.nearNpc) return
 
     for(let i = 0; i < enemies.length; i++) {
       const enemy = enemies[i]
@@ -355,6 +442,13 @@ detectEnemy() {
         player.hitbox.position.x + player.hitbox.width >= damageBox.position.x &&
         player.hitbox.position.y + player.hitbox.height >= damageBox.position.y &&
         player.hitbox.position.y <= damageBox.position.y + damageBox.height) {
+          const tookDamage = player.takeDamage(1)
+          if (!tookDamage) return
+
+          if (tookDamage === 'dead') {
+            return
+          }
+
           // simple knockback + small jump plus short delay before next hit
           const playerCenterX = player.hitbox.position.x + player.hitbox.width / 2
           const enemyCenterX = damageBox.position.x + damageBox.width / 2
@@ -364,7 +458,6 @@ detectEnemy() {
 
           // knockback duration and invulnerability window
           player.knockbackFrames = 15
-          player.invulnerableFrames = 60
           player.velocity.x = 30 * knockDir
 
           // Only launch upward if we're not already clearly above the enemy
@@ -401,9 +494,7 @@ detectNpc() {
         npcNearby = true;
 
         c.fillStyle = 'white';
-        document.fonts.ready.then(() => {
-          c.font = '100px Times New Roman';
-        });
+        c.font = '100px Times New Roman';
         c.fillText('Talk[E]', npc.position.x + 20, npc.position.y - 100);
 
         // If E was pressed while near NPC, show dialog bar

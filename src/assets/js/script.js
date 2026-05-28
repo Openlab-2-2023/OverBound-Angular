@@ -4,16 +4,110 @@ const PARALLAX_FACTOR = 1.5;
 const INV_SCALE = 1 / SCALE;
 // simple HUD state for recent gold gains
 var goldGainFx = [];
+var animationFrameId = null;
+var resizeGameCanvas = null;
+var healthBarImages = null;
+
+function stopGame() {
+  if (animationFrameId !== null) {
+    window.cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
+  if (resizeGameCanvas) {
+    window.removeEventListener('resize', resizeGameCanvas);
+    resizeGameCanvas = null;
+  }
+}
+
+function isBoxNearView(box, viewX, viewY, viewWidth, viewHeight, margin = 300) {
+  if (!box || !box.position) return false;
+
+  return box.position.x + box.width >= viewX - margin &&
+    box.position.x <= viewX + viewWidth + margin &&
+    box.position.y + box.height >= viewY - margin &&
+    box.position.y <= viewY + viewHeight + margin;
+}
+
+function getSpriteBox(sprite) {
+  if (!sprite) return null;
+  if (typeof sprite.getDrawBox === 'function') return sprite.getDrawBox();
+
+  return {
+    position: sprite.position,
+    width: sprite.width || 0,
+    height: sprite.height || 0,
+  };
+}
+
+function drawVisibleSpriteList(sprites, viewX, viewY, viewWidth, viewHeight, margin = 300) {
+  if (!Array.isArray(sprites) || !sprites.length) return;
+
+  for (let i = 0; i < sprites.length; i++) {
+    const sprite = sprites[i];
+    if (!sprite || !sprite.loaded) continue;
+    if (!isBoxNearView(getSpriteBox(sprite), viewX, viewY, viewWidth, viewHeight, margin)) continue;
+    sprite.draw();
+  }
+}
+
+function getHealthBarImages() {
+  if (healthBarImages) return healthBarImages;
+
+  healthBarImages = {
+    frame: getSpriteImage('/assets/sprites/hbar/Frame.png'),
+    4: getSpriteImage('/assets/sprites/hbar/100.png'),
+    3: getSpriteImage('/assets/sprites/hbar/74.png'),
+    2: getSpriteImage('/assets/sprites/hbar/50.png'),
+    1: getSpriteImage('/assets/sprites/hbar/24.png'),
+    0: getSpriteImage('/assets/sprites/hbar/0.png'),
+  };
+
+  return healthBarImages;
+}
+
+function drawHealthBar() {
+  if (typeof player === 'undefined' || !canvas || !c) return;
+
+  const images = getHealthBarImages();
+  const health = Math.max(0, Math.min(player.maxHealth || 4, player.health || 0));
+  const fillImage = images[health];
+  const frameImage = images.frame;
+  const x = 5;
+  const y = -50;
+  const size = 300;
+
+  c.save();
+  c.setTransform(1, 0, 0, 1, 0, 0);
+  c.imageSmoothingEnabled = false;
+
+  if (fillImage && fillImage.complete && fillImage.naturalWidth > 0) {
+    c.drawImage(fillImage, x, y, size, size);
+  }
+  if (frameImage && frameImage.complete && frameImage.naturalWidth > 0) {
+    c.drawImage(frameImage, x, y, size, size);
+  }
+
+  c.restore();
+}
 
 function startGame() {
+  stopGame();
+
   canvas = window.canvas;
 
   const camera = new Camera()
 
   c = canvas.getContext("2d");
 
-  canvas.width = screen.width;
-  canvas.height = screen.height;
+  resizeGameCanvas = function () {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    canvas.style.width = `${window.innerWidth}px`;
+    canvas.style.height = `${window.innerHeight}px`;
+    c.imageSmoothingEnabled = false;
+  };
+  resizeGameCanvas();
+  window.addEventListener('resize', resizeGameCanvas);
 
   // expose HUD helpers if needed from other scripts
   window._addGoldGainFx = function (amount) {
@@ -63,27 +157,39 @@ function startGame() {
   window.levels[window.level].init();
 
   function animate() {
-    window.requestAnimationFrame(animate);
+    animationFrameId = window.requestAnimationFrame(animate);
 
     c.setTransform(1, 0, 0, 1, 0, 0);
 
     camera.updateCamera();
     c.scale(SCALE, SCALE);
     c.translate(-camera.position.x, -camera.position.y);
-    background.draw();
-    collisionBlocks.forEach((CollisionBlock) => CollisionBlock.draw());
-    portals.forEach((portal) => portal.draw());
-    animals.forEach((animal) => animal.draw());
-    risks.forEach((risk) => risk.draw());
-    clouds.forEach((cloud) => cloud.draw());
-    npcs.forEach((npcs) => npcs.draw());
+    const viewX = camera.position.x;
+    const viewY = camera.position.y;
+    const viewWidth = canvas.width * INV_SCALE;
+    const viewHeight = canvas.height * INV_SCALE;
 
-    // remove dead enemies before drawing / updating
-    if (Array.isArray(enemies)) {
+    if (background && typeof background.drawVisible === 'function') {
+      background.drawVisible(viewX, viewY, viewWidth, viewHeight);
+    } else {
+      background.draw();
+    }
+    if (window.DEBUG_COLLISIONS) {
+      collisionBlocks.forEach((CollisionBlock) => CollisionBlock.draw());
+    }
+    drawVisibleSpriteList(portals, viewX, viewY, viewWidth, viewHeight);
+    drawVisibleSpriteList(animals, viewX, viewY, viewWidth, viewHeight);
+    drawVisibleSpriteList(risks, viewX, viewY, viewWidth, viewHeight);
+    drawVisibleSpriteList(clouds, viewX, viewY, viewWidth, viewHeight);
+    drawVisibleSpriteList(npcs, viewX, viewY, viewWidth, viewHeight);
+
+    if (Array.isArray(enemies) && enemies.some((enemy) => enemy.isDead)) {
       enemies = enemies.filter((enemy) => !enemy.isDead);
     }
 
     enemies.forEach((enemy) => {
+      if (!enemy || !enemy.loaded) return;
+      if (!isBoxNearView(enemy.getDrawBox(), viewX, viewY, viewWidth, viewHeight, 600)) return;
       if (typeof enemy.updateDamageHitBox === 'function') {
         enemy.updateDamageHitBox();
       }
@@ -96,13 +202,8 @@ function startGame() {
       player.velocity.x = 0;                  
       player.playerMovement();
     }
-    kolagen.refill();
     player.draw();
     if (typeof foregrounds !== 'undefined' && foregrounds && foregrounds.length) {
-      const viewX = camera.position.x;
-      const viewY = camera.position.y;
-      const viewWidth = canvas.width * INV_SCALE;
-      const viewHeight = canvas.height * INV_SCALE;
       const parallaxOffsetX = camera.position.x * (PARALLAX_FACTOR - 1);
 
       for (let i = 0; i < foregrounds.length; i++) {
@@ -144,7 +245,12 @@ function startGame() {
     player.textAppear();
 
 
-    enemies.forEach((enemies) => enemies.update());
+    enemies.forEach((enemy) => {
+      if (!enemy || !enemy.loaded) return;
+      const box = typeof enemy.getDrawBox === 'function' ? enemy.getDrawBox() : getSpriteBox(enemy);
+      if (!isBoxNearView(box, viewX, viewY, viewWidth, viewHeight, 1200)) return;
+      enemy.update();
+    });
 
 
     if (typeof drawNpcDialogBar === 'function') {
@@ -152,6 +258,7 @@ function startGame() {
     }
 
     // HUD overlays (screen space)
+    drawHealthBar();
     drawGoldGainFx();
 
     c.save();
@@ -166,3 +273,4 @@ function startGame() {
 }
 
 window.startGame = startGame;
+window.stopGame = stopGame;

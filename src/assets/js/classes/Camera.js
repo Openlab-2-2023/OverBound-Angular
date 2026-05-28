@@ -31,5 +31,14 @@ class Camera {
     
     this.position.y = followStartY - canvas.height;
   }
+
+  if (typeof background !== 'undefined' && background?.loaded && typeof INV_SCALE !== 'undefined') {
+    const viewHeight = canvas.height * INV_SCALE;
+    const maxCameraY = background.position.y + background.height - viewHeight;
+
+    if (maxCameraY > background.position.y) {
+      this.position.y = Math.min(this.position.y, maxCameraY);
+    }
+  }
 }
 }
