@@ -93,27 +93,32 @@
 
 			<div class="inventory-section">
 				<h4>{{ viewOnlyMode ? 'Owned Items' : 'Inventory' }}</h4>
-				<div *ngIf="inventory && inventory.length > 0" class="inventory-grid">
-					<div class="inv-item" *ngFor="let it of inventory" [class.clickable]="viewOnlyMode" (click)="viewOnlyMode && viewStoreItem(it.id)">
-						<div class="inv-icon">{{ getInventoryItemIcon(it) }}</div>
-						<div class="inv-name">{{ getInventoryItemName(it) }}</div>
-						@if (viewOnlyMode) {
-							<div class="inv-state" [class.equipped]="it.equipped">{{ it.equipped ? 'Equipped' : 'Owned' }}</div>
-						}
-						@if (!viewOnlyMode) {
-							<div class="inv-actions">
-								<button class="equip-btn" [class.equipped]="it.equipped" (click)="toggleEquip(it)">{{ it.equipped ? 'Unequip' : 'Equip' }}</button>
-								@if (getCosmeticCategory(it) !== 'other') {
-									<div class="cosmetic-tag">{{ getCosmeticCategoryLabel(it) }}</div>
+				@if (inventory && inventory.length > 0) {
+					<div class="inventory-grid">
+						@for (it of inventory; track it.id) {
+							<div class="inv-item" [class.clickable]="viewOnlyMode" (click)="viewOnlyMode && viewStoreItem(it.id)">
+								<div class="inv-icon">{{ getInventoryItemIcon(it) }}</div>
+								<div class="inv-name">{{ getInventoryItemName(it) }}</div>
+								@if (viewOnlyMode) {
+									<div class="inv-state" [class.equipped]="it.equipped">{{ it.equipped ? 'Equipped' : 'Owned' }}</div>
 								}
-								<button class="sell-btn" (click)="sellItem(it)">Sell {{ getSellPrice(it) }} ◈</button>
+								@if (!viewOnlyMode) {
+									<div class="inv-actions">
+										<button class="equip-btn" [class.equipped]="it.equipped" (click)="toggleEquip(it)">{{ it.equipped ? 'Unequip' : 'Equip' }}</button>
+										@if (getCosmeticCategory(it) !== 'other') {
+											<div class="cosmetic-tag">{{ getCosmeticCategoryLabel(it) }}</div>
+										}
+										<button class="sell-btn" (click)="sellItem(it)">Sell {{ getSellPrice(it) }} ◈</button>
+									</div>
+								}
 							</div>
 						}
 					</div>
-				</div>
-				<div *ngIf="!inventory || inventory.length === 0" class="empty-inventory">
-					{{ viewOnlyMode ? 'This player has no items yet.' : 'No items yet - visit the Store to buy items for gold.' }}
-				</div>
+				} @else {
+					<div class="empty-inventory">
+						{{ viewOnlyMode ? 'This player has no items yet.' : 'No items yet - visit the Store to buy items for gold.' }}
+					</div>
+				}
 			</div>
 
 			<div class="account-actions">

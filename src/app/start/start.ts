@@ -16,7 +16,7 @@ import { TradingService } from '../services/trading.service';
 export class Start implements OnInit, OnDestroy {
   showSettings = signal(false);
   showCredits = signal(false);
-  leaderboardFilter: 'gold-desc' = 'gold-desc';
+  leaderboardFilter: 'gold-desc' | 'items-desc' = 'gold-desc';
   leaderboardFilterOpen = false;
   leaderboardUsers: Array<{ email: string; displayName: string; gold: number; totalGoldCollected: number; role: string; photoURL?: string; inventory?: Array<{ id: string; name: string; icon: string; equipped?: boolean; cost?: number }> }> = [];
   leaderboardError = '';
@@ -28,9 +28,14 @@ export class Start implements OnInit, OnDestroy {
   leaderboardDiag = 'diagnostics: init';
   leaderboardProjectId = FIREBASE_SDK_CONFIG.projectId || 'n/a';
   leaderboardBuildStamp = 'LB-2026-03-27-1250';
+  unreadForumReplyCount = 0;
   private leaderboardBooted = false;
   private leaderboardUnsubscribe: (() => void) | null = null;
   private leaderboardPollId: any = null;
+  private forumUnreadUnsubscribe: (() => void) | null = null;
+  private forumNotificationsService: {
+    subscribeUnreadReplyCount: (onCount: (count: number) => void, onError?: (error: any) => void) => Promise<() => void>;
+  } | null = null;
   private onUserUpdatedListener: EventListener | null = null;
   private onScrollRevealListener: EventListener | null = null;
   private scrollHideTimers = new WeakMap<HTMLElement, any>();
@@ -52,6 +57,7 @@ export class Start implements OnInit, OnDestroy {
     this.onUserUpdatedListener = () => {
       this.refreshCurrentUser();
       this.refreshStoreGold();
+      void this.refreshForumReplyNotifications();
     };
     window.addEventListener('ob:user-updated', this.onUserUpdatedListener);
     this.bindAutoHideScrollbars();
@@ -59,6 +65,7 @@ export class Start implements OnInit, OnDestroy {
     if (this.auth.isLoggedIn()) {
       this.tradingService.primeAvailableUsers();
     }
+    await this.refreshForumReplyNotifications();
   }
 
   ngOnDestroy() {
@@ -69,6 +76,10 @@ export class Start implements OnInit, OnDestroy {
     if (this.leaderboardPollId) {
       clearInterval(this.leaderboardPollId);
       this.leaderboardPollId = null;
+    }
+    if (this.forumUnreadUnsubscribe) {
+      this.forumUnreadUnsubscribe();
+      this.forumUnreadUnsubscribe = null;
     }
     if (this.onUserUpdatedListener) {
       window.removeEventListener('ob:user-updated', this.onUserUpdatedListener);
@@ -131,6 +142,10 @@ export class Start implements OnInit, OnDestroy {
     this.router.navigate(['/trading']);
   }
 
+  goToForum() {
+    this.router.navigate(['/forum']);
+  }
+
   get currentUserPhoto(): string {
     return String(this.currentUser?.photoURL || '').trim();
   }
@@ -151,30 +166,55 @@ export class Start implements OnInit, OnDestroy {
 
   onLeaderboardFilterChange(event: Event) {
     const val = (event.target as HTMLSelectElement).value;
-    if (val === 'gold-desc') {
+    if (val === 'gold-desc' || val === 'items-desc') {
       this.leaderboardFilter = val;
     }
   }
 
   get leaderboardFilterLabel() {
-    return this.leaderboardFilter === 'gold-desc' ? 'Most Gold' : 'Most Gold';
+    return this.leaderboardFilter === 'items-desc' ? 'Most Items' : 'Most Gold';
   }
 
   toggleLeaderboardFilter() {
     this.leaderboardFilterOpen = !this.leaderboardFilterOpen;
   }
 
-  selectLeaderboardFilter(val: 'gold-desc') {
+  selectLeaderboardFilter(val: 'gold-desc' | 'items-desc') {
     this.leaderboardFilter = val;
     this.leaderboardFilterOpen = false;
   }
 
   get filteredLeaderboard() {
     const rows = this.leaderboardUsers.slice();
-    if (this.leaderboardFilter === 'gold-desc') {
+    if (this.leaderboardFilter === 'items-desc') {
+      rows.sort((a, b) => {
+        const itemCountDiff = this.getLeaderboardItemCount(b) - this.getLeaderboardItemCount(a);
+        if (itemCountDiff !== 0) return itemCountDiff;
+        return b.totalGoldCollected - a.totalGoldCollected;
+      });
+    } else {
       rows.sort((a, b) => b.totalGoldCollected - a.totalGoldCollected);
     }
     return rows.slice(0, 20);
+  }
+
+  getLeaderboardMetric(player: {
+    totalGoldCollected: number;
+    inventory?: Array<{ id: string; name: string; icon: string; equipped?: boolean; cost?: number }>;
+  }): number {
+    return this.leaderboardFilter === 'items-desc'
+      ? this.getLeaderboardItemCount(player)
+      : player.totalGoldCollected;
+  }
+
+  getLeaderboardMetricSuffix(): string {
+    return this.leaderboardFilter === 'items-desc' ? 'items' : '◈';
+  }
+
+  private getLeaderboardItemCount(player: {
+    inventory?: Array<{ id: string; name: string; icon: string; equipped?: boolean; cost?: number }>;
+  }): number {
+    return Array.isArray(player.inventory) ? player.inventory.length : 0;
   }
 
   openLeaderboardProfile(player: { email: string; displayName: string; gold: number; totalGoldCollected: number; role: string; photoURL?: string; inventory?: Array<{ id: string; name: string; icon: string; equipped?: boolean; cost?: number }> }, event?: Event) {
@@ -204,6 +244,40 @@ export class Start implements OnInit, OnDestroy {
 
   private refreshCurrentUser() {
     this.currentUser = this.auth.getCurrent();
+  }
+
+  private async refreshForumReplyNotifications() {
+    if (this.forumUnreadUnsubscribe) {
+      this.forumUnreadUnsubscribe();
+      this.forumUnreadUnsubscribe = null;
+    }
+
+    if (!this.auth.isLoggedIn()) {
+      this.unreadForumReplyCount = 0;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    try {
+      if (!this.forumNotificationsService) {
+        const forumModule = await import('../services/forum.service');
+        this.forumNotificationsService = new forumModule.ForumService(this.auth);
+      }
+
+      this.forumUnreadUnsubscribe = await this.forumNotificationsService.subscribeUnreadReplyCount(
+        (count) => {
+          this.unreadForumReplyCount = count;
+          this.cdr.detectChanges();
+        },
+        () => {
+          this.unreadForumReplyCount = 0;
+          this.cdr.detectChanges();
+        },
+      );
+    } catch {
+      this.unreadForumReplyCount = 0;
+      this.cdr.detectChanges();
+    }
   }
 
   private getEquippedProfileFrameId(): string {

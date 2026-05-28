@@ -28,6 +28,61 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['inventory']);
     }
 
+    function validForumCategory(category) {
+      return category in ['help', 'showcase', 'trade', 'general'];
+    }
+
+    function isForumPostAuthor(data) {
+      return isSignedIn() && data.authorEmail == userEmail();
+    }
+
+    function validForumPostCreate() {
+      return isSignedIn()
+        && request.resource.data.authorEmail == userEmail()
+        && request.resource.data.authorName is string
+        && request.resource.data.authorPhotoURL is string
+        && request.resource.data.title is string
+        && request.resource.data.body is string
+        && validForumCategory(request.resource.data.category)
+        && request.resource.data.imageUrls is list
+        && request.resource.data.createdAt is number
+        && request.resource.data.updatedAt is number
+        && request.resource.data.commentCount is number
+        && request.resource.data.commentCount == 0
+        && request.resource.data.hidden == false;
+    }
+
+    function validForumPostUpdate() {
+      return isSignedIn()
+        && (
+          (
+            isForumPostAuthor(resource.data)
+            && request.resource.data.authorEmail == resource.data.authorEmail
+          ) || (
+            request.resource.data.authorEmail == resource.data.authorEmail
+            && request.resource.data.title == resource.data.title
+            && request.resource.data.body == resource.data.body
+            && request.resource.data.category == resource.data.category
+            && request.resource.data.imageUrls == resource.data.imageUrls
+            && request.resource.data.authorName == resource.data.authorName
+            && request.resource.data.authorPhotoURL == resource.data.authorPhotoURL
+            && request.resource.data.commentCount == resource.data.commentCount + 1
+            && request.resource.data.hidden == resource.data.hidden
+          )
+        );
+    }
+
+    function validForumCommentCreate() {
+      return isSignedIn()
+        && request.resource.data.authorEmail == userEmail()
+        && request.resource.data.authorName is string
+        && request.resource.data.authorPhotoURL is string
+        && request.resource.data.postId is string
+        && request.resource.data.body is string
+        && request.resource.data.createdAt is number
+        && request.resource.data.hidden == false;
+    }
+
     match /users/{email} {
       allow read: if true;
       allow create: if isSelf(email) && request.resource.data.email == userEmail();
@@ -69,6 +124,20 @@ service cloud.firestore {
       allow update: if false;
       allow delete: if isSignedIn()
         && tradeParticipant(resource.data);
+    }
+
+    match /forum_posts/{postId} {
+      allow read: if true;
+      allow create: if validForumPostCreate();
+      allow update: if validForumPostUpdate();
+      allow delete: if isForumPostAuthor(resource.data);
+    }
+
+    match /forum_comments/{commentId} {
+      allow read: if true;
+      allow create: if validForumCommentCreate();
+      allow update: if false;
+      allow delete: if isSignedIn() && resource.data.authorEmail == userEmail();
     }
   }
 }

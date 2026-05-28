@@ -60,11 +60,13 @@ body {
 .settings,
 .credits,
 .trading,
+.forum,
 .login,
 a.start,
 button.settings,
 button.credits,
-button.trading {
+button.trading,
+button.forum {
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -103,12 +105,14 @@ button.start:hover,
 .settings:hover,
 .credits:hover,
 .trading:hover,
+.forum:hover,
 .login:hover,
 a.settings:hover,
 a.credits:hover,
 button.settings:hover,
 button.credits:hover,
-button.trading:hover {
+button.trading:hover,
+button.forum:hover {
   transform: translateY(-2px);
   opacity: 1 !important;
   color: white !important;
@@ -120,11 +124,13 @@ button.trading:hover {
 .settings:focus,
 .credits:focus,
 .trading:focus,
+.forum:focus,
 .login:focus,
 a.start:focus,
 button.settings:focus,
 button.credits:focus,
-button.trading:focus {
+button.trading:focus,
+button.forum:focus {
   outline: none; 
 }
 
@@ -132,11 +138,13 @@ button.trading:focus {
 .settings::before,
 .credits::before,
 .trading::before,
+.forum::before,
 .login::before,
 a.start::before,
 button.settings::before,
 button.credits::before,
-button.trading::before {
+button.trading::before,
+button.forum::before {
   content: "";
   position: absolute;
   inset: 0 auto 0 0;
@@ -150,11 +158,13 @@ button.trading::before {
 .settings::after,
 .credits::after,
 .trading::after,
+.forum::after,
 .login::after,
 a.start::after,
 button.settings::after,
 button.credits::after,
-button.trading::after {
+button.trading::after,
+button.forum::after {
   content: "";
   position: absolute;
   inset: 1px;
@@ -169,6 +179,28 @@ button.trading::after {
   min-height: 100px;
   font-size: 40px;
   background: linear-gradient(180deg, rgba(32,32,40,.98), rgba(12,12,16,.98));
+}
+
+.forum-reply-badge {
+  margin-left: auto;
+  min-width: 38px;
+  height: 38px;
+  padding: 0 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02)),
+    linear-gradient(135deg, rgba(255,129,45,.26), rgba(61,109,255,.22)),
+    #171922;
+  border: 1px solid rgba(255,186,87,.3);
+  color: #ffd58f;
+  font-family: "Silkscreen", "Pixelify Sans", sans-serif;
+  font-size: 14px;
+  line-height: 1;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 8px 18px rgba(0,0,0,.22);
+  flex-shrink: 0;
 }
 
 h1, p { margin: 0; padding: 0; }
@@ -226,6 +258,37 @@ h1, p { margin: 0; padding: 0; }
   align-self: center; 
   width: auto; 
   z-index: 10;
+}
+
+.forum-reminder-card {
+  min-height: 62px;
+  padding: 12px 16px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background:
+    linear-gradient(180deg, rgba(255,186,87,.24), rgba(255,102,71,.12)),
+    rgba(255,255,255,.05);
+  border: 1px solid rgba(255,186,87,.38);
+  color: #fff4da;
+  font-size: 19px;
+  box-shadow: 0 14px 30px rgba(0,0,0,.22);
+}
+
+.forum-reminder-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffb347;
+  box-shadow: 0 0 0 5px rgba(255,179,71,.18), 0 0 16px rgba(255,179,71,.42);
+  flex-shrink: 0;
+  animation: forumReminderPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes forumReminderPulse {
+  0%,100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
 }
 
 .top-right-menu {
@@ -490,6 +553,7 @@ h1, p { margin: 0; padding: 0; }
   color: #ffd866;
   display: inline-flex;
   align-items: center;
+  gap: 6px;
 }
 .gold-value {
   font-family: "Pixelify Sans", sans-serif;
@@ -730,21 +794,27 @@ button.start * {
   .profile-avatar-shell{width:114px;height:114px}
   .profile-avatar-fallback{font-size:42px}
   .button-holder{max-width:92vw;padding:12px;border-radius:22px}
-  .start,.settings,.credits,.trading,a.start,button.settings,button.credits,button.trading{min-height:74px;font-size:26px;padding:16px 18px 16px 22px;border-radius:18px}
+  .forum-reminder-card{font-size:15px;min-height:50px;padding:10px 12px}
+  .start,.settings,.credits,.trading,.forum,a.start,button.settings,button.credits,button.trading,button.forum{min-height:74px;font-size:26px;padding:16px 18px 16px 22px;border-radius:18px}
+  .forum-reply-badge{min-width:32px;height:32px;font-size:12px;padding:0 8px}
   .start::before,
   .settings::before,
   .credits::before,
   .trading::before,
+  .forum::before,
   a.start::before,
   button.settings::before,
   button.credits::before,
-  button.trading::before{width:10px;border-radius:18px 0 0 18px}
+  button.trading::before,
+  button.forum::before{width:10px;border-radius:18px 0 0 18px}
   .start::after,
   .settings::after,
   .credits::after,
   .trading::after,
+  .forum::after,
   a.start::after,
   button.settings::after,
   button.credits::after,
-  button.trading::after{border-radius:17px}
+  button.trading::after,
+  button.forum::after{border-radius:17px}
 }

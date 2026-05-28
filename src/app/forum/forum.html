@@ -1,0 +1,295 @@
+<div class="forum-page">
+  <div class="forum-shell">
+    <div class="forum-topbar">
+      <a class="back-link" routerLink="/">← Back to Menu</a>
+    </div>
+
+    <div class="forum-header">
+      <div>
+        <p class="eyebrow">Community Space</p>
+        <h1>Forum</h1>
+        <p class="subtitle">Share screenshots, ask for help, trade ideas, and help other players out.</p>
+      </div>
+      <div class="forum-badge">
+        <span class="forum-badge-label">Live Posts</span>
+        <strong>{{ posts.length }}</strong>
+      </div>
+    </div>
+
+    @if (feedError) {
+      <div class="status-banner error">{{ feedError }}</div>
+    }
+
+    @if (postFeedback) {
+      <div class="status-banner success">{{ postFeedback }}</div>
+    }
+
+    @if (commentFeedback) {
+      <div class="status-banner info">{{ commentFeedback }}</div>
+    }
+
+    @if (unreadReplyThreadCount > 0) {
+      <div class="reply-reminder-banner">
+        <span class="reply-reminder-dot"></span>
+        <span>You have {{ unreadReplyThreadCount }} post{{ unreadReplyThreadCount === 1 ? '' : 's' }} with new replies.</span>
+      </div>
+    }
+
+    <div class="forum-layout">
+      <aside class="composer-card">
+        <div class="composer-card-header">
+          <div class="author-chip">
+            @if (currentUserPhoto) {
+              <img [src]="currentUserPhoto" alt="Your profile picture" />
+            } @else {
+              <span>{{ currentUserInitial }}</span>
+            }
+          </div>
+          <div>
+            <p class="panel-kicker">Create a post</p>
+            <h2>Start a discussion</h2>
+          </div>
+        </div>
+
+        @if (!loggedIn) {
+          <div class="login-notice">
+            <p>You can browse the forum now, but you need to <a routerLink="/login">log in</a> to post and reply.</p>
+          </div>
+        } @else {
+          <div class="composer-form">
+            <label class="field">
+              <span>Posting as</span>
+              <div class="readonly-pill">{{ currentUserName }}</div>
+            </label>
+
+            <label class="field">
+              <span>Category</span>
+              <div class="filter-menu-shell">
+                <button class="filter-menu-btn" type="button" (click)="togglePostCategoryMenu()">
+                  {{ postCategoryLabel }}
+                  <span class="filter-menu-caret">{{ postCategoryOpen ? '▲' : '▼' }}</span>
+                </button>
+                @if (postCategoryOpen) {
+                  <div class="filter-menu-list">
+                    <button class="filter-menu-item" type="button" (click)="selectPostCategory('help')">Help</button>
+                    <button class="filter-menu-item" type="button" (click)="selectPostCategory('showcase')">Showcase</button>
+                    <button class="filter-menu-item" type="button" (click)="selectPostCategory('trade')">Trade</button>
+                    <button class="filter-menu-item" type="button" (click)="selectPostCategory('general')">General</button>
+                  </div>
+                }
+              </div>
+            </label>
+
+            <label class="field">
+              <span>Title</span>
+              <input [(ngModel)]="postTitle" maxlength="80" placeholder="What do you need help with?" />
+            </label>
+
+            <label class="field">
+              <span>Message</span>
+              <textarea [(ngModel)]="postBody" maxlength="1200" rows="7" placeholder="Share details, screenshots, tips, or questions."></textarea>
+            </label>
+
+            <label class="field">
+              <span>Screenshots or photos</span>
+              <div class="upload-shell">
+                <label class="upload-trigger" for="forum-file-upload" aria-label="Add screenshots or photos">
+                  <span class="upload-plus">+</span>
+                </label>
+                <div class="upload-copy">
+                  <strong>{{ selectedFileNames.length > 0 ? selectedFileNames.length + ' file' + (selectedFileNames.length === 1 ? '' : 's') + ' selected' : 'Add images' }}</strong>
+                  <span>{{ selectedFileNames.length > 0 ? selectedFileNames.join(', ') : 'PNG, JPG, WEBP or GIF up to 4 MB each' }}</span>
+                </div>
+                <input
+                  id="forum-file-upload"
+                  class="forum-file-input"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  multiple
+                  (change)="onFilesSelected($event)"
+                />
+              </div>
+            </label>
+
+            @if (selectedFileNames.length > 0) {
+              <div class="attachment-list">
+                @for (name of selectedFileNames; track name) {
+                  <span class="attachment-pill">{{ name }}</span>
+                }
+              </div>
+            }
+
+            <p class="moderation-note">Posts and comments with blocked vulgar words are rejected before they are published.</p>
+
+            <button class="primary-btn" type="button" (click)="submitPost()" [disabled]="creatingPost">
+              {{ creatingPost ? 'Posting...' : 'Publish Post' }}
+            </button>
+          </div>
+        }
+      </aside>
+
+      <section class="feed-card">
+        <div class="feed-toolbar">
+          <div class="toolbar-group">
+            <label>
+              <span>Category</span>
+              <div class="filter-menu-shell">
+                <button class="filter-menu-btn" type="button" (click)="toggleCategoryFilterMenu()">
+                  {{ categoryFilterLabel }}
+                  <span class="filter-menu-caret">{{ categoryFilterOpen ? '▲' : '▼' }}</span>
+                </button>
+                @if (categoryFilterOpen) {
+                  <div class="filter-menu-list">
+                    <button class="filter-menu-item" type="button" (click)="selectCategoryFilter('all')">All</button>
+                    <button class="filter-menu-item" type="button" (click)="selectCategoryFilter('help')">Help</button>
+                    <button class="filter-menu-item" type="button" (click)="selectCategoryFilter('showcase')">Showcase</button>
+                    <button class="filter-menu-item" type="button" (click)="selectCategoryFilter('trade')">Trade</button>
+                    <button class="filter-menu-item" type="button" (click)="selectCategoryFilter('general')">General</button>
+                  </div>
+                }
+              </div>
+            </label>
+          </div>
+          <div class="toolbar-group">
+            <label>
+              <span>Sort</span>
+              <div class="filter-menu-shell">
+                <button class="filter-menu-btn" type="button" (click)="toggleSortFilterMenu()">
+                  {{ sortFilterLabel }}
+                  <span class="filter-menu-caret">{{ sortFilterOpen ? '▲' : '▼' }}</span>
+                </button>
+                @if (sortFilterOpen) {
+                  <div class="filter-menu-list">
+                    <button class="filter-menu-item" type="button" (click)="selectSortFilter('newest')">Newest</button>
+                    <button class="filter-menu-item" type="button" (click)="selectSortFilter('most-commented')">Most Commented</button>
+                  </div>
+                }
+              </div>
+            </label>
+          </div>
+        </div>
+
+        @if (loading) {
+          <div class="empty-state">
+            <span class="btn-loading">
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+            </span>
+            <p>Loading community posts...</p>
+          </div>
+        } @else if (filteredPosts.length === 0) {
+          <div class="empty-state">
+            <p>No posts yet for this filter. Start the first conversation.</p>
+          </div>
+        } @else {
+          <div class="post-list">
+            @for (post of filteredPosts; track post.id) {
+              <article class="post-card">
+                <div class="post-top">
+                  <div class="post-author-avatar">
+                    @if (post.authorPhotoURL) {
+                      <img [src]="post.authorPhotoURL" alt="Author picture" />
+                    } @else {
+                      <span>{{ getPostInitial(post) }}</span>
+                    }
+                  </div>
+                  <div class="post-heading">
+                    <div class="post-heading-row">
+                      <h3>{{ post.title }}</h3>
+                      <span class="post-tag">{{ formatCategoryLabel(post.category) }}</span>
+                    </div>
+                    <p class="post-meta">{{ post.authorName }} • {{ post.createdAt | date: 'medium' }}</p>
+                  </div>
+                </div>
+
+                <p class="post-body">{{ post.body }}</p>
+
+                @if (post.imageUrls.length > 0) {
+                  <div class="post-images" [class.single]="post.imageUrls.length === 1">
+                    @for (imageUrl of post.imageUrls; track imageUrl) {
+                      <a class="post-image-link" [href]="imageUrl" target="_blank" rel="noreferrer">
+                        <img [src]="imageUrl" alt="Forum attachment" />
+                      </a>
+                    }
+                  </div>
+                }
+
+                <div class="post-stats">
+                  <span>{{ post.commentCount }} {{ post.commentCount === 1 ? 'reply' : 'replies' }}</span>
+                  @if (hasUnreadReplies(post)) {
+                    <span class="post-reply-alert">New replies</span>
+                  }
+                </div>
+
+                <button class="post-replies-toggle" type="button" (click)="toggleReplyThread(post.id)">
+                  <span class="post-replies-toggle-copy">
+                    <span class="post-replies-toggle-title">
+                      Replies
+                    </span>
+                    <span class="post-replies-toggle-subtitle">
+                      {{ isReplyThreadOpen(post.id) ? 'Hide thread' : 'Show thread' }}
+                    </span>
+                  </span>
+                  <span class="post-replies-toggle-side">
+                    <span class="post-replies-count">{{ post.commentCount }}</span>
+                    @if (hasUnreadReplies(post)) {
+                      <span class="post-replies-new-dot">NEW</span>
+                    }
+                    <span class="post-replies-caret">{{ isReplyThreadOpen(post.id) ? '▲' : '▼' }}</span>
+                  </span>
+                </button>
+
+                @if (isReplyThreadOpen(post.id)) {
+                <div class="comments-block">
+                  <div class="comment-list">
+                    @if (getCommentsForPost(post.id).length === 0) {
+                      <p class="comment-empty">No replies yet.</p>
+                    } @else {
+                      @for (comment of getCommentsForPost(post.id); track comment.id) {
+                        <div class="comment-row">
+                          <div class="comment-avatar">
+                            @if (comment.authorPhotoURL) {
+                              <img [src]="comment.authorPhotoURL" alt="Comment author picture" />
+                            } @else {
+                              <span>{{ (comment.authorName || 'P').charAt(0).toUpperCase() }}</span>
+                            }
+                          </div>
+                          <div class="comment-copy">
+                            <p class="comment-meta">{{ comment.authorName }} • {{ comment.createdAt | date: 'short' }}</p>
+                            <p class="comment-body">{{ comment.body }}</p>
+                          </div>
+                        </div>
+                      }
+                    }
+                  </div>
+
+                  @if (loggedIn) {
+                    <div class="comment-composer">
+                      <textarea
+                        [(ngModel)]="commentDrafts[post.id]"
+                        rows="3"
+                        maxlength="400"
+                        placeholder="Reply to this post..."
+                        (keydown)="onCommentKeydown($event, post.id)"
+                      ></textarea>
+                      <button
+                        class="secondary-btn"
+                        type="button"
+                        (click)="submitComment(post.id)"
+                        [disabled]="commentSubmitting[post.id]"
+                      >
+                        {{ commentSubmitting[post.id] ? 'Sending...' : 'Reply' }}
+                      </button>
+                    </div>
+                  }
+                </div>
+                }
+              </article>
+            }
+          </div>
+        }
+      </section>
+    </div>
+  </div>
+</div>
