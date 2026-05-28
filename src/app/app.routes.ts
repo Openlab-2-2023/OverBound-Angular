@@ -10,6 +10,7 @@ export const routes: Routes = [
   { path: 'login', component: Login },
   { path: 'account', component: AccountDetails },
   { path: 'trading', loadComponent: () => import('./trading/trading').then((m) => m.TradingComponent) },
+  { path: 'forum', loadComponent: () => import('./forum/forum').then((m) => m.ForumComponent) },
   { path: 'store/:id', loadComponent: () => import('./store-item/store-item').then((m) => m.StoreItemPage) },
   { path: 'end',loadComponent: () => import('./endscreen/endscreen').then((m) => m.Endscreen),},
 ];

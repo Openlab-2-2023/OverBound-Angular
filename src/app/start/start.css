@@ -60,11 +60,13 @@ body {
 .settings,
 .credits,
 .trading,
+.forum,
 .login,
 a.start,
 button.settings,
 button.credits,
-button.trading {
+button.trading,
+button.forum {
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -103,12 +105,14 @@ button.start:hover,
 .settings:hover,
 .credits:hover,
 .trading:hover,
+.forum:hover,
 .login:hover,
 a.settings:hover,
 a.credits:hover,
 button.settings:hover,
 button.credits:hover,
-button.trading:hover {
+button.trading:hover,
+button.forum:hover {
   transform: translateY(-2px);
   opacity: 1 !important;
   color: white !important;
@@ -120,11 +124,13 @@ button.trading:hover {
 .settings:focus,
 .credits:focus,
 .trading:focus,
+.forum:focus,
 .login:focus,
 a.start:focus,
 button.settings:focus,
 button.credits:focus,
-button.trading:focus {
+button.trading:focus,
+button.forum:focus {
   outline: none; 
 }
 
@@ -132,11 +138,13 @@ button.trading:focus {
 .settings::before,
 .credits::before,
 .trading::before,
+.forum::before,
 .login::before,
 a.start::before,
 button.settings::before,
 button.credits::before,
-button.trading::before {
+button.trading::before,
+button.forum::before {
   content: "";
   position: absolute;
   inset: 0 auto 0 0;
@@ -150,11 +158,13 @@ button.trading::before {
 .settings::after,
 .credits::after,
 .trading::after,
+.forum::after,
 .login::after,
 a.start::after,
 button.settings::after,
 button.credits::after,
-button.trading::after {
+button.trading::after,
+button.forum::after {
   content: "";
   position: absolute;
   inset: 1px;
@@ -490,6 +500,7 @@ h1, p { margin: 0; padding: 0; }
   color: #ffd866;
   display: inline-flex;
   align-items: center;
+  gap: 6px;
 }
 .gold-value {
   font-family: "Pixelify Sans", sans-serif;
@@ -730,21 +741,25 @@ button.start * {
   .profile-avatar-shell{width:114px;height:114px}
   .profile-avatar-fallback{font-size:42px}
   .button-holder{max-width:92vw;padding:12px;border-radius:22px}
-  .start,.settings,.credits,.trading,a.start,button.settings,button.credits,button.trading{min-height:74px;font-size:26px;padding:16px 18px 16px 22px;border-radius:18px}
+  .start,.settings,.credits,.trading,.forum,a.start,button.settings,button.credits,button.trading,button.forum{min-height:74px;font-size:26px;padding:16px 18px 16px 22px;border-radius:18px}
   .start::before,
   .settings::before,
   .credits::before,
   .trading::before,
+  .forum::before,
   a.start::before,
   button.settings::before,
   button.credits::before,
-  button.trading::before{width:10px;border-radius:18px 0 0 18px}
+  button.trading::before,
+  button.forum::before{width:10px;border-radius:18px 0 0 18px}
   .start::after,
   .settings::after,
   .credits::after,
   .trading::after,
+  .forum::after,
   a.start::after,
   button.settings::after,
   button.credits::after,
-  button.trading::after{border-radius:17px}
+  button.trading::after,
+  button.forum::after{border-radius:17px}
 }

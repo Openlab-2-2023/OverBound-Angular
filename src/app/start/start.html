@@ -38,6 +38,9 @@
                 <button class="leader-filter-item" type="button" (click)="selectLeaderboardFilter('gold-desc')">
                   Most Gold
                 </button>
+                <button class="leader-filter-item" type="button" (click)="selectLeaderboardFilter('items-desc')">
+                  Most Items
+                </button>
               </div>
             }
           </div>
@@ -64,7 +67,10 @@
                   }
                 </div>
                 <button class="leader-name" type="button" (click)="openLeaderboardProfile(player, $event)">{{ player.displayName }}</button>
-                <span class="leader-gold"><span class="gold-value" style="font-family:'Silkscreen','Pixelify Sans',sans-serif;letter-spacing:.2px">{{ player.totalGoldCollected }}</span> <span class="gold-icon">◈</span></span>
+                <span class="leader-gold">
+                  <span class="gold-value" style="font-family:'Silkscreen','Pixelify Sans',sans-serif;letter-spacing:.2px">{{ getLeaderboardMetric(player) }}</span>
+                  <span class="gold-icon">{{ getLeaderboardMetricSuffix() }}</span>
+                </span>
                 <button class="leader-view" type="button" title="View player" (click)="openLeaderboardProfile(player, $event)">></button>
               </div>
             </div>
@@ -88,6 +94,7 @@
         <a class="start" #startBtn (click)="startGame($event)">Start</a>
         <button class="settings" type="button" (click)="openSettings()">Settings</button>
         <button class="trading" type="button" (click)="goToTrading()" title="Trading system">Trading</button>
+        <button class="forum" type="button" (click)="goToForum()" title="Community forum">Forum</button>
         <button class="credits" type="button" (click)="openCredits()">Credits</button>
       </div>
 

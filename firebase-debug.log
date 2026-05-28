@@ -1,0 +1,47 @@
+[debug] [2026-05-28T18:23:14.940Z] ----------------------------------------------------------------------
+[debug] [2026-05-28T18:23:14.943Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\sebok\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy
+[debug] [2026-05-28T18:23:14.943Z] CLI Version:   15.18.0
+[debug] [2026-05-28T18:23:14.943Z] Platform:      win32
+[debug] [2026-05-28T18:23:14.943Z] Node Version:  v22.19.0
+[debug] [2026-05-28T18:23:14.943Z] Time:          Thu May 28 2026 20:23:14 GMT+0200 (stredoeurópsky letný čas)
+[debug] [2026-05-28T18:23:14.943Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-05-28T18:23:14.946Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2026-05-28T18:23:17.931Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-05-28T18:23:17.931Z] > authorizing via signed-in user (sebokubinec7@gmail.com)
+[debug] [2026-05-28T18:23:17.931Z] [iam] checking project overbound-angular for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2026-05-28T18:23:17.932Z] Checked if tokens are valid: false, expires at: 1779098182736
+[debug] [2026-05-28T18:23:17.932Z] Checked if tokens are valid: false, expires at: 1779098182736
+[debug] [2026-05-28T18:23:17.933Z] > refreshing access token with scopes: []
+[debug] [2026-05-28T18:23:17.933Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-05-28T18:23:17.933Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-05-28T18:23:18.084Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-05-28T18:23:18.084Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-05-28T18:23:18.090Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/overbound-angular:testIamPermissions [none]
+[debug] [2026-05-28T18:23:18.090Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/overbound-angular:testIamPermissions  x-goog-user-project=overbound-angular
+[debug] [2026-05-28T18:23:18.090Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/overbound-angular:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-05-28T18:23:18.257Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2026-05-28T18:23:18.257Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}
+[debug] [2026-05-28T18:23:18.912Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/overbound-angular:testIamPermissions 200
+[debug] [2026-05-28T18:23:18.912Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/overbound-angular:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-05-28T18:23:18.913Z] Checked if tokens are valid: true, expires at: 1779996197084
+[debug] [2026-05-28T18:23:18.913Z] Checked if tokens are valid: true, expires at: 1779996197084
+[debug] [2026-05-28T18:23:18.913Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/overbound-angular [none]
+[debug] [2026-05-28T18:23:19.369Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/overbound-angular 200
+[debug] [2026-05-28T18:23:19.369Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/overbound-angular {"projectId":"overbound-angular","projectNumber":"696100377906","displayName":"OverBound","name":"projects/overbound-angular","resources":{"hostingSite":"overbound-angular"},"state":"ACTIVE","etag":"1_f79a6ca5-0c19-46d4-be9f-dc34b60db03e"}
+[info] 
+[info] === Deploying to 'overbound-angular'...
+[info] 
+[info] i  deploying firestore, hosting 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[debug] [2026-05-28T18:23:19.374Z] Checked if tokens are valid: true, expires at: 1779996197084
+[debug] [2026-05-28T18:23:19.374Z] Checked if tokens are valid: true, expires at: 1779996197084
+[debug] [2026-05-28T18:23:19.374Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/overbound-angular/databases/(default) [none]
+[debug] [2026-05-28T18:23:19.645Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/overbound-angular/databases/(default) 200
+[debug] [2026-05-28T18:23:19.645Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/overbound-angular/databases/(default) {"name":"projects/overbound-angular/databases/(default)","uid":"16bbe9da-b19d-494a-a50c-f753e8ba45a8","createTime":"2026-03-20T07:43:47.356922Z","updateTime":"2026-03-20T07:43:47.356922Z","locationId":"europe-central2","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-05-28T17:23:16.818974Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"zlm","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_DISABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","etag":"IPPSvpPN3JQDMMe5q9Xnv5MD"}
+[info] i  cloud.firestore: checking firestore.rules for compilation errors... 
+[debug] [2026-05-28T18:23:19.646Z] Checked if tokens are valid: true, expires at: 1779996197084
+[debug] [2026-05-28T18:23:19.646Z] Checked if tokens are valid: true, expires at: 1779996197084
+[debug] [2026-05-28T18:23:19.647Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/overbound-angular:test [none]
+[debug] [2026-05-28T18:23:19.647Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/overbound-angular:test [omitted]
