@@ -28,9 +28,14 @@ export class Start implements OnInit, OnDestroy {
   leaderboardDiag = 'diagnostics: init';
   leaderboardProjectId = FIREBASE_SDK_CONFIG.projectId || 'n/a';
   leaderboardBuildStamp = 'LB-2026-03-27-1250';
+  unreadForumReplyCount = 0;
   private leaderboardBooted = false;
   private leaderboardUnsubscribe: (() => void) | null = null;
   private leaderboardPollId: any = null;
+  private forumUnreadUnsubscribe: (() => void) | null = null;
+  private forumNotificationsService: {
+    subscribeUnreadReplyCount: (onCount: (count: number) => void, onError?: (error: any) => void) => Promise<() => void>;
+  } | null = null;
   private onUserUpdatedListener: EventListener | null = null;
   private onScrollRevealListener: EventListener | null = null;
   private scrollHideTimers = new WeakMap<HTMLElement, any>();
@@ -52,6 +57,7 @@ export class Start implements OnInit, OnDestroy {
     this.onUserUpdatedListener = () => {
       this.refreshCurrentUser();
       this.refreshStoreGold();
+      void this.refreshForumReplyNotifications();
     };
     window.addEventListener('ob:user-updated', this.onUserUpdatedListener);
     this.bindAutoHideScrollbars();
@@ -59,6 +65,7 @@ export class Start implements OnInit, OnDestroy {
     if (this.auth.isLoggedIn()) {
       this.tradingService.primeAvailableUsers();
     }
+    await this.refreshForumReplyNotifications();
   }
 
   ngOnDestroy() {
@@ -69,6 +76,10 @@ export class Start implements OnInit, OnDestroy {
     if (this.leaderboardPollId) {
       clearInterval(this.leaderboardPollId);
       this.leaderboardPollId = null;
+    }
+    if (this.forumUnreadUnsubscribe) {
+      this.forumUnreadUnsubscribe();
+      this.forumUnreadUnsubscribe = null;
     }
     if (this.onUserUpdatedListener) {
       window.removeEventListener('ob:user-updated', this.onUserUpdatedListener);
@@ -233,6 +244,40 @@ export class Start implements OnInit, OnDestroy {
 
   private refreshCurrentUser() {
     this.currentUser = this.auth.getCurrent();
+  }
+
+  private async refreshForumReplyNotifications() {
+    if (this.forumUnreadUnsubscribe) {
+      this.forumUnreadUnsubscribe();
+      this.forumUnreadUnsubscribe = null;
+    }
+
+    if (!this.auth.isLoggedIn()) {
+      this.unreadForumReplyCount = 0;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    try {
+      if (!this.forumNotificationsService) {
+        const forumModule = await import('../services/forum.service');
+        this.forumNotificationsService = new forumModule.ForumService(this.auth);
+      }
+
+      this.forumUnreadUnsubscribe = await this.forumNotificationsService.subscribeUnreadReplyCount(
+        (count) => {
+          this.unreadForumReplyCount = count;
+          this.cdr.detectChanges();
+        },
+        () => {
+          this.unreadForumReplyCount = 0;
+          this.cdr.detectChanges();
+        },
+      );
+    } catch {
+      this.unreadForumReplyCount = 0;
+      this.cdr.detectChanges();
+    }
   }
 
   private getEquippedProfileFrameId(): string {

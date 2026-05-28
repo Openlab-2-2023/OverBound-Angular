@@ -181,6 +181,28 @@ button.forum::after {
   background: linear-gradient(180deg, rgba(32,32,40,.98), rgba(12,12,16,.98));
 }
 
+.forum-reply-badge {
+  margin-left: auto;
+  min-width: 38px;
+  height: 38px;
+  padding: 0 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02)),
+    linear-gradient(135deg, rgba(255,129,45,.26), rgba(61,109,255,.22)),
+    #171922;
+  border: 1px solid rgba(255,186,87,.3);
+  color: #ffd58f;
+  font-family: "Silkscreen", "Pixelify Sans", sans-serif;
+  font-size: 14px;
+  line-height: 1;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 8px 18px rgba(0,0,0,.22);
+  flex-shrink: 0;
+}
+
 h1, p { margin: 0; padding: 0; }
 
 @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -236,6 +258,37 @@ h1, p { margin: 0; padding: 0; }
   align-self: center; 
   width: auto; 
   z-index: 10;
+}
+
+.forum-reminder-card {
+  min-height: 62px;
+  padding: 12px 16px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background:
+    linear-gradient(180deg, rgba(255,186,87,.24), rgba(255,102,71,.12)),
+    rgba(255,255,255,.05);
+  border: 1px solid rgba(255,186,87,.38);
+  color: #fff4da;
+  font-size: 19px;
+  box-shadow: 0 14px 30px rgba(0,0,0,.22);
+}
+
+.forum-reminder-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffb347;
+  box-shadow: 0 0 0 5px rgba(255,179,71,.18), 0 0 16px rgba(255,179,71,.42);
+  flex-shrink: 0;
+  animation: forumReminderPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes forumReminderPulse {
+  0%,100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
 }
 
 .top-right-menu {
@@ -741,7 +794,9 @@ button.start * {
   .profile-avatar-shell{width:114px;height:114px}
   .profile-avatar-fallback{font-size:42px}
   .button-holder{max-width:92vw;padding:12px;border-radius:22px}
+  .forum-reminder-card{font-size:15px;min-height:50px;padding:10px 12px}
   .start,.settings,.credits,.trading,.forum,a.start,button.settings,button.credits,button.trading,button.forum{min-height:74px;font-size:26px;padding:16px 18px 16px 22px;border-radius:18px}
+  .forum-reply-badge{min-width:32px;height:32px;font-size:12px;padding:0 8px}
   .start::before,
   .settings::before,
   .credits::before,

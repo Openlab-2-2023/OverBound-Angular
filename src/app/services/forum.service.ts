@@ -35,6 +35,8 @@ export interface ForumComment {
 export class ForumService {
   private readonly forumPostsCollectionName = 'forum_posts';
   private readonly forumCommentsCollectionName = 'forum_comments';
+  private readonly maxUploadBytes = 12 * 1024 * 1024;
+  private readonly replySeenStorageKeyPrefix = 'ob_forum_reply_seen_v1';
   private readonly blockedWords = [
     'fuck',
     'fucking',
@@ -62,6 +64,135 @@ export class ForumService {
 
   isLoggedIn(): boolean {
     return this.authService.isLoggedIn();
+  }
+
+  getReplySeenState(): Record<string, number> {
+    const current = this.authService.getCurrent();
+    const email = String(current?.email || '').trim().toLowerCase();
+    if (!email) return {};
+    const raw = localStorage.getItem(`${this.replySeenStorageKeyPrefix}:${email}`);
+    if (!raw) return {};
+    try {
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return {};
+      return Object.entries(parsed).reduce((acc, [postId, seenAt]) => {
+        const normalizedPostId = String(postId || '').trim();
+        const numericSeenAt = Number(seenAt);
+        if (normalizedPostId && Number.isFinite(numericSeenAt)) {
+          acc[normalizedPostId] = numericSeenAt;
+        }
+        return acc;
+      }, {} as Record<string, number>);
+    } catch {
+      return {};
+    }
+  }
+
+  markPostRepliesSeen(postId: string, at: number = Date.now()): void {
+    const current = this.authService.getCurrent();
+    const email = String(current?.email || '').trim().toLowerCase();
+    const normalizedPostId = String(postId || '').trim();
+    if (!email || !normalizedPostId) return;
+    const nextState = {
+      ...this.getReplySeenState(),
+      [normalizedPostId]: at,
+    };
+    localStorage.setItem(`${this.replySeenStorageKeyPrefix}:${email}`, JSON.stringify(nextState));
+  }
+
+  hasUnreadRepliesForPost(postId: string, comments: ForumComment[], seenState: Record<string, number>): boolean {
+    const current = this.authService.getCurrent();
+    const email = String(current?.email || '').trim().toLowerCase();
+    const normalizedPostId = String(postId || '').trim();
+    if (!email || !normalizedPostId) return false;
+    const seenAt = Number(seenState?.[normalizedPostId] || 0);
+    return comments.some((comment) =>
+      String(comment.postId || '').trim() === normalizedPostId
+      && String(comment.authorEmail || '').trim().toLowerCase() !== email
+      && Number(comment.createdAt || 0) > seenAt,
+    );
+  }
+
+  async subscribeUnreadReplyCount(
+    onCount: (count: number) => void,
+    onError?: (error: any) => void,
+  ): Promise<() => void> {
+    const current = this.authService.getCurrent();
+    const email = String(current?.email || '').trim().toLowerCase();
+    if (!email || !isFirebaseEnabled()) {
+      onCount(0);
+      return () => {};
+    }
+
+    await initFirebaseIfNeeded();
+    const firestore = getFirestoreInstance();
+    if (!firestore) {
+      onCount(0);
+      return () => {};
+    }
+
+    const seenState = this.getReplySeenState();
+    const { collection, onSnapshot } = await import('firebase/firestore');
+    const postsRef = collection(firestore, this.forumPostsCollectionName);
+    const commentsRef = collection(firestore, this.forumCommentsCollectionName);
+
+    let latestPosts: ForumPost[] = [];
+    let latestComments: ForumComment[] = [];
+
+    const emit = () => {
+      const ownedPostIds = new Set(
+        latestPosts
+          .filter((post) => String(post.authorEmail || '').trim().toLowerCase() === email)
+          .map((post) => post.id),
+      );
+      if (ownedPostIds.size === 0) {
+        onCount(0);
+        return;
+      }
+      const unreadPostIds = new Set(
+        latestComments
+          .filter((comment) =>
+            ownedPostIds.has(String(comment.postId || '').trim())
+            && String(comment.authorEmail || '').trim().toLowerCase() !== email
+            && Number(comment.createdAt || 0) > Number(seenState[String(comment.postId || '').trim()] || 0),
+          )
+          .map((comment) => String(comment.postId || '').trim()),
+      );
+      onCount(unreadPostIds.size);
+    };
+
+    const unsubscribePosts = onSnapshot(
+      postsRef,
+      (snap: any) => {
+        latestPosts = (snap.docs || [])
+          .map((docSnap: any) => this.normalizePost(docSnap.id, docSnap.data?.() || {}))
+          .filter((post: ForumPost) => !post.hidden);
+        emit();
+      },
+      (error: any) => {
+        console.warn('Unread forum post subscription failed', error);
+        if (onError) onError(error);
+      },
+    );
+
+    const unsubscribeComments = onSnapshot(
+      commentsRef,
+      (snap: any) => {
+        latestComments = (snap.docs || [])
+          .map((docSnap: any) => this.normalizeComment(docSnap.id, docSnap.data?.() || {}))
+          .filter((comment: ForumComment) => !comment.hidden);
+        emit();
+      },
+      (error: any) => {
+        console.warn('Unread forum comment subscription failed', error);
+        if (onError) onError(error);
+      },
+    );
+
+    return () => {
+      unsubscribePosts();
+      unsubscribeComments();
+    };
   }
 
   async createPost(input: {
@@ -95,7 +226,7 @@ export class ForumService {
     const now = Date.now();
     const imageUrls: string[] = [];
     for (let i = 0; i < files.length; i += 1) {
-      const file = files[i];
+      const file = await this.prepareImageForUpload(files[i]);
       const safeName = String(file.name || 'upload')
         .replace(/[^a-z0-9._-]/gi, '_')
         .slice(-80);
@@ -303,10 +434,84 @@ export class ForumService {
       if (!allowedTypes.has(String(file?.type || '').toLowerCase())) {
         throw new Error('Only PNG, JPG, WEBP, and GIF images are allowed.');
       }
-      if (Number(file?.size || 0) > 4 * 1024 * 1024) {
-        throw new Error('Each image must be 4 MB or smaller.');
+      if (Number(file?.size || 0) > this.maxUploadBytes) {
+        throw new Error('Each image must be 12 MB or smaller before upload.');
       }
     }
+  }
+
+  private async prepareImageForUpload(file: File): Promise<File> {
+    const mimeType = String(file?.type || '').toLowerCase();
+    if (!file || mimeType === 'image/gif') {
+      return file;
+    }
+
+    if (file.size <= 2.5 * 1024 * 1024) {
+      return file;
+    }
+
+    try {
+      return await this.compressRasterImage(file);
+    } catch (error) {
+      console.warn('Forum image compression failed, using original file.', error);
+      return file;
+    }
+  }
+
+  private async compressRasterImage(file: File): Promise<File> {
+    const dataUrl = await this.readFileAsDataUrl(file);
+    const img = await this.loadImage(dataUrl);
+    const maxDimension = 1600;
+    const scale = Math.min(1, maxDimension / Math.max(img.width, img.height));
+    const width = Math.max(1, Math.round(img.width * scale));
+    const height = Math.max(1, Math.round(img.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return file;
+    ctx.drawImage(img, 0, 0, width, height);
+
+    const targetType = 'image/webp';
+    for (const quality of [0.86, 0.78, 0.7, 0.6]) {
+      const blob = await this.canvasToBlob(canvas, targetType, quality);
+      if (!blob) continue;
+      if (blob.size <= 2.5 * 1024 * 1024 || quality === 0.6) {
+        const baseName = String(file.name || 'upload').replace(/\.[^.]+$/, '') || 'upload';
+        const nextFile = new File([blob], `${baseName}.webp`, {
+          type: targetType,
+          lastModified: Date.now(),
+        });
+        return nextFile.size < file.size ? nextFile : file;
+      }
+    }
+
+    return file;
+  }
+
+  private readFileAsDataUrl(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(reader.error || new Error('Failed to read image file.'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  private loadImage(src: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('Failed to load image for compression.'));
+      img.src = src;
+    });
+  }
+
+  private canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob | null> {
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => resolve(blob), type, quality);
+    });
   }
 
   private normalizePost(id: string, raw: any): ForumPost {

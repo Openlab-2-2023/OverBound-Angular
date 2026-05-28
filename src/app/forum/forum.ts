@@ -20,6 +20,7 @@ import {
 export class ForumComponent implements OnInit, OnDestroy {
   posts: ForumPost[] = [];
   commentsByPost: Record<string, ForumComment[]> = {};
+  replySeenState: Record<string, number> = {};
   categoryFilter: 'all' | ForumCategory = 'all';
   sortFilter: ForumSort = 'newest';
   postCategory: ForumCategory = 'help';
@@ -35,6 +36,7 @@ export class ForumComponent implements OnInit, OnDestroy {
   feedError = '';
   postFeedback = '';
   commentFeedback = '';
+  openReplyThreads: Record<string, boolean> = {};
   commentDrafts: Record<string, string> = {};
   commentSubmitting: Record<string, boolean> = {};
   private postsUnsubscribe: (() => void) | null = null;
@@ -47,6 +49,7 @@ export class ForumComponent implements OnInit, OnDestroy {
   ) {}
 
   async ngOnInit(): Promise<void> {
+    this.replySeenState = this.forumService.getReplySeenState();
     this.onUserUpdatedListener = () => this.cdr.detectChanges();
     window.addEventListener('ob:user-updated', this.onUserUpdatedListener);
     await this.subscribeToPosts();
@@ -104,12 +107,34 @@ export class ForumComponent implements OnInit, OnDestroy {
     return this.sortFilter === 'most-commented' ? 'Most Commented' : 'Newest';
   }
 
+  get unreadReplyThreadCount(): number {
+    return this.posts.filter((post) => this.hasUnreadReplies(post)).length;
+  }
+
   getCommentsForPost(postId: string): ForumComment[] {
     return this.commentsByPost[String(postId || '').trim()] || [];
   }
 
   getPostInitial(post: ForumPost): string {
     return (String(post.authorName || 'P').trim().charAt(0) || 'P').toUpperCase();
+  }
+
+  hasUnreadReplies(post: ForumPost): boolean {
+    const comments = this.getCommentsForPost(post.id);
+    return this.forumService.hasUnreadRepliesForPost(post.id, comments, this.replySeenState);
+  }
+
+  isReplyThreadOpen(postId: string): boolean {
+    return !!this.openReplyThreads[String(postId || '').trim()];
+  }
+
+  toggleReplyThread(postId: string): void {
+    const normalizedPostId = String(postId || '').trim();
+    if (!normalizedPostId) return;
+    this.openReplyThreads[normalizedPostId] = !this.openReplyThreads[normalizedPostId];
+    if (this.openReplyThreads[normalizedPostId]) {
+      this.markPostRepliesSeen(normalizedPostId);
+    }
   }
 
   togglePostCategoryMenu(): void {
@@ -197,12 +222,31 @@ export class ForumComponent implements OnInit, OnDestroy {
       await this.forumService.addComment(normalizedPostId, this.commentDrafts[normalizedPostId] || '');
       this.commentDrafts[normalizedPostId] = '';
       this.commentFeedback = 'Reply added.';
+      this.markPostRepliesSeen(normalizedPostId);
     } catch (error: any) {
       this.feedError = this.getDisplayErrorMessage(error, 'Could not add the reply.');
     } finally {
       this.commentSubmitting[normalizedPostId] = false;
       this.cdr.detectChanges();
     }
+  }
+
+  onCommentKeydown(event: KeyboardEvent, postId: string): void {
+    if (event.key !== 'Enter' || event.shiftKey) return;
+    event.preventDefault();
+    void this.submitComment(postId);
+  }
+
+  private markPostRepliesSeen(postId: string): void {
+    const normalizedPostId = String(postId || '').trim();
+    if (!normalizedPostId) return;
+    const seenAt = Date.now();
+    this.forumService.markPostRepliesSeen(normalizedPostId, seenAt);
+    this.replySeenState = {
+      ...this.replySeenState,
+      [normalizedPostId]: seenAt,
+    };
+    this.cdr.detectChanges();
   }
 
   trackPost(_index: number, post: ForumPost): string {

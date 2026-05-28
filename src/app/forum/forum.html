@@ -28,6 +28,13 @@
       <div class="status-banner info">{{ commentFeedback }}</div>
     }
 
+    @if (unreadReplyThreadCount > 0) {
+      <div class="reply-reminder-banner">
+        <span class="reply-reminder-dot"></span>
+        <span>You have {{ unreadReplyThreadCount }} post{{ unreadReplyThreadCount === 1 ? '' : 's' }} with new replies.</span>
+      </div>
+    }
+
     <div class="forum-layout">
       <aside class="composer-card">
         <div class="composer-card-header">
@@ -177,79 +184,109 @@
           </div>
         } @else {
           <div class="post-list">
-            <article class="post-card" *ngFor="let post of filteredPosts; trackBy: trackPost">
-              <div class="post-top">
-                <div class="post-author-avatar">
-                  @if (post.authorPhotoURL) {
-                    <img [src]="post.authorPhotoURL" alt="Author picture" />
-                  } @else {
-                    <span>{{ getPostInitial(post) }}</span>
+            @for (post of filteredPosts; track post.id) {
+              <article class="post-card">
+                <div class="post-top">
+                  <div class="post-author-avatar">
+                    @if (post.authorPhotoURL) {
+                      <img [src]="post.authorPhotoURL" alt="Author picture" />
+                    } @else {
+                      <span>{{ getPostInitial(post) }}</span>
+                    }
+                  </div>
+                  <div class="post-heading">
+                    <div class="post-heading-row">
+                      <h3>{{ post.title }}</h3>
+                      <span class="post-tag">{{ formatCategoryLabel(post.category) }}</span>
+                    </div>
+                    <p class="post-meta">{{ post.authorName }} • {{ post.createdAt | date: 'medium' }}</p>
+                  </div>
+                </div>
+
+                <p class="post-body">{{ post.body }}</p>
+
+                @if (post.imageUrls.length > 0) {
+                  <div class="post-images" [class.single]="post.imageUrls.length === 1">
+                    @for (imageUrl of post.imageUrls; track imageUrl) {
+                      <a class="post-image-link" [href]="imageUrl" target="_blank" rel="noreferrer">
+                        <img [src]="imageUrl" alt="Forum attachment" />
+                      </a>
+                    }
+                  </div>
+                }
+
+                <div class="post-stats">
+                  <span>{{ post.commentCount }} {{ post.commentCount === 1 ? 'reply' : 'replies' }}</span>
+                  @if (hasUnreadReplies(post)) {
+                    <span class="post-reply-alert">New replies</span>
                   }
                 </div>
-                <div class="post-heading">
-                  <div class="post-heading-row">
-                    <h3>{{ post.title }}</h3>
-                    <span class="post-tag">{{ formatCategoryLabel(post.category) }}</span>
+
+                <button class="post-replies-toggle" type="button" (click)="toggleReplyThread(post.id)">
+                  <span class="post-replies-toggle-copy">
+                    <span class="post-replies-toggle-title">
+                      Replies
+                    </span>
+                    <span class="post-replies-toggle-subtitle">
+                      {{ isReplyThreadOpen(post.id) ? 'Hide thread' : 'Show thread' }}
+                    </span>
+                  </span>
+                  <span class="post-replies-toggle-side">
+                    <span class="post-replies-count">{{ post.commentCount }}</span>
+                    @if (hasUnreadReplies(post)) {
+                      <span class="post-replies-new-dot">NEW</span>
+                    }
+                    <span class="post-replies-caret">{{ isReplyThreadOpen(post.id) ? '▲' : '▼' }}</span>
+                  </span>
+                </button>
+
+                @if (isReplyThreadOpen(post.id)) {
+                <div class="comments-block">
+                  <div class="comment-list">
+                    @if (getCommentsForPost(post.id).length === 0) {
+                      <p class="comment-empty">No replies yet.</p>
+                    } @else {
+                      @for (comment of getCommentsForPost(post.id); track comment.id) {
+                        <div class="comment-row">
+                          <div class="comment-avatar">
+                            @if (comment.authorPhotoURL) {
+                              <img [src]="comment.authorPhotoURL" alt="Comment author picture" />
+                            } @else {
+                              <span>{{ (comment.authorName || 'P').charAt(0).toUpperCase() }}</span>
+                            }
+                          </div>
+                          <div class="comment-copy">
+                            <p class="comment-meta">{{ comment.authorName }} • {{ comment.createdAt | date: 'short' }}</p>
+                            <p class="comment-body">{{ comment.body }}</p>
+                          </div>
+                        </div>
+                      }
+                    }
                   </div>
-                  <p class="post-meta">{{ post.authorName }} • {{ post.createdAt | date: 'medium' }}</p>
-                </div>
-              </div>
 
-              <p class="post-body">{{ post.body }}</p>
-
-              @if (post.imageUrls.length > 0) {
-                <div class="post-images" [class.single]="post.imageUrls.length === 1">
-                  <a class="post-image-link" *ngFor="let imageUrl of post.imageUrls" [href]="imageUrl" target="_blank" rel="noreferrer">
-                    <img [src]="imageUrl" alt="Forum attachment" />
-                  </a>
-                </div>
-              }
-
-              <div class="post-stats">
-                <span>{{ post.commentCount }} {{ post.commentCount === 1 ? 'reply' : 'replies' }}</span>
-              </div>
-
-              <div class="comments-block">
-                <div class="comment-list">
-                  @if (getCommentsForPost(post.id).length === 0) {
-                    <p class="comment-empty">No replies yet.</p>
-                  } @else {
-                    <div class="comment-row" *ngFor="let comment of getCommentsForPost(post.id); trackBy: trackComment">
-                      <div class="comment-avatar">
-                        @if (comment.authorPhotoURL) {
-                          <img [src]="comment.authorPhotoURL" alt="Comment author picture" />
-                        } @else {
-                          <span>{{ (comment.authorName || 'P').charAt(0).toUpperCase() }}</span>
-                        }
-                      </div>
-                      <div class="comment-copy">
-                        <p class="comment-meta">{{ comment.authorName }} • {{ comment.createdAt | date: 'short' }}</p>
-                        <p class="comment-body">{{ comment.body }}</p>
-                      </div>
+                  @if (loggedIn) {
+                    <div class="comment-composer">
+                      <textarea
+                        [(ngModel)]="commentDrafts[post.id]"
+                        rows="3"
+                        maxlength="400"
+                        placeholder="Reply to this post..."
+                        (keydown)="onCommentKeydown($event, post.id)"
+                      ></textarea>
+                      <button
+                        class="secondary-btn"
+                        type="button"
+                        (click)="submitComment(post.id)"
+                        [disabled]="commentSubmitting[post.id]"
+                      >
+                        {{ commentSubmitting[post.id] ? 'Sending...' : 'Reply' }}
+                      </button>
                     </div>
                   }
                 </div>
-
-                @if (loggedIn) {
-                  <div class="comment-composer">
-                    <textarea
-                      [(ngModel)]="commentDrafts[post.id]"
-                      rows="3"
-                      maxlength="400"
-                      placeholder="Reply to this post..."
-                    ></textarea>
-                    <button
-                      class="secondary-btn"
-                      type="button"
-                      (click)="submitComment(post.id)"
-                      [disabled]="commentSubmitting[post.id]"
-                    >
-                      {{ commentSubmitting[post.id] ? 'Sending...' : 'Reply' }}
-                    </button>
-                  </div>
                 }
-              </div>
-            </article>
+              </article>
+            }
           </div>
         }
       </section>

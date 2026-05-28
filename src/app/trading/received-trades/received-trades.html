@@ -1,80 +1,100 @@
 <div class="received-trades">
   <h2>Received Trade Offers</h2>
 
-  <div *ngIf="error" class="message error">
-    <p>{{ error }}</p>
-  </div>
-
-  <div *ngIf="successMessage" class="message success">
-    <p>{{ successMessage }}</p>
-  </div>
-
-  <div *ngIf="offers.length === 0" class="empty-state">
-    <p>No trade offers or recent trade updates at the moment.</p>
-  </div>
-
-  <div *ngIf="offers.length > 0" class="offers-list">
-    <div *ngFor="let offer of offers" class="trade-card">
-      <div class="card-header">
-        <div>
-          <p class="card-kicker">{{ isPending(offer) ? 'Incoming Offer' : 'Trade Update' }}</p>
-          <h3>Trade with {{ offer.senderName }}</h3>
-          <p class="status-copy">{{ getOfferStatusMessage(offer) }}</p>
-        </div>
-        <span class="badge" [ngClass]="'badge-' + offer.status">{{ getOfferStatusLabel(offer) }}</span>
-      </div>
-
-      <div class="trade-content">
-        <div class="trade-section">
-          <h4 class="section-title">They Offer</h4>
-          <div class="items-list">
-            <div *ngFor="let item of offer.itemsOffered" class="item-row">
-              <span class="item-icon">{{ getItemIcon(item) }}</span>
-              <span class="item-copy">
-                <span class="item-name">{{ getItemName(item) }}</span>
-                <span class="item-meta">{{ item.id || 'custom-item' }}</span>
-              </span>
-              <span *ngIf="item.cost" class="item-cost">{{ item.cost }} Gold</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="exchange-icon">⇄</div>
-
-        <div class="trade-section">
-          <h4 class="section-title">They Want</h4>
-          <div class="items-list">
-            <div *ngFor="let item of offer.itemsRequested" class="item-row">
-              <span class="item-icon">{{ getItemIcon(item) }}</span>
-              <span class="item-copy">
-                <span class="item-name">{{ getItemName(item) }}</span>
-                <span class="item-meta">{{ item.id || 'custom-item' }}</span>
-              </span>
-              <span *ngIf="item.cost" class="item-cost">{{ item.cost }} Gold</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card-footer">
-        <small class="timestamp">{{ getOfferTimestamp(offer) | date: 'short' }}</small>
-        <div *ngIf="isPending(offer)" class="action-buttons">
-          <button
-            class="btn btn-accept"
-            (click)="acceptTrade(offer)"
-            [disabled]="processingId === offer.id"
-          >
-            {{ processingId === offer.id ? 'Processing...' : 'Accept' }}
-          </button>
-          <button
-            class="btn btn-decline"
-            (click)="declineTrade(offer)"
-            [disabled]="processingId === offer.id"
-          >
-            {{ processingId === offer.id ? 'Processing...' : 'Decline' }}
-          </button>
-        </div>
-      </div>
+  @if (error) {
+    <div class="message error">
+      <p>{{ error }}</p>
     </div>
-  </div>
+  }
+
+  @if (successMessage) {
+    <div class="message success">
+      <p>{{ successMessage }}</p>
+    </div>
+  }
+
+  @if (offers.length === 0) {
+    <div class="empty-state">
+      <p>No trade offers or recent trade updates at the moment.</p>
+    </div>
+  }
+
+  @if (offers.length > 0) {
+    <div class="offers-list">
+      @for (offer of offers; track offer.id || offer.createdAt || $index) {
+        <div class="trade-card">
+          <div class="card-header">
+            <div>
+              <p class="card-kicker">{{ isPending(offer) ? 'Incoming Offer' : 'Trade Update' }}</p>
+              <h3>Trade with {{ offer.senderName }}</h3>
+              <p class="status-copy">{{ getOfferStatusMessage(offer) }}</p>
+            </div>
+            <span class="badge" [ngClass]="'badge-' + offer.status">{{ getOfferStatusLabel(offer) }}</span>
+          </div>
+
+          <div class="trade-content">
+            <div class="trade-section">
+              <h4 class="section-title">They Offer</h4>
+              <div class="items-list">
+                @for (item of offer.itemsOffered; track item.id || item.name || $index) {
+                  <div class="item-row">
+                    <span class="item-icon">{{ getItemIcon(item) }}</span>
+                    <span class="item-copy">
+                      <span class="item-name">{{ getItemName(item) }}</span>
+                      <span class="item-meta">{{ item.id || 'custom-item' }}</span>
+                    </span>
+                    @if (item.cost) {
+                      <span class="item-cost">{{ item.cost }} Gold</span>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+
+            <div class="exchange-icon">⇄</div>
+
+            <div class="trade-section">
+              <h4 class="section-title">They Want</h4>
+              <div class="items-list">
+                @for (item of offer.itemsRequested; track item.id || item.name || $index) {
+                  <div class="item-row">
+                    <span class="item-icon">{{ getItemIcon(item) }}</span>
+                    <span class="item-copy">
+                      <span class="item-name">{{ getItemName(item) }}</span>
+                      <span class="item-meta">{{ item.id || 'custom-item' }}</span>
+                    </span>
+                    @if (item.cost) {
+                      <span class="item-cost">{{ item.cost }} Gold</span>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="card-footer">
+            <small class="timestamp">{{ getOfferTimestamp(offer) | date: 'short' }}</small>
+            @if (isPending(offer)) {
+              <div class="action-buttons">
+                <button
+                  class="btn btn-accept"
+                  (click)="acceptTrade(offer)"
+                  [disabled]="processingId === offer.id"
+                >
+                  {{ processingId === offer.id ? 'Processing...' : 'Accept' }}
+                </button>
+                <button
+                  class="btn btn-decline"
+                  (click)="declineTrade(offer)"
+                  [disabled]="processingId === offer.id"
+                >
+                  {{ processingId === offer.id ? 'Processing...' : 'Decline' }}
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
 </div>

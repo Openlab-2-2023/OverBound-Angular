@@ -33,10 +33,12 @@
 			</div>
 		}
 
-		<div class="login-controls" *ngIf="mode === 'login' || mode === 'register'">
-			<button [class.active]="mode==='login'" (click)="switchMode('login')">Login</button>
-			<button [class.active]="mode==='register'" (click)="switchMode('register')">Register</button>
-		</div>
+		@if (mode === 'login' || mode === 'register') {
+			<div class="login-controls">
+				<button [class.active]="mode==='login'" (click)="switchMode('login')">Login</button>
+				<button [class.active]="mode==='register'" (click)="switchMode('register')">Register</button>
+			</div>
+		}
 
 		<form (submit)="submit(); $event.preventDefault();" [class.reset-form]="mode === 'reset'">
 			@if (message) {
