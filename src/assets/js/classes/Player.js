@@ -171,21 +171,30 @@ class Player extends Sprite  {
     this.velocity.x = 0
     this.velocity.y = 0
 
-    level = 1
-    this.resetHealth()
+    const respawn = () => {
+      level = 1
+      window.level = level
+      this.resetHealth()
 
-    if (levels[level] && typeof levels[level].init === 'function') {
-      levels[level].init()
+      if (levels[level] && typeof levels[level].init === 'function') {
+        levels[level].init()
+      }
+
+      if (typeof resetMovementGuide === 'function') {
+        resetMovementGuide()
+      }
+
+      this.switchSprite('idleRight')
     }
 
-    if (typeof resetMovementGuide === 'function') {
-      resetMovementGuide()
-    }
+    if (typeof playDeathRespawnTransition === 'function') {
+      playDeathRespawnTransition(respawn)
+    } else {
+      respawn()
 
-    this.switchSprite('idleRight')
-
-    if (typeof overlay !== 'undefined') {
-      overlay.opacity = 0
+      if (typeof overlay !== 'undefined') {
+        overlay.opacity = 0
+      }
     }
   }
 
@@ -400,7 +409,7 @@ detectRisk() {
 
     for (let i = 0; i < enemies.length; i++) {
       const enemy = enemies[i]
-      if (!enemy || !enemy.hitbox) continue
+      if (!enemy || enemy.isDead || enemy.isDying || !enemy.hitbox) continue
 
       const eBox = enemy.hitbox
 
@@ -435,6 +444,8 @@ detectEnemy() {
 
     for(let i = 0; i < enemies.length; i++) {
       const enemy = enemies[i]
+      if (!enemy || enemy.isDead || enemy.isDying) continue
+
       // prefer enemy's damage hitbox if available
       const damageBox = enemy.damageHitbox || {
         position: enemy.position,
@@ -610,10 +621,19 @@ detectCloud() {
           this.isTransitioningLevel = true
           player.velocity.x = 0
 
-          const goToNextLevel = () => {
-            level++
-            if (levels[level] && typeof levels[level].init === 'function') {
+          const changeLevel = () => {
+            const targetLevel = portal.targetLevel || level + 1
+            const targetSpawnPosition = portal.targetSpawnPosition
+
+            if (levels[targetLevel] && typeof levels[targetLevel].init === 'function') {
+              level = targetLevel
+              window.level = level
               levels[level].init()
+
+              if (targetSpawnPosition) {
+                player.position.x = targetSpawnPosition.x
+                player.position.y = targetSpawnPosition.y
+              }
             }
           }
 
@@ -621,23 +641,15 @@ detectCloud() {
             this.isTransitioningLevel = false
           }
 
-          if (typeof gsap !== 'undefined') {
-            gsap.to(overlay, {
-              opacity: 1,
-              duration: 0.5,
-              onComplete: () => {
-                goToNextLevel()
-                gsap.to(overlay, {
-                  opacity: 0,
-                  duration: 0.5,
-                  onComplete: finishTransition
-                })
-              }
+          if (typeof fadeGameOverlayTo === 'function') {
+            fadeGameOverlayTo(1, 0.5, () => {
+              changeLevel()
+              fadeGameOverlayTo(0, 0.5, finishTransition)
             })
           } else {
             overlay.opacity = 1
             setTimeout(() => {
-              goToNextLevel()
+              changeLevel()
               setTimeout(() => {
                 overlay.opacity = 0
                 finishTransition()

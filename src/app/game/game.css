@@ -19,6 +19,57 @@ canvas {
   height: 100vh;
 }
 
+.pause-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.48);
+}
+
+.pause-menu__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(320px, calc(100vw - 40px));
+  padding: 24px;
+  color: #f7f7f7;
+  background: rgba(8, 10, 12, 0.96);
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+}
+
+.pause-menu__panel h2 {
+  margin: 0 0 8px;
+  font-size: 34px;
+  line-height: 1;
+  text-align: center;
+}
+
+.pause-menu__panel button {
+  height: 48px;
+  color: #0b1117;
+  background: #f2c94c;
+  border: 0;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.pause-menu__panel button:hover {
+  filter: brightness(1.08);
+}
+
+.pause-menu__panel .pause-menu__quit {
+  color: #f7f7f7;
+  background: rgba(255, 255, 255, 0.12);
+  border: 2px solid rgba(255, 255, 255, 0.62);
+}
+
 .npc-chat {
   position: fixed;
   right: 24px;

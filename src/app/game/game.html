@@ -2,6 +2,14 @@
 <div class="game-shell">
   <canvas #gameCanvas></canvas>
 
+  <section class="pause-menu" *ngIf="gamePaused" aria-label="Pause menu">
+    <div class="pause-menu__panel">
+      <h2>Paused</h2>
+      <button type="button" (click)="resumeGame()">Resume</button>
+      <button type="button" class="pause-menu__quit" (click)="quitGame()">Quit Game</button>
+    </div>
+  </section>
+
   <section class="npc-chat" *ngIf="npcChatOpen" aria-label="NPC chat">
     <header class="npc-chat__header">
       <div>

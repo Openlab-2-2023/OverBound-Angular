@@ -159,17 +159,10 @@ function createPlayerAnimations(skinId = getSelectedCharacterSkinId()) {
           player.switchSprite('idleRight')
         }
 
-        if (typeof gsap !== 'undefined') {
-          gsap.to(overlay, {
-            opacity: 1,
-            duration: 0.5,
-            onComplete: () => {
-              restartLevel()
-              gsap.to(overlay, {
-                opacity: 0,
-                duration: 0.5
-              })
-            }
+        if (typeof fadeGameOverlayTo === 'function') {
+          fadeGameOverlayTo(1, 0.5, () => {
+            restartLevel()
+            fadeGameOverlayTo(0, 0.5)
           })
         } else {
           overlay.opacity = 1
@@ -260,7 +253,7 @@ const enemySpriteConfigs = {
     hitboxBodyOffsetY: 200,
     damageHitboxBodyOffsetX: 85,
     damageHitboxBodyOffsetY: 200,
-    hitboxWidth: 70,
+    hitboxWidth: 100,
     hitboxHeight: 300,
     debug: false,
   },

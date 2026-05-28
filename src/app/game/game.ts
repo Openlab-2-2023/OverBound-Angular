@@ -33,6 +33,7 @@ export class GameComponent implements AfterViewInit, OnDestroy {
   npcQuestion = '';
   npcThinking = false;
   npcMessages: NpcChatMessage[] = [];
+  gamePaused = false;
 
   private openNpcChatHandler = (event: Event) => {
     const detail = (event as CustomEvent).detail || {};
@@ -42,10 +43,19 @@ export class GameComponent implements AfterViewInit, OnDestroy {
     });
   };
 
-  private closeNpcChatHandler = (event: KeyboardEvent) => {
-    if (event.code === 'Escape' && this.npcChatOpen) {
-      this.zone.run(() => this.closeNpcChat());
+  private gameKeydownHandler = (event: KeyboardEvent) => {
+    if (event.code !== 'Escape') {
+      return;
     }
+
+    event.preventDefault();
+
+    if (this.npcChatOpen) {
+      this.zone.run(() => this.closeNpcChat());
+      return;
+    }
+
+    this.zone.run(() => this.togglePauseMenu());
   };
 
   constructor(
@@ -60,6 +70,7 @@ export class GameComponent implements AfterViewInit, OnDestroy {
 
     (window as any).canvas = canvas;
     (window as any).npcChatOpen = false;
+    (window as any).gamePaused = false;
     (window as any).openNpcChat = (detail: unknown) => {
       this.zone.run(() => this.openNpcChatFromDetail(detail));
     };
@@ -67,7 +78,8 @@ export class GameComponent implements AfterViewInit, OnDestroy {
       this.zone.run(() => this.closeNpcChat());
     };
     window.addEventListener('openNpcChat', this.openNpcChatHandler);
-    window.addEventListener('keydown', this.closeNpcChatHandler);
+    window.addEventListener('keydown', this.gameKeydownHandler);
+    this.syncEarnedGoldHud();
 
     // Called from the plain JS game code when an enemy dies.
     // Awards +10 gold to the currently logged-in player and persists it.
@@ -77,21 +89,13 @@ export class GameComponent implements AfterViewInit, OnDestroy {
         return;
       }
 
-      // trigger small gold gain animation in the canvas HUD, if available
-      try {
-        if (typeof (window as any)._addGoldGainFx === 'function') {
-          (window as any)._addGoldGainFx(10);
-        }
-      } catch {
-        // ignore HUD errors, keep gameplay running
-      }
-
       const currentGold =
         Number.isFinite(Number((current as any).gold)) ? Number((current as any).gold) : 0;
       const currentTotalGold =
         Number.isFinite(Number((current as any).totalGoldCollected)) ? Number((current as any).totalGoldCollected) : 0;
       const nextGold = currentGold + 10;
       const nextTotalGold = currentTotalGold + 10;
+      this.setEarnedGoldHud(nextTotalGold);
 
       this.auth
         .updateProfile({ gold: nextGold, totalGoldCollected: nextTotalGold })
@@ -118,10 +122,13 @@ export class GameComponent implements AfterViewInit, OnDestroy {
 
   ngOnDestroy() {
     window.removeEventListener('openNpcChat', this.openNpcChatHandler);
-    window.removeEventListener('keydown', this.closeNpcChatHandler);
+    window.removeEventListener('keydown', this.gameKeydownHandler);
     (window as any).npcChatOpen = false;
+    (window as any).gamePaused = false;
     delete (window as any).openNpcChat;
     delete (window as any).closeNpcChat;
+    delete (window as any).onEnemyKilled;
+    delete (window as any).goToEndScreen;
 
     if (typeof (window as any).stopGame === 'function') {
       (window as any).stopGame();
@@ -143,7 +150,24 @@ export class GameComponent implements AfterViewInit, OnDestroy {
       (window as any).applyCharacterSkin(selectedSkin);
     }
 
+    this.syncEarnedGoldHud();
     (window as any).startGame();
+  }
+
+  private syncEarnedGoldHud() {
+    const current = this.auth.getCurrent();
+    const totalGoldCollected = Number.isFinite(Number((current as any)?.totalGoldCollected))
+      ? Number((current as any).totalGoldCollected)
+      : 0;
+    this.setEarnedGoldHud(totalGoldCollected);
+  }
+
+  private setEarnedGoldHud(totalGoldCollected: number) {
+    (window as any).overboundTotalGoldCollected = totalGoldCollected;
+
+    if (typeof (window as any).setEarnedGoldHud === 'function') {
+      (window as any).setEarnedGoldHud(totalGoldCollected);
+    }
   }
 
   private getEquippedCharacterSkin(): string {
@@ -193,6 +217,30 @@ export class GameComponent implements AfterViewInit, OnDestroy {
     this.npcChatOpen = false;
     this.npcQuestion = '';
     (window as any).npcChatOpen = false;
+    this.cdr.detectChanges();
+  }
+
+  togglePauseMenu() {
+    this.setPaused(!this.gamePaused);
+  }
+
+  resumeGame() {
+    this.setPaused(false);
+  }
+
+  quitGame() {
+    this.setPaused(false);
+    this.router.navigate(['/']);
+  }
+
+  private setPaused(paused: boolean) {
+    this.gamePaused = paused;
+    (window as any).gamePaused = paused;
+
+    if (typeof (window as any).setGamePaused === 'function') {
+      (window as any).setGamePaused(paused);
+    }
+
     this.cdr.detectChanges();
   }
 

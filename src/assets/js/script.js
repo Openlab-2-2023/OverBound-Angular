@@ -2,17 +2,28 @@ var canvas, c;
 const SCALE = 0.4;
 const PARALLAX_FACTOR = 1.5;
 const INV_SCALE = 1 / SCALE;
-// simple HUD state for recent gold gains
-var goldGainFx = [];
 var animationFrameId = null;
 var resizeGameCanvas = null;
 var healthBarImages = null;
+var gamePaused = false;
+var overlayTweenFrame = null;
+var hudTotalGoldCollected = 0;
 var movementGuide = {
   active: false,
   startedAt: 0,
 };
+var attackGuide = {
+  active: false,
+  startedAt: 0,
+};
+var deathScreen = {
+  active: false,
+  text: 'YOU DIED',
+};
 
 function stopGame() {
+  setGamePaused(false);
+
   if (animationFrameId !== null) {
     window.cancelAnimationFrame(animationFrameId);
     animationFrameId = null;
@@ -20,6 +31,15 @@ function stopGame() {
   if (resizeGameCanvas) {
     window.removeEventListener('resize', resizeGameCanvas);
     resizeGameCanvas = null;
+  }
+}
+
+function setGamePaused(paused) {
+  gamePaused = Boolean(paused);
+  window.gamePaused = gamePaused;
+
+  if (gamePaused && typeof resetGameplayKeys === 'function') {
+    resetGameplayKeys();
   }
 }
 
@@ -91,7 +111,34 @@ function drawHealthBar() {
     c.drawImage(frameImage, x, y, size, size);
   }
 
+  const totalGold = Number.isFinite(Number(hudTotalGoldCollected))
+    ? Math.max(0, Math.floor(Number(hudTotalGoldCollected)))
+    : 0;
+  const totalGoldText = `${totalGold} ◈`;
+  const textX = 110;
+  const textY = 80;
+  c.font = '700 22px "Silkscreen", "Pixelify Sans", Arial';
+  const textWidth = c.measureText(totalGoldText).width;
+  const boxWidth = Math.max(88, textWidth + 24);
+
+  c.fillStyle = 'rgba(0, 0, 0, 0.72)';
+  c.strokeStyle = 'rgba(255, 255, 255, 0.82)';
+  c.lineWidth = 2;
+  c.beginPath();
+  c.roundRect(textX, textY, boxWidth, 34, 5);
+  c.fill();
+  c.stroke();
+
+  c.fillStyle = '#ffd84a';
+  c.textAlign = 'left';
+  c.textBaseline = 'middle';
+  c.fillText(totalGoldText, textX + 12, textY + 18);
+
   c.restore();
+}
+
+function setEarnedGoldHud(totalGold) {
+  hudTotalGoldCollected = Number.isFinite(Number(totalGold)) ? Number(totalGold) : 0;
 }
 
 function resetMovementGuide() {
@@ -101,6 +148,15 @@ function resetMovementGuide() {
 
 function dismissMovementGuide() {
   movementGuide.active = false;
+}
+
+function resetAttackGuide() {
+  attackGuide.active = true;
+  attackGuide.startedAt = performance.now ? performance.now() : Date.now();
+}
+
+function dismissAttackGuide() {
+  attackGuide.active = false;
 }
 
 function drawMovementGuide() {
@@ -146,22 +202,192 @@ function drawMovementGuide() {
     c.stroke();
 
     c.fillStyle = 'white';
-    c.font = '700 100px "Pixelify Sans", Arial';
+    const fontSize = label.length > 6 ? 42 : label.length > 1 ? 64 : 100;
+    c.font = `700 ${fontSize}px "Pixelify Sans", Arial`;
     c.textAlign = 'center';
     c.textBaseline = 'middle';
     c.fillText(label, x + keyWidth / 2, y + bob + keyHeight / 2 + 1);
     c.restore();
   }
 
-  drawKey('W', centerX - keyWidth / 2, topY);
-  drawKey('A', centerX - keyWidth - gap / 2, topY + keyHeight + gap);
-  drawKey('D', centerX + gap / 2, topY + keyHeight + gap);
+  const keybinds = window.overboundKeybinds || {};
+  drawKey(formatKeybindLabel(keybinds.jump || 'KeyW'), centerX - keyWidth / 2, topY);
+  drawKey(formatKeybindLabel(keybinds.moveLeft || 'KeyA'), centerX - keyWidth - gap / 2, topY + keyHeight + gap);
+  drawKey(formatKeybindLabel(keybinds.moveRight || 'KeyD'), centerX + gap / 2, topY + keyHeight + gap);
+}
+
+function drawAttackGuide() {
+  if (!attackGuide.active || typeof player === 'undefined' || player.isDead) return;
+
+  const now = performance.now ? performance.now() : Date.now();
+  const elapsed = now - attackGuide.startedAt;
+  if (elapsed >= 3500) {
+    dismissAttackGuide();
+    return;
+  }
+
+  const fadeStart = 2400;
+  const opacity = elapsed <= fadeStart
+    ? 1
+    : Math.max(0, 1 - (elapsed - fadeStart) / (3500 - fadeStart));
+
+  const box = player.hitbox || {
+    position: {
+      x: player.position.x + 130,
+      y: player.position.y + 10,
+    },
+    width: 70,
+    height: 300,
+  };
+
+  const bob = Math.sin(elapsed / 260) * 6;
+  const keybinds = window.overboundKeybinds || {};
+  const label = formatKeybindLabel(keybinds.attack || 'KeyI');
+  const keyWidth = 200;
+  const keyHeight = 150;
+  const keyX = box.position.x + box.width + 150;
+  const keyY = box.position.y - 250;
+
+  c.save();
+  c.globalAlpha = opacity;
+  c.fillStyle = 'rgba(0, 0, 0, 0.72)';
+  c.strokeStyle = 'rgba(255, 255, 255, 0.88)';
+  c.lineWidth = 6;
+  c.beginPath();
+  c.roundRect(keyX, keyY + bob, keyWidth, keyHeight, 6);
+  c.fill();
+  c.stroke();
+
+  c.fillStyle = 'white';
+  const fontSize = label.length > 6 ? 42 : label.length > 1 ? 64 : 100;
+  c.font = `700 ${fontSize}px "Pixelify Sans", Arial`;
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.fillText(label, keyX + keyWidth / 2, keyY + bob + keyHeight / 2 + 1);
+
+  c.strokeStyle = '#ffd84a';
+  c.lineWidth = 12;
+  c.lineCap = 'round';
+  c.beginPath();
+  c.moveTo(keyX + keyWidth + 70, keyY + bob + 25);
+  c.quadraticCurveTo(keyX + keyWidth + 190, keyY + bob + 70, keyX + keyWidth + 80, keyY + bob + 135);
+  c.stroke();
+  c.restore();
+}
+
+function fadeGameOverlayTo(opacity, duration = 0.5, onComplete) {
+  const targetOpacity = Math.max(0, Math.min(1, opacity));
+
+  if (typeof overlay === 'undefined') {
+    if (typeof onComplete === 'function') onComplete();
+    return;
+  }
+
+  if (overlayTweenFrame !== null) {
+    window.cancelAnimationFrame(overlayTweenFrame);
+    overlayTweenFrame = null;
+  }
+
+  if (typeof gsap !== 'undefined') {
+    gsap.killTweensOf(overlay);
+    gsap.to(overlay, {
+      opacity: targetOpacity,
+      duration: duration,
+      onComplete: onComplete
+    });
+    return;
+  }
+
+  const startOpacity = Number.isFinite(overlay.opacity) ? overlay.opacity : 0;
+  const startedAt = performance.now ? performance.now() : Date.now();
+  const durationMs = Math.max(0, duration * 1000);
+
+  if (durationMs === 0) {
+    overlay.opacity = targetOpacity;
+    if (typeof onComplete === 'function') onComplete();
+    return;
+  }
+
+  const tick = () => {
+    const now = performance.now ? performance.now() : Date.now();
+    const progress = Math.min(1, (now - startedAt) / durationMs);
+    overlay.opacity = startOpacity + (targetOpacity - startOpacity) * progress;
+
+    if (progress < 1) {
+      overlayTweenFrame = window.requestAnimationFrame(tick);
+      return;
+    }
+
+    overlayTweenFrame = null;
+    if (typeof onComplete === 'function') onComplete();
+  };
+
+  overlayTweenFrame = window.requestAnimationFrame(tick);
+}
+
+function drawDeathScreen() {
+  if (!deathScreen.active || !canvas || !c) return;
+
+  c.save();
+  c.setTransform(1, 0, 0, 1, 0, 0);
+  c.globalAlpha = Math.max(0, Math.min(1, overlay?.opacity ?? 1));
+  c.fillStyle = '#f2f2f2';
+  c.font = '700 104px "Silkscreen", "Pixelify Sans", Arial';
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.fillText(deathScreen.text, canvas.width / 2, canvas.height / 2);
+  c.restore();
+}
+
+function playDeathRespawnTransition(respawn) {
+  deathScreen.active = true;
+
+  const finishRespawn = () => {
+    if (typeof respawn === 'function') {
+      respawn();
+    }
+
+    window.setTimeout(() => {
+      fadeGameOverlayTo(0, 1, () => {
+        deathScreen.active = false;
+      });
+    }, 500);
+  };
+
+  if (typeof fadeGameOverlayTo === 'function') {
+    fadeGameOverlayTo(1, 0.9, () => {
+      window.setTimeout(finishRespawn, 850);
+    });
+    return;
+  }
+
+  if (typeof overlay !== 'undefined') {
+    overlay.opacity = 1;
+  }
+  window.setTimeout(() => {
+    finishRespawn();
+    if (typeof overlay !== 'undefined') {
+      overlay.opacity = 0;
+    }
+  }, 900);
+}
+
+function formatKeybindLabel(code) {
+  if (code === 'Space') return 'Space';
+  if (code.startsWith('Key')) return code.replace('Key', '');
+  if (code.startsWith('Digit')) return code.replace('Digit', '');
+  if (code.startsWith('Arrow')) return code.replace('Arrow', 'Arrow ');
+  return code;
 }
 
 function startGame() {
   stopGame();
 
   canvas = window.canvas;
+  if (typeof overlay !== 'undefined') {
+    overlay.opacity = 1;
+  }
+  let initialFadeStarted = false;
 
   const camera = new Camera()
 
@@ -177,47 +403,6 @@ function startGame() {
   resizeGameCanvas();
   window.addEventListener('resize', resizeGameCanvas);
 
-  // expose HUD helpers if needed from other scripts
-  window._addGoldGainFx = function (amount) {
-    if (!canvas) return;
-    const now = performance.now ? performance.now() : Date.now();
-    goldGainFx.push({
-      amount: amount,
-      startTime: now,
-      duration: 1000, // ms
-    });
-  };
-
-  function drawGoldGainFx() {
-    if (!goldGainFx.length) return;
-    const now = performance.now ? performance.now() : Date.now();
-    const keep = [];
-
-    for (var i = 0; i < goldGainFx.length; i++) {
-      var fx = goldGainFx[i];
-      var elapsed = now - fx.startTime;
-      if (elapsed >= fx.duration) {
-        continue;
-      }
-      keep.push(fx);
-
-      var tNorm = elapsed / fx.duration; // 0..1
-      var alpha = 1 - tNorm;
-      var offsetY = tNorm * 30; // float upward
-
-      c.save();
-      c.setTransform(1, 0, 0, 1, 0, 0);
-      c.globalAlpha = alpha;
-      c.fillStyle = '#ffd84a';
-      c.font = '32px Arial';
-      var text = '+' + fx.amount + ' ◈';
-      c.fillText(text, 24, 40 - offsetY);
-      c.restore();
-    }
-
-    goldGainFx = keep;
-  }
-
   // console.log(screen.width)
   // console.log(screen.height)
   // console.log('levels:', window.levels);
@@ -227,6 +412,10 @@ function startGame() {
 
   function animate() {
     animationFrameId = window.requestAnimationFrame(animate);
+
+    if (gamePaused || window.gamePaused) {
+      return;
+    }
 
     c.setTransform(1, 0, 0, 1, 0, 0);
 
@@ -275,6 +464,7 @@ function startGame() {
     }
     player.draw();
     drawMovementGuide();
+    drawAttackGuide();
     if (typeof foregrounds !== 'undefined' && foregrounds && foregrounds.length) {
       const parallaxOffsetX = camera.position.x * (PARALLAX_FACTOR - 1);
 
@@ -331,7 +521,6 @@ function startGame() {
 
     // HUD overlays (screen space)
     drawHealthBar();
-    drawGoldGainFx();
 
     c.save();
     c.setTransform(1, 0, 0, 1, 0, 0);
@@ -339,6 +528,12 @@ function startGame() {
     c.fillStyle = "black";
     c.fillRect(0, 0, canvas.width, canvas.height);
     c.restore();
+    drawDeathScreen();
+
+    if (!initialFadeStarted) {
+      initialFadeStarted = true;
+      window.requestAnimationFrame(() => fadeGameOverlayTo(0, 0.55));
+    }
   }
 
   animate();
@@ -346,3 +541,7 @@ function startGame() {
 
 window.startGame = startGame;
 window.stopGame = stopGame;
+window.setGamePaused = setGamePaused;
+window.fadeGameOverlayTo = fadeGameOverlayTo;
+window.setEarnedGoldHud = setEarnedGoldHud;
+window.playDeathRespawnTransition = playDeathRespawnTransition;

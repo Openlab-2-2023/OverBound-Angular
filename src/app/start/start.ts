@@ -1,10 +1,12 @@
-import { Component, signal, ViewChild, ElementRef, OnDestroy, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, signal, ViewChild, ElementRef, OnDestroy, OnInit, ChangeDetectorRef, HostListener } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService, User } from '../services/auth.service';
 import { FIREBASE_SDK_CONFIG } from '../services/firebase.sdk.config';
 import { STORE_ITEMS, StoreItem } from '../store/store-catalog';
 import { TradingService } from '../services/trading.service';
+
+type KeybindAction = 'moveLeft' | 'moveRight' | 'jump' | 'jumpAlt' | 'crouch' | 'dash' | 'attack' | 'talk';
 
 @Component({
   selector: 'app-start',
@@ -14,8 +16,32 @@ import { TradingService } from '../services/trading.service';
   styleUrl: './start.css',
 })
 export class Start implements OnInit, OnDestroy {
+  private readonly keybindStorageKey = 'overbound_keybinds_v1';
+  private readonly defaultKeybinds: Record<KeybindAction, string> = {
+    moveLeft: 'KeyA',
+    moveRight: 'KeyD',
+    jump: 'KeyW',
+    jumpAlt: 'Space',
+    crouch: 'KeyS',
+    dash: 'KeyO',
+    attack: 'KeyI',
+    talk: 'KeyE',
+  };
+
   showSettings = signal(false);
   showCredits = signal(false);
+  rebindingAction: KeybindAction | null = null;
+  keybinds: Record<KeybindAction, string> = { ...this.defaultKeybinds };
+  keybindRows: Array<{ action: KeybindAction; label: string }> = [
+    { action: 'moveLeft', label: 'Move Left' },
+    { action: 'moveRight', label: 'Move Right' },
+    { action: 'jump', label: 'Jump' },
+    { action: 'jumpAlt', label: 'Jump Alt' },
+    { action: 'crouch', label: 'Crouch' },
+    { action: 'dash', label: 'Dash' },
+    { action: 'attack', label: 'Attack' },
+    { action: 'talk', label: 'Talk' },
+  ];
   leaderboardFilter: 'gold-desc' | 'items-desc' = 'gold-desc';
   leaderboardFilterOpen = false;
   storeFilter: 'all' | 'frame' | 'skin' = 'all';
@@ -53,6 +79,7 @@ export class Start implements OnInit, OnDestroy {
   ) {}
 
   async ngOnInit() {
+    this.loadKeybinds();
     await this.auth.refreshCurrentUserFromDatabase();
     this.refreshCurrentUser();
     this.refreshStoreGold();
@@ -102,11 +129,104 @@ export class Start implements OnInit, OnDestroy {
 
   this.playFadeThenNavigate(['/game']);
 }
-  openSettings() { this.showSettings.set(true); }
-  closeSettings() { this.showSettings.set(false); }
+  openSettings() {
+    this.loadKeybinds();
+    this.showSettings.set(true);
+  }
+
+  closeSettings() {
+    this.rebindingAction = null;
+    this.showSettings.set(false);
+  }
 
   openCredits() { this.showCredits.set(true); }
   closeCredits() { this.showCredits.set(false); }
+
+  beginRebind(action: KeybindAction, event?: Event) {
+    event?.stopPropagation();
+    this.rebindingAction = action;
+  }
+
+  resetKeybinds(event?: Event) {
+    event?.stopPropagation();
+    this.keybinds = { ...this.defaultKeybinds };
+    this.saveKeybinds();
+    this.rebindingAction = null;
+  }
+
+  getKeybindLabel(action: KeybindAction): string {
+    return this.formatKeyCode(this.keybinds[action]);
+  }
+
+  getRebindButtonLabel(action: KeybindAction): string {
+    return this.rebindingAction === action ? 'Press key' : this.getKeybindLabel(action);
+  }
+
+  @HostListener('window:keydown', ['$event'])
+  onWindowKeydown(event: KeyboardEvent) {
+    if (!this.showSettings() || !this.rebindingAction) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (event.code === 'Escape') {
+      this.rebindingAction = null;
+      return;
+    }
+
+    const blockedCodes = new Set(['Tab', 'CapsLock', 'ShiftLeft', 'ShiftRight', 'ControlLeft', 'ControlRight', 'AltLeft', 'AltRight', 'MetaLeft', 'MetaRight']);
+    if (blockedCodes.has(event.code)) return;
+
+    const previousCode = this.keybinds[this.rebindingAction];
+    const duplicateAction = this.keybindRows.find((row) => row.action !== this.rebindingAction && this.keybinds[row.action] === event.code)?.action;
+    const nextKeybinds = {
+      ...this.keybinds,
+      [this.rebindingAction]: event.code,
+    };
+
+    if (duplicateAction) {
+      nextKeybinds[duplicateAction] = previousCode;
+    }
+
+    this.keybinds = nextKeybinds;
+    this.saveKeybinds();
+    this.rebindingAction = null;
+  }
+
+  private loadKeybinds() {
+    try {
+      const savedKeybinds = JSON.parse(localStorage.getItem(this.keybindStorageKey) || '{}') as Partial<Record<KeybindAction, string>>;
+      this.keybinds = {
+        ...this.defaultKeybinds,
+        ...savedKeybinds,
+      };
+    } catch {
+      this.keybinds = { ...this.defaultKeybinds };
+    }
+  }
+
+  private saveKeybinds() {
+    localStorage.setItem(this.keybindStorageKey, JSON.stringify(this.keybinds));
+
+    const gameWindow = window as Window & {
+      setOverboundKeybinds?: (keybinds: Record<KeybindAction, string>) => void;
+    };
+
+    if (typeof gameWindow.setOverboundKeybinds === 'function') {
+      gameWindow.setOverboundKeybinds(this.keybinds);
+    } else {
+      window.dispatchEvent(new CustomEvent('overbound:keybinds-updated'));
+    }
+  }
+
+  private formatKeyCode(code: string): string {
+    if (code === 'Space') return 'Space';
+    if (code.startsWith('Key')) return code.replace('Key', '');
+    if (code.startsWith('Digit')) return code.replace('Digit', '');
+    if (code.startsWith('Arrow')) return code.replace('Arrow', 'Arrow ');
+    if (code.startsWith('Numpad')) return code.replace('Numpad', 'Numpad ');
+    return code;
+  }
 
   isLoggedIn() { return this.auth.isLoggedIn(); }
 

@@ -22,8 +22,65 @@ let keys = {
   },
 };
 
+const KEYBINDS_STORAGE_KEY = 'overbound_keybinds_v1';
+const DEFAULT_KEYBINDS = {
+  moveLeft: 'KeyA',
+  moveRight: 'KeyD',
+  crouch: 'KeyS',
+  jump: 'KeyW',
+  jumpAlt: 'Space',
+  dash: 'KeyO',
+  attack: 'KeyI',
+  talk: 'KeyE',
+};
+
+let keybinds = loadKeybinds();
+
+function loadKeybinds() {
+  try {
+    const savedKeybinds = JSON.parse(localStorage.getItem(KEYBINDS_STORAGE_KEY) || '{}');
+    return {
+      ...DEFAULT_KEYBINDS,
+      ...savedKeybinds,
+    };
+  } catch (error) {
+    return { ...DEFAULT_KEYBINDS };
+  }
+}
+
+function saveKeybinds(nextKeybinds) {
+  keybinds = {
+    ...DEFAULT_KEYBINDS,
+    ...nextKeybinds,
+  };
+  localStorage.setItem(KEYBINDS_STORAGE_KEY, JSON.stringify(keybinds));
+  window.overboundKeybinds = { ...keybinds };
+}
+
+function getActionForCode(code) {
+  for (const action in keybinds) {
+    if (keybinds[action] === code) return action;
+  }
+
+  return null;
+}
+
+window.overboundKeybindDefaults = { ...DEFAULT_KEYBINDS };
+window.overboundKeybinds = { ...keybinds };
+window.setOverboundKeybinds = saveKeybinds;
+
+window.addEventListener('overbound:keybinds-updated', () => {
+  keybinds = loadKeybinds();
+  window.overboundKeybinds = { ...keybinds };
+  resetGameplayKeys();
+});
+
 function isNpcChatOpen() {
   return Boolean(window.npcChatOpen);
+}
+
+function isGamePaused() {
+  return Boolean(window.gamePaused);
 }
 
 function resetGameplayKeys() {
@@ -32,10 +89,18 @@ function resetGameplayKeys() {
   keys.s.pressed = false;
   keys.w.pressed = false;
   keys.e.pressed = false;
+  keys.o.pressed = false;
   keys.i.pressed = false;
 }
 
 window.addEventListener("keydown", (event) => {
+  if (isGamePaused()) {
+    resetGameplayKeys();
+    return;
+  }
+
+  const action = getActionForCode(event.code);
+
   if (isNpcChatOpen()) {
     if (event.code === 'Escape') {
       if (typeof window.closeNpcChat === 'function') {
@@ -48,21 +113,25 @@ window.addEventListener("keydown", (event) => {
     return;
   }
 
-  switch (event.code) {
-    case "KeyD":
+  if (action === 'jump' || action === 'jumpAlt') {
+    event.preventDefault();
+  }
+
+  switch (action) {
+    case "moveRight":
       // move right (D)
       keys.d.pressed = true;
       break;
-    case "KeyA":
+    case "moveLeft":
       //move left (A)
       keys.a.pressed = true;
       break;
-    case "KeyS":
+    case "crouch":
       //duckujes 
       keys.s.pressed = true;
       break;
-    case "Space":
-    case "KeyW":
+    case "jump":
+    case "jumpAlt":
       keys.w.pressed = true;
 
       if(keys.s.pressed && player.velocity.y == 0) {
@@ -86,16 +155,19 @@ window.addEventListener("keydown", (event) => {
 
       break;
 
-      case "KeyE":
+      case "talk":
       if (event.repeat) break;
       keys.e.pressed = true;
       keys.e.usedForNpc = false;
       break;
 
-      case "KeyI":
+      case "attack":
       // attack key (I) – one-shot per press
       if (event.repeat) break;
       keys.i.pressed = true;
+      if (typeof dismissAttackGuide === 'function') {
+        dismissAttackGuide();
+      }
       if (typeof player !== 'undefined' && typeof player.performAttack === 'function') {
         player.performAttack();
       }
@@ -108,21 +180,28 @@ window.addEventListener("keydown", (event) => {
 
 
 window.addEventListener("keyup", (event) => {
+  if (isGamePaused()) {
+    resetGameplayKeys();
+    return;
+  }
+
+  const action = getActionForCode(event.code);
+
   if (isNpcChatOpen()) {
     resetGameplayKeys();
     return;
   }
 
-  switch (event.code) {
-    case "KeyD":
+  switch (action) {
+    case "moveRight":
       keys.d.pressed = false;
       player.switchSprite('idleRight')
       break;
-    case "KeyA":
+    case "moveLeft":
       keys.a.pressed = false;
       player.switchSprite('idleLeft')
       break;
-    case "KeyS":
+    case "crouch":
       keys.s.pressed = false;
       if(player.lastDirection === 'right') {
         player.switchSprite('idleRight')
@@ -130,15 +209,16 @@ window.addEventListener("keyup", (event) => {
         player.switchSprite('idleLeft')
       }
       break;
-    case "KeyE":
+    case "talk":
       keys.e.pressed = false;
       keys.e.usedForNpc = false;
       break;
-    case "KeyW":
+    case "jump":
+    case "jumpAlt":
       keys.w.pressed = false;
       break;
 
-    case "KeyI":
+    case "attack":
       keys.i.pressed = false;
       break;
 
@@ -148,11 +228,16 @@ window.addEventListener("keyup", (event) => {
 })
 
 window.addEventListener('keydown', (event) => {
+  if (isGamePaused()) {
+    resetGameplayKeys();
+    return;
+  }
+
   if (isNpcChatOpen()) return;
   if (event.repeat) return;
-  switch(event.code) {
-    case "KeyO":
-      keys.o.pressed = true
-      break;
+  const action = getActionForCode(event.code);
+
+  if (action === 'dash') {
+    keys.o.pressed = true
   }
 });

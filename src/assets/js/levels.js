@@ -27,16 +27,16 @@ let levels = {
       });
 
       foregrounds = [
-        // new Sprite({
-        //   position: {
-        //     x: 3000,
-        //     y: 2500,
-        //   },
-        //   imageSrc: '',
+        new Sprite({
+          position: {
+            x: 3000,
+            y: 2500,
+          },
+          imageSrc: '/assets/sprites/levels/foreground.png',
 
 
           
-        // }),
+        }),
 
 
 
@@ -59,7 +59,7 @@ let levels = {
       npcs = [
         new NPC({
           id: 'room1-guide',
-          name: 'OverBound Guide',
+          name: 'Miro Klavesnica',
           role: 'game_guide',
           dialogText: 'I can answer questions about controls, enemies, portals, gold, and trading.',
           position: { x: 6500, y: 4050 },
@@ -172,6 +172,10 @@ let levels = {
         y:350
       }
 
+      if (typeof resetAttackGuide === 'function') {
+        resetAttackGuide()
+      }
+
       npcs = [
         
       ]
@@ -278,7 +282,7 @@ let levels = {
 
       enemies = [
         createEnemy({
-          position: { x: 3300, y: 4500 },
+          position: { x: 3100, y: 4500 },
           collisionBlocks: collisionBlocks,
           patrolCenterX: 3040,
           patrolRange: 400, 
@@ -288,7 +292,7 @@ let levels = {
         }),
 
         createEnemy({
-          position: { x: 4670, y: 1860 },
+          position: { x: 4670, y: 1260 },
           collisionBlocks: collisionBlocks,
           patrolCenterX: 4670,
           patrolRange: 400, 
@@ -979,5 +983,113 @@ let levels = {
 }
 
 }
+
+const portalImageSrc = '/assets/sprites/other/portal.png'
+
+function createLevelPortal({ position, targetLevel, targetSpawnPosition }) {
+  const portal = new Sprite({
+    position,
+    imageSrc: portalImageSrc,
+    frameRate: 6,
+    frameBuffer: 8,
+    loop: true
+  })
+
+  portal.targetLevel = targetLevel
+  portal.targetSpawnPosition = targetSpawnPosition
+  portal.visible = false
+
+  return portal
+}
+
+const levelPortalTravel = {
+  1: {
+    forwardSpawn: { x: 500, y: 4000 },
+  },
+  2: {
+    backPosition: { x: 120, y: 4100 },
+    backSpawn: { x: 8900, y: 4600 },
+    forwardSpawn: { x: 500, y: 4100 },
+  },
+  3: {
+    backPosition: { x: 100, y: 4600 },
+    backSpawn: { x: 8800, y: 4100 },
+    forwardSpawn: { x: 160, y: 350 },
+  },
+  4: {
+    backPosition: { x: 40, y: 350 },
+    backSpawn: { x: 780, y: 110 },
+    forwardSpawn: { x: 150, y: 350 },
+  },
+  5: {
+    backPosition: { x: 40, y: 350 },
+    backSpawn: { x: 780, y: 45 },
+    forwardSpawn: { x: 150, y: 450 },
+  },
+  6: {
+    backPosition: { x: 40, y: 450 },
+    backSpawn: { x: 780, y: 230 },
+    forwardSpawn: { x: 150, y: 100 },
+  },
+  7: {
+    backPosition: { x: 40, y: 100 },
+    backSpawn: { x: 780, y: 180 },
+    forwardSpawn: { x: 150, y: 350 },
+  },
+  8: {
+    backPosition: { x: 40, y: 350 },
+    backSpawn: { x: 780, y: 60 },
+    forwardSpawn: { x: 150, y: 350 },
+  },
+  9: {
+    backPosition: { x: 40, y: 350 },
+    backSpawn: { x: 780, y: 60 },
+    forwardSpawn: { x: 150, y: 350 },
+  },
+  10: {
+    backPosition: { x: 40, y: 350 },
+    backSpawn: { x: 780, y: 80 },
+  },
+}
+
+Object.keys(levels).forEach((levelKey) => {
+  const levelNumber = Number(levelKey)
+  const originalInit = levels[levelNumber].init
+
+  if (typeof originalInit !== 'function') return
+
+  levels[levelNumber].init = () => {
+    originalInit()
+
+    if (levelNumber === 11) {
+      portals = []
+      return
+    }
+
+    if (!Array.isArray(portals)) return
+
+    portals.forEach((portal) => {
+      portal.visible = false
+
+      if (!portal.targetLevel) {
+        portal.targetLevel = levelNumber + 1
+      }
+
+      if (!portal.targetSpawnPosition) {
+        portal.targetSpawnPosition = levelPortalTravel[levelNumber]?.forwardSpawn
+      }
+    })
+
+    const backPosition = levelPortalTravel[levelNumber]?.backPosition
+    if (backPosition && levels[levelNumber - 1]) {
+      portals.push(createLevelPortal({
+        position: backPosition,
+        targetLevel: levelNumber - 1,
+        targetSpawnPosition: levelPortalTravel[levelNumber]?.backSpawn
+      }))
+    }
+  }
+})
+
 window.level = level;
 window.levels = levels;

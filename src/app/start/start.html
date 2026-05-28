@@ -179,13 +179,24 @@
           <div class="controls-panel">
             <p class="controls-title">Key bindings</p>
             <ul class="controls-list">
-              <li><span>A, D</span><span>Move</span></li>
-              <li><span>W / Space</span><span>Jump</span></li>
-              <li><span>S</span><span>Crouch</span></li>
-              <li><span>S + W / Space</span><span>Super Jump</span></li>
-              <li><span>O</span><span>Dash</span></li>
-              <li><span>I</span><span>Attack</span></li>
+              @for (row of keybindRows; track row.action) {
+                <li>
+                  <span>{{ row.label }}</span>
+                  <button
+                    class="keybind-button"
+                    type="button"
+                    [class.listening]="rebindingAction === row.action"
+                    (click)="beginRebind(row.action, $event)"
+                  >
+                    {{ getRebindButtonLabel(row.action) }}
+                  </button>
+                </li>
+              }
             </ul>
+            <div class="controls-note">
+              <span>Super Jump uses Crouch + Jump.</span>
+              <button class="reset-keybinds" type="button" (click)="resetKeybinds($event)">Reset</button>
+            </div>
           </div>
         </div>
       </div>

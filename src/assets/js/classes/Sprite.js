@@ -59,6 +59,7 @@ class Sprite {
   }
 
   draw() {
+    if(this.visible === false) return
     if(!this.loaded || !this.image) return
     const cropbox = {
       position: {
