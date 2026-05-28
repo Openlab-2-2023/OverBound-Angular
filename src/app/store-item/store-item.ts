@@ -77,6 +77,17 @@ export class StoreItemPage implements OnInit {
     return String(this.item?.id || '').toLowerCase().startsWith('frame_');
   }
 
+  isSkinItem() {
+    return String(this.item?.id || '').toLowerCase().startsWith('skin_');
+  }
+
+  get skinPreviewSrc(): string {
+    const id = String(this.item?.id || '').toLowerCase();
+    if (id === 'skin_purple') return 'assets/sprites/character/purple/idle.png';
+    if (id === 'skin_green') return 'assets/sprites/character/green/idle.png';
+    return 'assets/sprites/character/idle.png';
+  }
+
   async buy() {
     if (!this.item || this.buying) return;
     if (!this.isLoggedIn()) {

@@ -178,6 +178,10 @@ class Player extends Sprite  {
       levels[level].init()
     }
 
+    if (typeof resetMovementGuide === 'function') {
+      resetMovementGuide()
+    }
+
     this.switchSprite('idleRight')
 
     if (typeof overlay !== 'undefined') {
@@ -479,6 +483,45 @@ detectEnemy() {
   }
   }
 
+drawNpcPrompt(npc) {
+    const promptWidth = 360
+    const promptHeight = 118
+    const keySize = 78
+    const x = npc.position.x + npc.width / 2 - promptWidth / 2
+    const y = npc.position.y - 155
+
+    c.save()
+    c.fillStyle = 'rgba(0, 0, 0, 0.72)'
+    c.strokeStyle = 'rgba(255, 255, 255, 0.88)'
+    c.lineWidth = 6
+    c.beginPath()
+    c.roundRect(x, y, promptWidth, promptHeight, 8)
+    c.fill()
+    c.stroke()
+
+    c.fillStyle = 'white'
+    c.font = '700 58px "Pixelify Sans", Arial'
+    c.textAlign = 'left'
+    c.textBaseline = 'middle'
+    c.fillText('TALK', x + 34, y + promptHeight / 2 + 2)
+
+    const keyX = x + promptWidth - keySize - 28
+    const keyY = y + (promptHeight - keySize) / 2
+    c.fillStyle = 'rgba(255, 255, 255, 0.12)'
+    c.strokeStyle = 'rgba(255, 255, 255, 0.95)'
+    c.lineWidth = 5
+    c.beginPath()
+    c.roundRect(keyX, keyY, keySize, keySize, 6)
+    c.fill()
+    c.stroke()
+
+    c.fillStyle = 'white'
+    c.font = '700 54px "Pixelify Sans", Arial'
+    c.textAlign = 'center'
+    c.fillText('E', keyX + keySize / 2, keyY + keySize / 2 + 2)
+    c.restore()
+}
+
 detectNpc() {
     let npcNearby = false;
 
@@ -493,14 +536,33 @@ detectNpc() {
       ) {
         npcNearby = true;
 
-        c.fillStyle = 'white';
-        c.font = '100px Times New Roman';
-        c.fillText('Talk[E]', npc.position.x + 20, npc.position.y - 100);
+        this.drawNpcPrompt(npc);
 
-        // If E was pressed while near NPC, show dialog bar
-        if (typeof keys !== 'undefined' && keys.e && keys.e.pressed) {
-          npcDialog.active = true;
+        // If E was pressed while near NPC, open the Angular chat overlay.
+        if (
+          typeof keys !== 'undefined' &&
+          keys.e &&
+          keys.e.pressed &&
+          !keys.e.usedForNpc
+        ) {
+          keys.e.usedForNpc = true;
+          npcDialog.active = false;
           npcDialog.text = npc.dialogText || '...';
+
+          const npcChatDetail = {
+            id: npc.id || 'npc',
+            name: npc.name || 'Guide',
+            role: npc.role || 'game_guide',
+            intro: npc.dialogText || 'Ask me anything about OverBound.',
+          };
+
+          if (typeof window.openNpcChat === 'function') {
+            window.openNpcChat(npcChatDetail);
+          } else {
+            window.dispatchEvent(new CustomEvent('openNpcChat', {
+              detail: npcChatDetail
+            }));
+          }
         }
       }
     }

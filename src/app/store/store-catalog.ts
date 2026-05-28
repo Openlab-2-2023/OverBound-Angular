@@ -5,7 +5,7 @@ export interface StoreItem {
   cost: number;
   description: string;
   longDescription: string;
-  type?: 'frame';
+  type?: 'frame' | 'skin';
 }
 
 export const STORE_ITEMS: StoreItem[] = [
@@ -58,6 +58,26 @@ export const STORE_ITEMS: StoreItem[] = [
     description: 'Pink-coral frame with soft flowing motion.',
     longDescription:
       'A bright pastel frame with a gentle animated sweep, perfect for players who want something stylish and playful.',
+  },
+  {
+    id: 'skin_purple',
+    name: 'Purple Character Skin',
+    icon: 'SKN',
+    cost: 80,
+    type: 'skin',
+    description: 'Purple playable character skin.',
+    longDescription:
+      'A purple replacement skin for the playable character. Equip it from your inventory to use it in-game.',
+  },
+  {
+    id: 'skin_green',
+    name: 'Green Character Skin',
+    icon: 'SKN',
+    cost: 80,
+    type: 'skin',
+    description: 'Green playable character skin.',
+    longDescription:
+      'A green replacement skin for the playable character. Equip it from your inventory to use it in-game.',
   },
 ];
 

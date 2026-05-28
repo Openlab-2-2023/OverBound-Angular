@@ -1,27 +1,81 @@
-const player = new Player({
-  imageSrc: '/assets/sprites/character/idle.png',
-  frameRate: 4,
-  loop: true,
-  animations: {
+function getSelectedCharacterSkinId() {
+  const allowedSkins = ['default', 'purple', 'green']
+  let selected = 'default'
+
+  if (typeof window !== 'undefined' && typeof window.selectedCharacterSkin === 'string') {
+    selected = window.selectedCharacterSkin
+  }
+
+  return allowedSkins.includes(selected) ? selected : 'default'
+}
+
+function getCharacterSkinConfig(skinId = getSelectedCharacterSkinId()) {
+  if (skinId === 'purple' || skinId === 'green') {
+    const skinPath = `/assets/sprites/character/${skinId}`
+    return {
+      id: skinId,
+      idleRight: `${skinPath}/idle.png`,
+      idleLeft: `${skinPath}/idle.png`,
+      runRight: `${skinPath}/runright.png`,
+      runLeft: `${skinPath}/runright.png`,
+      attackRight: `${skinPath}/attack.png`,
+      attackLeft: `${skinPath}/attack.png`,
+      dashRight: `${skinPath}/dash.png`,
+      dashLeft: `${skinPath}/dash.png`,
+      crouchRight: `${skinPath}/crouch.png`,
+      crouchLeft: `${skinPath}/crouch.png`,
+      flipIdleLeft: true,
+      flipRunLeft: true,
+      flipAttackLeft: true,
+      flipDashLeft: true,
+      flipCrouchLeft: true,
+    }
+  }
+
+  return {
+    id: 'default',
+    idleRight: '/assets/sprites/character/idle.png',
+    idleLeft: '/assets/sprites/character/idleleft.png',
+    runRight: '/assets/sprites/character/runright.png',
+    runLeft: '/assets/sprites/character/runleft.png',
+    attackRight: '/assets/sprites/character/attack.png',
+    attackLeft: '/assets/sprites/character/attack.png',
+    dashRight: '/assets/sprites/character/dash.png',
+    dashLeft: '/assets/sprites/character/dashleft.png',
+    crouchRight: '/assets/sprites/character/crouch.png',
+    crouchLeft: '/assets/sprites/character/crouchleft.png',
+    flipIdleLeft: false,
+    flipRunLeft: false,
+    flipAttackLeft: true,
+    flipDashLeft: false,
+    flipCrouchLeft: false,
+  }
+}
+
+function createPlayerAnimations(skinId = getSelectedCharacterSkinId()) {
+  const skin = getCharacterSkinConfig(skinId)
+
+  return {
     idleRight: {
       frameRate: 4,
       frameBuffer: 14,
       loop: true,
-      imageSrc: '/assets/sprites/character/idle.png'
+      imageSrc: skin.idleRight
     },
 
     idleLeft: {
       frameRate: 4,
       frameBuffer: 14,
       loop: true,
-      imageSrc: '/assets/sprites/character/idleleft.png'
+      imageSrc: skin.idleLeft,
+      flipX: skin.flipIdleLeft
     },
 
     runRight: {
       frameRate: 8,
       frameBuffer: 4,
       loop: true,
-      imageSrc: '/assets/sprites/character/runright.png'
+      imageSrc: skin.runRight
 
     },
 
@@ -29,61 +83,65 @@ const player = new Player({
       frameRate: 8,
       frameBuffer: 4,
       loop: true,
-      imageSrc: '/assets/sprites/character/runleft.png'
+      imageSrc: skin.runLeft,
+      flipX: skin.flipRunLeft
     },
 
     attackRight: {
       frameRate: 3,
       frameBuffer: 3,
       loop: false,
-      imageSrc: '/assets/sprites/character/attack.png'
+      imageSrc: skin.attackRight
     },
 
     attackLeft: {
       frameRate: 3,
       frameBuffer: 3,
       loop: false,
-      imageSrc: '/assets/sprites/character/attack.png',
-      flipX: true
+      imageSrc: skin.attackLeft,
+      flipX: skin.flipAttackLeft
     },
 
     dash: {
       frameRate: 1,
       frameBuffer: 1,
       loop: true,
-      imageSrc: '/assets/sprites/character/dash.png'
+      imageSrc: skin.dashRight
     },
 
     dashLeft: {
       frameRate: 1,
       frameBuffer: 1,
       loop: true,
-      imageSrc: '/assets/sprites/character/dashleft.png'
+      imageSrc: skin.dashLeft,
+      flipX: skin.flipDashLeft
     },
 
     crouch: {
       frameRate: 4,
       frameBuffer: 4,
       loop: false,
-      imageSrc: '/assets/sprites/character/crouch.png'
+      imageSrc: skin.crouchRight
     },
     crouchLeft: {
       frameRate: 4,
       frameBuffer: 4,
       loop: false,
-      imageSrc: '/assets/sprites/character/crouchleft.png'
+      imageSrc: skin.crouchLeft,
+      flipX: skin.flipCrouchLeft
     },
     charge: {
       frameRate: 4,
       frameBuffer: 1,
       loop: true,
-      imageSrc: '/assets/sprites/character/dash.png'
+      imageSrc: skin.dashRight
     },
     chargeLeft: {
       frameRate: 4,
       frameBuffer: 6,
       loop: true,
-      imageSrc: '/assets/sprites/character/dashleft.png'
+      imageSrc: skin.dashLeft,
+      flipX: skin.flipDashLeft
     },
     perish: {
       frameRate: 3,
@@ -123,8 +181,60 @@ const player = new Player({
       }
     },
   }
+}
+
+const initialCharacterSkin = getSelectedCharacterSkinId()
+const initialCharacterAnimations = createPlayerAnimations(initialCharacterSkin)
+
+const player = new Player({
+  imageSrc: initialCharacterAnimations.idleRight.imageSrc,
+  frameRate: 4,
+  loop: true,
+  animations: initialCharacterAnimations
 });
 
+function applyCharacterSkin(skinId = getSelectedCharacterSkinId()) {
+  if (typeof player === 'undefined') return
+
+  const currentAnimation = player.currentAnimation
+  let currentAnimationName = 'idleRight'
+
+  if (currentAnimation && player.animations) {
+    for (const name in player.animations) {
+      if (player.animations[name] === currentAnimation) {
+        currentAnimationName = name
+        break
+      }
+    }
+  }
+
+  const animations = createPlayerAnimations(skinId)
+  for (const name in animations) {
+    animations[name].image = getSpriteImage(animations[name].imageSrc)
+  }
+
+  player.animations = animations
+  player.currentAnimation = null
+  player.switchSprite(currentAnimationName)
+
+  const image = player.image
+  const setPlayerLoaded = () => {
+    player.loaded = true
+    player.width = image.width / player.frameRate
+    player.height = image.height
+  }
+
+  player.loaded = false
+  if (image && image.complete && image.naturalWidth > 0) {
+    setPlayerLoaded()
+  } else if (image) {
+    image.addEventListener('load', setPlayerLoaded, { once: true })
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.applyCharacterSkin = applyCharacterSkin
+}
 
 const enemySpriteConfigs = {
   mushroom: {

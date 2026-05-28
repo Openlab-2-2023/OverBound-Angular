@@ -58,6 +58,10 @@ let levels = {
       player.position.y = 4000//position sa meni
       npcs = [
         new NPC({
+          id: 'room1-guide',
+          name: 'OverBound Guide',
+          role: 'game_guide',
+          dialogText: 'I can answer questions about controls, enemies, portals, gold, and trading.',
           position: { x: 6500, y: 4050 },
           imageSrc: '/assets/sprites/character/npc_1.png',
           frameRate: 5,

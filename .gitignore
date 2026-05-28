@@ -8,6 +8,8 @@
 
 # Node
 /node_modules
+server/node_modules
+functions/node_modules
 npm-debug.log
 yarn-error.log
 
@@ -29,6 +31,9 @@ yarn-error.log
 .history/*
 
 # Miscellaneous
+/.env
+server/.env
+functions/.env
 /.angular/cache
 .sass-cache/
 /connect.lock

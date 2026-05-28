@@ -1,2 +1,41 @@
 
-        <canvas #gameCanvas></canvas>
+<div class="game-shell">
+  <canvas #gameCanvas></canvas>
+
+  <section class="npc-chat" *ngIf="npcChatOpen" aria-label="NPC chat">
+    <header class="npc-chat__header">
+      <div>
+        <h2>{{ npcName }}</h2>
+        <p>Game guide</p>
+      </div>
+      <button type="button" class="npc-chat__close" (click)="closeNpcChat()" aria-label="Close chat">
+        X
+      </button>
+    </header>
+
+    <div class="npc-chat__messages">
+      <p
+        *ngFor="let message of npcMessages"
+        class="npc-chat__message"
+        [class.npc-chat__message--player]="message.from === 'player'"
+      >
+        {{ message.text }}
+      </p>
+
+      <p class="npc-chat__message npc-chat__message--thinking" *ngIf="npcThinking">
+        Thinking...
+      </p>
+    </div>
+
+    <form class="npc-chat__form" (ngSubmit)="sendNpcQuestion()">
+      <input
+        class="npc-chat__input"
+        name="npcQuestion"
+        [(ngModel)]="npcQuestion"
+        autocomplete="off"
+        placeholder="Ask about controls, portals, enemies..."
+      />
+      <button type="submit" [disabled]="npcThinking || !npcQuestion.trim()">Send</button>
+    </form>
+  </section>
+</div>

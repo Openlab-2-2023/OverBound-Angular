@@ -14,6 +14,8 @@
                 }
               </div>
             </div>
+          } @else if (isSkinItem()) {
+            <img class="skin-preview-sprite" [src]="skinPreviewSrc" [alt]="item.name + ' preview'" />
           } @else {
             {{ item.icon }}
           }
@@ -32,6 +34,8 @@
         <p>{{ item.longDescription }}</p>
         @if (isFrameItem()) {
           <p class="item-note">Only one frame can be equipped at a time. Buy it once, then equip it from your inventory.</p>
+        } @else if (isSkinItem()) {
+          <p class="item-note">Only one character skin can be equipped at a time. Buy it once, then equip it from your inventory.</p>
         }
       </div>
 

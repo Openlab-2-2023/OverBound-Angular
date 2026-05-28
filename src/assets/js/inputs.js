@@ -22,7 +22,32 @@ let keys = {
   },
 };
 
+function isNpcChatOpen() {
+  return Boolean(window.npcChatOpen);
+}
+
+function resetGameplayKeys() {
+  keys.d.pressed = false;
+  keys.a.pressed = false;
+  keys.s.pressed = false;
+  keys.w.pressed = false;
+  keys.e.pressed = false;
+  keys.i.pressed = false;
+}
+
 window.addEventListener("keydown", (event) => {
+  if (isNpcChatOpen()) {
+    if (event.code === 'Escape') {
+      if (typeof window.closeNpcChat === 'function') {
+        window.closeNpcChat();
+      } else {
+        window.npcChatOpen = false;
+      }
+    }
+    resetGameplayKeys();
+    return;
+  }
+
   switch (event.code) {
     case "KeyD":
       // move right (D)
@@ -38,6 +63,8 @@ window.addEventListener("keydown", (event) => {
       break;
     case "Space":
     case "KeyW":
+      keys.w.pressed = true;
+
       if(keys.s.pressed && player.velocity.y == 0) {
         if(currentDifficulty === 'normal') {
           player.velocity.y = -60;
@@ -60,7 +87,9 @@ window.addEventListener("keydown", (event) => {
       break;
 
       case "KeyE":
+      if (event.repeat) break;
       keys.e.pressed = true;
+      keys.e.usedForNpc = false;
       break;
 
       case "KeyI":
@@ -79,6 +108,11 @@ window.addEventListener("keydown", (event) => {
 
 
 window.addEventListener("keyup", (event) => {
+  if (isNpcChatOpen()) {
+    resetGameplayKeys();
+    return;
+  }
+
   switch (event.code) {
     case "KeyD":
       keys.d.pressed = false;
@@ -98,6 +132,7 @@ window.addEventListener("keyup", (event) => {
       break;
     case "KeyE":
       keys.e.pressed = false;
+      keys.e.usedForNpc = false;
       break;
     case "KeyW":
       keys.w.pressed = false;
@@ -113,6 +148,7 @@ window.addEventListener("keyup", (event) => {
 })
 
 window.addEventListener('keydown', (event) => {
+  if (isNpcChatOpen()) return;
   if (event.repeat) return;
   switch(event.code) {
     case "KeyO":

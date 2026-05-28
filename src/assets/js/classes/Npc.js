@@ -7,6 +7,10 @@ class NPC extends Sprite {
         frameBuffer = 10,
         loop = true,
         collisionBlocks = [],
+        id = 'npc',
+        name = 'Guide',
+        role = 'game_guide',
+        dialogText = 'Ask me anything about OverBound.',
         levelSpawnPosition = {
             x:0,
             y:0
@@ -25,6 +29,10 @@ class NPC extends Sprite {
 
         })
 
+        this.id = id
+        this.name = name
+        this.role = role
+        this.dialogText = dialogText
         
      
     }

@@ -7,6 +7,10 @@ var goldGainFx = [];
 var animationFrameId = null;
 var resizeGameCanvas = null;
 var healthBarImages = null;
+var movementGuide = {
+  active: false,
+  startedAt: 0,
+};
 
 function stopGame() {
   if (animationFrameId !== null) {
@@ -90,6 +94,70 @@ function drawHealthBar() {
   c.restore();
 }
 
+function resetMovementGuide() {
+  movementGuide.active = true;
+  movementGuide.startedAt = performance.now ? performance.now() : Date.now();
+}
+
+function dismissMovementGuide() {
+  movementGuide.active = false;
+}
+
+function drawMovementGuide() {
+  if (!movementGuide.active || typeof player === 'undefined' || player.isDead) return;
+
+  const now = performance.now ? performance.now() : Date.now();
+  const elapsed = now - movementGuide.startedAt;
+  if (elapsed >= 3000) {
+    dismissMovementGuide();
+    return;
+  }
+  const fadeStart = 2000;
+  const opacity = elapsed <= fadeStart
+    ? 1
+    : Math.max(0, 1 - (elapsed - fadeStart) / (3000 - fadeStart));
+
+  const box = player.hitbox || {
+    position: {
+      x: player.position.x + 130,
+      y: player.position.y + 10,
+    },
+    width: 70,
+    height: 300,
+  };
+
+  const centerX = box.position.x + box.width / 2;
+  const topY = box.position.y - 400;
+  const keyWidth = 200;
+  const keyHeight = 150;
+  const gap = 14;
+
+  const bob = Math.sin(elapsed / 260) * 6;
+
+  function drawKey(label, x, y) {
+    c.save();
+    c.globalAlpha = opacity;
+    c.fillStyle = 'rgba(0, 0, 0, 0.72)';
+    c.strokeStyle = 'rgba(255, 255, 255, 0.88)';
+    c.lineWidth = 6;
+    c.beginPath();
+    c.roundRect(x, y + bob, keyWidth, keyHeight, 6);
+    c.fill();
+    c.stroke();
+
+    c.fillStyle = 'white';
+    c.font = '700 100px "Pixelify Sans", Arial';
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillText(label, x + keyWidth / 2, y + bob + keyHeight / 2 + 1);
+    c.restore();
+  }
+
+  drawKey('W', centerX - keyWidth / 2, topY);
+  drawKey('A', centerX - keyWidth - gap / 2, topY + keyHeight + gap);
+  drawKey('D', centerX + gap / 2, topY + keyHeight + gap);
+}
+
 function startGame() {
   stopGame();
 
@@ -155,6 +223,7 @@ function startGame() {
   // console.log('levels:', window.levels);
   // console.log('level:', window.level);
   window.levels[window.level].init();
+  resetMovementGuide();
 
   function animate() {
     animationFrameId = window.requestAnimationFrame(animate);
@@ -197,12 +266,15 @@ function startGame() {
     });
 
     
-    // normal movement only when not being knocked back
-    if (!player.knockbackFrames || player.knockbackFrames <= 0) {
+    // normal movement only when not being knocked back or typing in NPC chat
+    if (window.npcChatOpen) {
+      player.velocity.x = 0;
+    } else if (!player.knockbackFrames || player.knockbackFrames <= 0) {
       player.velocity.x = 0;                  
       player.playerMovement();
     }
     player.draw();
+    drawMovementGuide();
     if (typeof foregrounds !== 'undefined' && foregrounds && foregrounds.length) {
       const parallaxOffsetX = camera.position.x * (PARALLAX_FACTOR - 1);
 

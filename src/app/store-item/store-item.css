@@ -60,6 +60,12 @@
   background: linear-gradient(180deg, rgba(17,17,24,.98), rgba(8,8,12,.98));
   flex-shrink: 0;
 }
+.skin-preview-sprite {
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
 .frame-preview-stage{
   position: relative;
   width: 100%;

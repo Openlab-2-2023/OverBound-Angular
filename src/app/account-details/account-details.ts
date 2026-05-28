@@ -320,6 +320,7 @@ export class AccountDetails implements OnInit, OnDestroy {
 
   async toggleEquip(item: any) {
     if (this.viewOnlyMode) return;
+    const previousInventory = this.inventory.map(i => ({ ...i }));
     const shouldEquip = !item.equipped;
     const category = this.getCosmeticCategory(item);
     if (shouldEquip && category !== 'other') {
@@ -335,7 +336,7 @@ export class AccountDetails implements OnInit, OnDestroy {
     const updatedInv = this.inventory.map(i => ({ ...i }));
     const res = await this.auth.updateProfile({ inventory: updatedInv });
     if (!res.ok) {
-      item.equipped = !item.equipped;
+      this.inventory = previousInventory;
       alert(res.message || 'Failed to update inventory');
     }
   }
@@ -386,11 +387,20 @@ export class AccountDetails implements OnInit, OnDestroy {
       .replace(/[^a-z0-9_-]/g, '');
   }
 
-  getCosmeticCategory(item: any): 'frame' | 'banner' | 'other' {
+  getCosmeticCategory(item: any): 'frame' | 'banner' | 'skin' | 'other' {
     const id = String(item?.id || '').trim().toLowerCase();
     if (id.startsWith('frame_')) return 'frame';
     if (id.startsWith('banner_')) return 'banner';
+    if (id.startsWith('skin_')) return 'skin';
     return 'other';
+  }
+
+  getCosmeticCategoryLabel(item: any): string {
+    const category = this.getCosmeticCategory(item);
+    if (category === 'frame') return 'Profile Frame';
+    if (category === 'banner') return 'Profile Banner';
+    if (category === 'skin') return 'Character Skin';
+    return '';
   }
 
   getInventoryItemName(item: any): string {
