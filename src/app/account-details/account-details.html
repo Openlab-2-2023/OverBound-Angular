@@ -106,7 +106,7 @@
 									<div class="inv-actions">
 										<button class="equip-btn" [class.equipped]="it.equipped" (click)="toggleEquip(it)">{{ it.equipped ? 'Unequip' : 'Equip' }}</button>
 										@if (getCosmeticCategory(it) !== 'other') {
-											<div class="cosmetic-tag">{{ getCosmeticCategoryLabel(it) }}</div>
+											<div class="cosmetic-tag">{{ getCosmeticCategory(it) === 'frame' ? 'Profile Frame' : 'Profile Banner' }}</div>
 										}
 										<button class="sell-btn" (click)="sellItem(it)">Sell {{ getSellPrice(it) }} ◈</button>
 									</div>
