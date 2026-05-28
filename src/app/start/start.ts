@@ -18,6 +18,8 @@ export class Start implements OnInit, OnDestroy {
   showCredits = signal(false);
   leaderboardFilter: 'gold-desc' | 'items-desc' = 'gold-desc';
   leaderboardFilterOpen = false;
+  storeFilter: 'all' | 'frame' | 'skin' = 'all';
+  storeFilterOpen = false;
   leaderboardUsers: Array<{ email: string; displayName: string; gold: number; totalGoldCollected: number; role: string; photoURL?: string; inventory?: Array<{ id: string; name: string; icon: string; equipped?: boolean; cost?: number }> }> = [];
   leaderboardError = '';
   leaderboardLoadedCount = 0;
@@ -175,6 +177,12 @@ export class Start implements OnInit, OnDestroy {
     return this.leaderboardFilter === 'items-desc' ? 'Most Items' : 'Most Gold';
   }
 
+  get storeFilterLabel() {
+    if (this.storeFilter === 'frame') return 'Frames';
+    if (this.storeFilter === 'skin') return 'Skins';
+    return 'All Items';
+  }
+
   toggleLeaderboardFilter() {
     this.leaderboardFilterOpen = !this.leaderboardFilterOpen;
   }
@@ -182,6 +190,20 @@ export class Start implements OnInit, OnDestroy {
   selectLeaderboardFilter(val: 'gold-desc' | 'items-desc') {
     this.leaderboardFilter = val;
     this.leaderboardFilterOpen = false;
+  }
+
+  toggleStoreFilter() {
+    this.storeFilterOpen = !this.storeFilterOpen;
+  }
+
+  selectStoreFilter(val: 'all' | 'frame' | 'skin') {
+    this.storeFilter = val;
+    this.storeFilterOpen = false;
+  }
+
+  get filteredStoreItems() {
+    if (this.storeFilter === 'all') return this.storeItems;
+    return this.storeItems.filter((item) => item.type === this.storeFilter);
   }
 
   get filteredLeaderboard() {

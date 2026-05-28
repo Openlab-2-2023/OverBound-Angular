@@ -92,12 +92,6 @@
       </div>
 
       <div class="button-holder">
-        @if (unreadForumReplyCount > 0) {
-          <div class="forum-reminder-card">
-            <span class="forum-reminder-dot"></span>
-            <span>You have {{ unreadForumReplyCount }} new forum repl{{ unreadForumReplyCount === 1 ? 'y' : 'ies' }}.</span>
-          </div>
-        }
         <a class="start" #startBtn (click)="startGame($event)">Start</a>
         <button class="settings" type="button" (click)="openSettings()">Settings</button>
         <button class="trading" type="button" (click)="goToTrading()" title="Trading system">Trading</button>
@@ -114,7 +108,28 @@
       <div class="Store auto-scroll">
         <div class="store-header">
           <h4 class="store-title">Store</h4>
-          <div class="currency"><span style="font-family:'Silkscreen','Pixelify Sans',sans-serif;letter-spacing:.2px">{{ storeGold }}</span> <span class="coin">◈</span></div>
+          <div class="store-header-right">
+            <div class="leader-filter-wrap store-filter-wrap">
+              <button class="leader-filter-btn" type="button" (click)="toggleStoreFilter()">
+                {{ storeFilterLabel }}
+                <span class="leader-filter-caret">{{ storeFilterOpen ? '▲' : '▼' }}</span>
+              </button>
+              @if (storeFilterOpen) {
+                <div class="leader-filter-menu">
+                  <button class="leader-filter-item" type="button" (click)="selectStoreFilter('all')">
+                    All Items
+                  </button>
+                  <button class="leader-filter-item" type="button" (click)="selectStoreFilter('frame')">
+                    Frames
+                  </button>
+                  <button class="leader-filter-item" type="button" (click)="selectStoreFilter('skin')">
+                    Skins
+                  </button>
+                </div>
+              }
+            </div>
+            <div class="currency"><span style="font-family:'Silkscreen','Pixelify Sans',sans-serif;letter-spacing:.2px">{{ storeGold }}</span> <span class="coin">◈</span></div>
+          </div>
         </div>
         <div class="divider"></div>
         <div class="store-content">
@@ -122,7 +137,7 @@
             <p class="leader-empty">Log in to use the store.</p>
           } @else {
             <div class="leader-list">
-              @for (item of storeItems; track item.id) {
+              @for (item of filteredStoreItems; track item.id) {
                 <div class="leader-row" style="grid-template-columns:1fr auto auto">
                   <div>
                     <a class="leader-name" [routerLink]="['/store', item.id]" style="text-decoration:none;color:#fff">{{ item.name }}</a>
