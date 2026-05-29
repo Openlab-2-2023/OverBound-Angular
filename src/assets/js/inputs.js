@@ -83,6 +83,21 @@ function isGamePaused() {
   return Boolean(window.gamePaused);
 }
 
+function isEditableTarget(target) {
+  if (!(target instanceof HTMLElement)) return false;
+  const tagName = target.tagName;
+  if (target.isContentEditable) return true;
+  if (tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT') return true;
+  return Boolean(target.closest('[contenteditable="true"]'));
+}
+
+function shouldHandleGameplayInput(event) {
+  if (isEditableTarget(event.target)) return false;
+  if (!window.location.pathname.startsWith('/game')) return false;
+  if (typeof player === 'undefined') return false;
+  return true;
+}
+
 function resetGameplayKeys() {
   keys.d.pressed = false;
   keys.a.pressed = false;
@@ -94,6 +109,10 @@ function resetGameplayKeys() {
 }
 
 window.addEventListener("keydown", (event) => {
+  if (!shouldHandleGameplayInput(event)) {
+    return;
+  }
+
   if (isGamePaused()) {
     resetGameplayKeys();
     return;
@@ -180,6 +199,10 @@ window.addEventListener("keydown", (event) => {
 
 
 window.addEventListener("keyup", (event) => {
+  if (!shouldHandleGameplayInput(event)) {
+    return;
+  }
+
   if (isGamePaused()) {
     resetGameplayKeys();
     return;
@@ -228,6 +251,10 @@ window.addEventListener("keyup", (event) => {
 })
 
 window.addEventListener('keydown', (event) => {
+  if (!shouldHandleGameplayInput(event)) {
+    return;
+  }
+
   if (isGamePaused()) {
     resetGameplayKeys();
     return;

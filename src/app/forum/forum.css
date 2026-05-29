@@ -526,6 +526,7 @@
   font-size: 17px;
   font-family: "Pixelify Sans", sans-serif;
   transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+  gap: 10px;
 }
 
 .primary-btn {
@@ -658,6 +659,36 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   margin-top: 12px;
+}
+
+.post-media-toggle {
+  width: 100%;
+  margin-top: 12px;
+  min-height: 50px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    linear-gradient(180deg, rgba(47, 107, 255, 0.08), rgba(255, 186, 87, 0.06)),
+    rgba(255, 255, 255, 0.04);
+  color: #e9efff;
+  font-size: 12px;
+  font-family: "Pixelify Sans", sans-serif;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.post-media-toggle:hover {
+  transform: translateY(-1px);
+  border-color: rgba(95, 141, 255, 0.34);
+  background:
+    linear-gradient(180deg, rgba(47, 107, 255, 0.12), rgba(255, 186, 87, 0.08)),
+    rgba(255, 255, 255, 0.05);
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.16);
 }
 
 .post-images.single {
@@ -862,6 +893,11 @@
   display: inline-flex;
   gap: 10px;
   align-items: center;
+}
+
+.btn-loading-inline .dot {
+  width: 10px;
+  height: 10px;
 }
 
 .btn-loading .dot {

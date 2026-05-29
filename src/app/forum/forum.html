@@ -98,7 +98,7 @@
                 </label>
                 <div class="upload-copy">
                   <strong>{{ selectedFileNames.length > 0 ? selectedFileNames.length + ' file' + (selectedFileNames.length === 1 ? '' : 's') + ' selected' : 'Add images' }}</strong>
-                  <span>{{ selectedFileNames.length > 0 ? selectedFileNames.join(', ') : 'PNG, JPG, WEBP or GIF up to 4 MB each' }}</span>
+                  <span>{{ selectedFileNames.length > 0 ? selectedFileNames.join(', ') : 'PNG, JPG, WEBP or GIF up to 12 MB each. Large photos are compressed automatically.' }}</span>
                 </div>
                 <input
                   id="forum-file-upload"
@@ -122,7 +122,16 @@
             <p class="moderation-note">Posts and comments with blocked vulgar words are rejected before they are published.</p>
 
             <button class="primary-btn" type="button" (click)="submitPost()" [disabled]="creatingPost">
-              {{ creatingPost ? 'Posting...' : 'Publish Post' }}
+              @if (creatingPost) {
+                <span class="btn-loading btn-loading-inline" aria-hidden="true">
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                </span>
+                <span>Publishing...</span>
+              } @else {
+                <span>Publish Post</span>
+              }
             </button>
           </div>
         }
@@ -206,13 +215,30 @@
                 <p class="post-body">{{ post.body }}</p>
 
                 @if (post.imageUrls.length > 0) {
-                  <div class="post-images" [class.single]="post.imageUrls.length === 1">
-                    @for (imageUrl of post.imageUrls; track imageUrl) {
-                      <a class="post-image-link" [href]="imageUrl" target="_blank" rel="noreferrer">
-                        <img [src]="imageUrl" alt="Forum attachment" />
-                      </a>
-                    }
-                  </div>
+                  <button class="post-media-toggle" type="button" (click)="toggleImagePanel(post.id)">
+                    <span class="post-replies-toggle-copy">
+                      <span class="post-replies-toggle-title">
+                        {{ post.imageUrls.length === 1 ? 'Photo' : 'Photos' }}
+                      </span>
+                      <span class="post-replies-toggle-subtitle">
+                        {{ isImagePanelOpen(post.id) ? 'Hide attachment' : 'Show attachment' }}
+                      </span>
+                    </span>
+                    <span class="post-replies-toggle-side">
+                      <span class="post-replies-count">{{ post.imageUrls.length }}</span>
+                      <span class="post-replies-caret">{{ isImagePanelOpen(post.id) ? '▲' : '▼' }}</span>
+                    </span>
+                  </button>
+
+                  @if (isImagePanelOpen(post.id)) {
+                    <div class="post-images" [class.single]="post.imageUrls.length === 1">
+                      @for (imageUrl of post.imageUrls; track imageUrl) {
+                        <a class="post-image-link" [href]="imageUrl" target="_blank" rel="noreferrer">
+                          <img [src]="imageUrl" alt="Forum attachment" />
+                        </a>
+                      }
+                    </div>
+                  }
                 }
 
                 <div class="post-stats">

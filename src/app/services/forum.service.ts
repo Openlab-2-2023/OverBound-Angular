@@ -36,6 +36,10 @@ export class ForumService {
   private readonly forumPostsCollectionName = 'forum_posts';
   private readonly forumCommentsCollectionName = 'forum_comments';
   private readonly maxUploadBytes = 12 * 1024 * 1024;
+  private readonly preferredUploadBytes = 2.5 * 1024 * 1024;
+  private readonly uploadTimeoutMs = 15000;
+  private readonly inlineFallbackMaxBytes = 120 * 1024;
+  private readonly inlineFallbackMaxTotalChars = 700 * 1024;
   private readonly replySeenStorageKeyPrefix = 'ob_forum_reply_seen_v1';
   private readonly blockedWords = [
     'fuck',
@@ -225,15 +229,25 @@ export class ForumService {
 
     const now = Date.now();
     const imageUrls: string[] = [];
+    let inlineFallbackTotalChars = 0;
     for (let i = 0; i < files.length; i += 1) {
       const file = await this.prepareImageForUpload(files[i]);
+      if (file.size > this.maxUploadBytes) {
+        throw new Error('One of the selected images is still too large after compression. Please choose a smaller image.');
+      }
       const safeName = String(file.name || 'upload')
         .replace(/[^a-z0-9._-]/gi, '_')
         .slice(-80);
-      const url = await uploadFileToStorage(
+      const url = await this.uploadPostImage(
         file,
         `forum_posts/${encodeURIComponent(current.email)}/${now}_${i}_${safeName}`,
       );
+      if (url.startsWith('data:')) {
+        inlineFallbackTotalChars += url.length;
+        if (inlineFallbackTotalChars > this.inlineFallbackMaxTotalChars) {
+          throw new Error('The selected images are too large to attach right now. Please use fewer images or smaller files.');
+        }
+      }
       imageUrls.push(String(url || '').trim());
     }
 
@@ -446,7 +460,7 @@ export class ForumService {
       return file;
     }
 
-    if (file.size <= 2.5 * 1024 * 1024) {
+    if (file.size <= this.preferredUploadBytes) {
       return file;
     }
 
@@ -461,33 +475,101 @@ export class ForumService {
   private async compressRasterImage(file: File): Promise<File> {
     const dataUrl = await this.readFileAsDataUrl(file);
     const img = await this.loadImage(dataUrl);
-    const maxDimension = 1600;
-    const scale = Math.min(1, maxDimension / Math.max(img.width, img.height));
-    const width = Math.max(1, Math.round(img.width * scale));
-    const height = Math.max(1, Math.round(img.height * scale));
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
+    return this.compressRasterImageFromLoadedImage(
+      img,
+      file,
+      [1600, 1280, 960],
+      [0.86, 0.78, 0.7, 0.6, 0.5, 0.42],
+      this.preferredUploadBytes,
+    );
+  }
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return file;
-    ctx.drawImage(img, 0, 0, width, height);
+  private async uploadPostImage(file: File, destPath: string): Promise<string> {
+    try {
+      return await this.withTimeout(
+        uploadFileToStorage(file, destPath),
+        this.uploadTimeoutMs,
+        'Image upload',
+      );
+    } catch (uploadError) {
+      const fallbackFile = await this.prepareImageForInlineFallback(file);
+      if (fallbackFile.size > this.inlineFallbackMaxBytes) {
+        throw uploadError;
+      }
+      return this.readFileAsDataUrl(fallbackFile);
+    }
+  }
 
+  private async prepareImageForInlineFallback(file: File): Promise<File> {
+    const mimeType = String(file?.type || '').toLowerCase();
+    if (!file) {
+      return file;
+    }
+    if (file.size <= this.inlineFallbackMaxBytes && mimeType !== 'image/gif') {
+      return file;
+    }
+    if (mimeType === 'image/gif') {
+      throw new Error('GIF attachments need Firebase Storage upload to finish. Please try again later or use PNG/JPG/WEBP.');
+    }
+
+    try {
+      const dataUrl = await this.readFileAsDataUrl(file);
+      const img = await this.loadImage(dataUrl);
+      return await this.compressRasterImageFromLoadedImage(
+        img,
+        file,
+        [960, 720, 560],
+        [0.72, 0.58, 0.46, 0.38],
+        this.inlineFallbackMaxBytes,
+      );
+    } catch {
+      return file;
+    }
+  }
+
+  private async compressRasterImageFromLoadedImage(
+    img: HTMLImageElement,
+    sourceFile: File,
+    maxDimensions: number[],
+    qualities: number[],
+    targetBytes: number,
+  ): Promise<File> {
     const targetType = 'image/webp';
-    for (const quality of [0.86, 0.78, 0.7, 0.6]) {
-      const blob = await this.canvasToBlob(canvas, targetType, quality);
-      if (!blob) continue;
-      if (blob.size <= 2.5 * 1024 * 1024 || quality === 0.6) {
-        const baseName = String(file.name || 'upload').replace(/\.[^.]+$/, '') || 'upload';
+    const baseName = String(sourceFile.name || 'upload').replace(/\.[^.]+$/, '') || 'upload';
+    let bestFile = sourceFile;
+
+    for (const maxDimension of maxDimensions) {
+      const scale = Math.min(1, maxDimension / Math.max(img.width, img.height));
+      const width = Math.max(1, Math.round(img.width * scale));
+      const height = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) continue;
+      ctx.drawImage(img, 0, 0, width, height);
+
+      for (const quality of qualities) {
+        const blob = await this.canvasToBlob(canvas, targetType, quality);
+        if (!blob) continue;
+
         const nextFile = new File([blob], `${baseName}.webp`, {
           type: targetType,
           lastModified: Date.now(),
         });
-        return nextFile.size < file.size ? nextFile : file;
+
+        if (nextFile.size < bestFile.size) {
+          bestFile = nextFile;
+        }
+
+        if (nextFile.size <= targetBytes) {
+          return nextFile;
+        }
       }
     }
 
-    return file;
+    return bestFile;
   }
 
   private readFileAsDataUrl(file: File): Promise<string> {
@@ -512,6 +594,15 @@ export class ForumService {
     return new Promise((resolve) => {
       canvas.toBlob((blob) => resolve(blob), type, quality);
     });
+  }
+
+  private withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        window.setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs);
+      }),
+    ]);
   }
 
   private normalizePost(id: string, raw: any): ForumPost {

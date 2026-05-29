@@ -37,6 +37,7 @@ export class ForumComponent implements OnInit, OnDestroy {
   postFeedback = '';
   commentFeedback = '';
   openReplyThreads: Record<string, boolean> = {};
+  openImagePanels: Record<string, boolean> = {};
   commentDrafts: Record<string, string> = {};
   commentSubmitting: Record<string, boolean> = {};
   private postsUnsubscribe: (() => void) | null = null;
@@ -135,6 +136,16 @@ export class ForumComponent implements OnInit, OnDestroy {
     if (this.openReplyThreads[normalizedPostId]) {
       this.markPostRepliesSeen(normalizedPostId);
     }
+  }
+
+  isImagePanelOpen(postId: string): boolean {
+    return !!this.openImagePanels[String(postId || '').trim()];
+  }
+
+  toggleImagePanel(postId: string): void {
+    const normalizedPostId = String(postId || '').trim();
+    if (!normalizedPostId) return;
+    this.openImagePanels[normalizedPostId] = !this.openImagePanels[normalizedPostId];
   }
 
   togglePostCategoryMenu(): void {
@@ -292,6 +303,10 @@ export class ForumComponent implements OnInit, OnDestroy {
       normalized.includes('missing or insufficient permissions')
     ) {
       return 'Forum database access is blocked by Firebase rules right now.';
+    }
+
+    if (normalized.includes('storage/') || normalized.includes('object-not-found')) {
+      return 'The image upload failed. Try a smaller image, or check Firebase Storage rules if this keeps happening.';
     }
 
     return message || fallback;
