@@ -10,6 +10,13 @@ service cloud.firestore {
       return request.auth.token.email;
     }
 
+    function isAdmin() {
+      return isSignedIn() && userEmail() in [
+        'sebokubinec7@gmail.com',
+        'bojkosam1@gmail.com'
+      ];
+    }
+
     function isSelf(email) {
       return isSignedIn() && userEmail() == email;
     }
@@ -68,6 +75,22 @@ service cloud.firestore {
             && request.resource.data.authorPhotoURL == resource.data.authorPhotoURL
             && request.resource.data.commentCount == resource.data.commentCount + 1
             && request.resource.data.hidden == resource.data.hidden
+            && request.resource.data.keys().hasOnly([
+              'authorEmail',
+              'authorName',
+              'authorPhotoURL',
+              'title',
+              'body',
+              'category',
+              'imageUrls',
+              'createdAt',
+              'updatedAt',
+              'commentCount',
+              'hidden'
+            ])
+          ) || (
+            isAdmin()
+            && request.resource.data.authorEmail == resource.data.authorEmail
           )
         );
     }
@@ -130,7 +153,7 @@ service cloud.firestore {
       allow read: if true;
       allow create: if validForumPostCreate();
       allow update: if validForumPostUpdate();
-      allow delete: if isForumPostAuthor(resource.data);
+      allow delete: if isForumPostAuthor(resource.data) || isAdmin();
     }
 
     match /forum_comments/{commentId} {

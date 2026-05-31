@@ -70,6 +70,10 @@ export class ForumService {
     return this.authService.isLoggedIn();
   }
 
+  isAdmin(): boolean {
+    return this.authService.isAdmin();
+  }
+
   getReplySeenState(): Record<string, number> {
     const current = this.authService.getCurrent();
     const email = String(current?.email || '').trim().toLowerCase();
@@ -298,6 +302,30 @@ export class ForumService {
     await updateDoc(doc(firestore, this.forumPostsCollectionName, normalizedPostId), {
       commentCount: increment(1),
       updatedAt: Date.now(),
+    });
+  }
+
+  async deletePost(postId: string): Promise<void> {
+    const current = this.requireCurrentUser();
+    const normalizedPostId = String(postId || '').trim();
+
+    if (!normalizedPostId) throw new Error('Missing post id.');
+    if (!this.authService.isAdmin()) {
+      throw new Error('Only admins can delete forum posts.');
+    }
+    if (!isFirebaseEnabled()) {
+      throw new Error('Forum is unavailable until Firebase is enabled.');
+    }
+
+    await initFirebaseIfNeeded();
+    const firestore = getFirestoreInstance();
+    if (!firestore) throw new Error('Forum database is not initialized.');
+
+    const { doc, updateDoc } = await import('firebase/firestore');
+    await updateDoc(doc(firestore, this.forumPostsCollectionName, normalizedPostId), {
+      hidden: true,
+      updatedAt: Date.now(),
+      deletedBy: String(current.email || '').trim().toLowerCase(),
     });
   }
 

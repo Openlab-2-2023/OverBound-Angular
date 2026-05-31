@@ -210,6 +210,16 @@
                     </div>
                     <p class="post-meta">{{ post.authorName }} • {{ post.createdAt | date: 'medium' }}</p>
                   </div>
+                  @if (isAdmin) {
+                    <button
+                      class="post-delete-btn"
+                      type="button"
+                      (click)="deletePost(post.id)"
+                      [disabled]="deletingPostIds[post.id]"
+                    >
+                      {{ deletingPostIds[post.id] ? 'Deleting...' : 'Delete' }}
+                    </button>
+                  }
                 </div>
 
                 <p class="post-body">{{ post.body }}</p>

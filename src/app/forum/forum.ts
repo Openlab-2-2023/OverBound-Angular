@@ -40,6 +40,7 @@ export class ForumComponent implements OnInit, OnDestroy {
   openImagePanels: Record<string, boolean> = {};
   commentDrafts: Record<string, string> = {};
   commentSubmitting: Record<string, boolean> = {};
+  deletingPostIds: Record<string, boolean> = {};
   private postsUnsubscribe: (() => void) | null = null;
   private commentsUnsubscribes = new Map<string, () => void>();
   private onUserUpdatedListener: EventListener | null = null;
@@ -86,6 +87,10 @@ export class ForumComponent implements OnInit, OnDestroy {
 
   get currentUserPhoto(): string {
     return String(this.forumService.getCurrentUser()?.photoURL || '').trim();
+  }
+
+  get isAdmin(): boolean {
+    return this.forumService.isAdmin();
   }
 
   get currentUserInitial(): string {
@@ -238,6 +243,29 @@ export class ForumComponent implements OnInit, OnDestroy {
       this.feedError = this.getDisplayErrorMessage(error, 'Could not add the reply.');
     } finally {
       this.commentSubmitting[normalizedPostId] = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  async deletePost(postId: string): Promise<void> {
+    const normalizedPostId = String(postId || '').trim();
+    if (!normalizedPostId || this.deletingPostIds[normalizedPostId] || !this.isAdmin) return;
+
+    const confirmed = window.confirm('Delete this forum post? This will remove it from the live forum feed.');
+    if (!confirmed) return;
+
+    this.deletingPostIds[normalizedPostId] = true;
+    this.feedError = '';
+    this.postFeedback = '';
+    this.commentFeedback = '';
+
+    try {
+      await this.forumService.deletePost(normalizedPostId);
+      this.postFeedback = 'Post deleted.';
+    } catch (error: any) {
+      this.feedError = this.getDisplayErrorMessage(error, 'Could not delete the post.');
+    } finally {
+      delete this.deletingPostIds[normalizedPostId];
       this.cdr.detectChanges();
     }
   }
