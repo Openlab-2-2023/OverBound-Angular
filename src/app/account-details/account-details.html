@@ -44,7 +44,9 @@
 					</div>
 
 					<div class="account-info">
-						<p><strong>Email:</strong> {{ activeUser.email }}</p>
+						@if (!viewOnlyMode) {
+							<p><strong>Email:</strong> {{ activeUser.email }}</p>
+						}
 						<p><strong>Role:</strong> {{ activeUser.role }}</p>
 						<p class="gold"><strong>Gold:</strong> <span class="gold-value" style="font-family:'Silkscreen','Pixelify Sans',sans-serif;letter-spacing:.2px">{{ activeUser.gold || 0 }}</span> <span class="coin">◈</span></p>
 					</div>
@@ -93,32 +95,34 @@
 
 			<div class="inventory-section">
 				<h4>{{ viewOnlyMode ? 'Owned Items' : 'Inventory' }}</h4>
-				@if (inventory && inventory.length > 0) {
-					<div class="inventory-grid">
-						@for (it of inventory; track it.id) {
-							<div class="inv-item" [class.clickable]="viewOnlyMode" (click)="viewOnlyMode && viewStoreItem(it.id)">
-								<div class="inv-icon">{{ getInventoryItemIcon(it) }}</div>
-								<div class="inv-name">{{ getInventoryItemName(it) }}</div>
-								@if (viewOnlyMode) {
-									<div class="inv-state" [class.equipped]="it.equipped">{{ it.equipped ? 'Equipped' : 'Owned' }}</div>
-								}
-								@if (!viewOnlyMode) {
-									<div class="inv-actions">
-										<button class="equip-btn" [class.equipped]="it.equipped" (click)="toggleEquip(it)">{{ it.equipped ? 'Unequip' : 'Equip' }}</button>
-										@if (getCosmeticCategory(it) !== 'other') {
-											<div class="cosmetic-tag">{{ getCosmeticCategory(it) === 'frame' ? 'Profile Frame' : 'Profile Banner' }}</div>
-										}
-										<button class="sell-btn" (click)="sellItem(it)">Sell {{ getSellPrice(it) }} ◈</button>
-									</div>
-								}
-							</div>
-						}
-					</div>
-				} @else {
-					<div class="empty-inventory">
-						{{ viewOnlyMode ? 'This player has no items yet.' : 'No items yet - visit the Store to buy items for gold.' }}
-					</div>
-				}
+				<div class="inventory-scroll">
+					@if (inventory && inventory.length > 0) {
+						<div class="inventory-grid">
+							@for (it of inventory; track it.id) {
+								<div class="inv-item" [class.clickable]="viewOnlyMode" (click)="viewOnlyMode && viewStoreItem(it.id)">
+									<div class="inv-icon">{{ getInventoryItemIcon(it) }}</div>
+									<div class="inv-name">{{ getInventoryItemName(it) }}</div>
+									@if (viewOnlyMode) {
+										<div class="inv-state" [class.equipped]="it.equipped">{{ it.equipped ? 'Equipped' : 'Owned' }}</div>
+									}
+									@if (!viewOnlyMode) {
+										<div class="inv-actions">
+											<button class="equip-btn" [class.equipped]="it.equipped" (click)="toggleEquip(it)">{{ it.equipped ? 'Unequip' : 'Equip' }}</button>
+											@if (getCosmeticCategory(it) !== 'other') {
+												<div class="cosmetic-tag">{{ getCosmeticCategory(it) === 'frame' ? 'Profile Frame' : 'Profile Banner' }}</div>
+											}
+											<button class="sell-btn" (click)="sellItem(it)">Sell {{ getSellPrice(it) }} ◈</button>
+										</div>
+									}
+								</div>
+							}
+						</div>
+					} @else {
+						<div class="empty-inventory">
+							{{ viewOnlyMode ? 'This player has no items yet.' : 'No items yet - visit the Store to buy items for gold.' }}
+						</div>
+					}
+				</div>
 			</div>
 
 			<div class="account-actions">

@@ -53,6 +53,16 @@ export class SendTradeComponent implements OnInit {
     return `${count} players available for trading`;
   }
 
+  getPlayerLabel(user: User | null | undefined): string {
+    const displayName = String(user?.displayName || '').trim();
+    if (displayName) return displayName;
+
+    const emailName = String(user?.email || '').trim().split('@')[0];
+    if (emailName) return emailName;
+
+    return 'Player';
+  }
+
   async loadUsers(): Promise<void> {
     this.loading = this.availableUsers.length === 0;
     this.refreshingUsers = this.availableUsers.length > 0;
@@ -138,16 +148,16 @@ export class SendTradeComponent implements OnInit {
     try {
       const offer: TradeOffer = {
         senderEmail: currentUser.email,
-        senderName: currentUser.displayName || 'Unknown',
+        senderName: this.getPlayerLabel(currentUser),
         receiverEmail: this.selectedUser.email,
-        receiverName: this.selectedUser.displayName || 'Unknown',
+        receiverName: this.getPlayerLabel(this.selectedUser),
         itemsOffered: this.itemsToOffer,
         itemsRequested: this.itemsToRequest,
         status: 'pending',
       };
 
       await this.tradingService.sendTradeOffer(offer);
-      this.successMessage = `Trade offer sent to ${this.selectedUser.displayName || this.selectedUser.email}!`;
+      this.successMessage = `Trade offer sent to ${this.getPlayerLabel(this.selectedUser)}!`;
 
       // Reset form
       setTimeout(() => {

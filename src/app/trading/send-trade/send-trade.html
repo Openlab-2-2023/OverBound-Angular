@@ -49,16 +49,15 @@
               <div class="user-avatar">
                 @if (user.photoURL) {
                   <span>
-                    <img [src]="user.photoURL" [alt]="user.displayName || user.email" />
+                    <img [src]="user.photoURL" [alt]="getPlayerLabel(user)" />
                   </span>
                 } @else {
                   <span class="default-avatar">
-                    {{ (user.displayName || user.email || 'U').charAt(0).toUpperCase() }}
+                    {{ getPlayerLabel(user).charAt(0).toUpperCase() }}
                   </span>
                 }
               </div>
-              <h3 class="user-name">{{ user.displayName || user.email }}</h3>
-              <p class="user-email">{{ user.email }}</p>
+              <h3 class="user-name">{{ getPlayerLabel(user) }}</h3>
               <p class="user-items">
                 {{ (user.inventory && user.inventory.length) || 0 }} items
               </p>
@@ -74,7 +73,7 @@
     <div class="step-content">
       <div class="step-header">
         <button class="btn-back" (click)="backToUsers()">← Back</button>
-        <h2>Trading with {{ selectedUser.displayName || selectedUser.email }}</h2>
+        <h2>Trading with {{ getPlayerLabel(selectedUser) }}</h2>
       </div>
 
       <div class="items-selection">
@@ -205,7 +204,7 @@
 
         <p class="trade-description">
           You're sending this trade offer to
-          <strong>{{ selectedUser.displayName || selectedUser.email }}</strong>
+          <strong>{{ getPlayerLabel(selectedUser) }}</strong>
         </p>
 
         <div class="action-buttons">
