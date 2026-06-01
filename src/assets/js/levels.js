@@ -182,15 +182,19 @@ let levels = {
 
       
       portals = [
-        new Sprite ({
-          position: {
-            x:9200,
-            y:4100
-          },
-          imageSrc: '/assets/sprites/other/portal.png',
-          frameRate: 6,
-          frameBuffer: 8,
-          loop:true
+        createLevelPortal({
+          id: 'room2-right-exit',
+          position: { x: 9200, y: 4100 },
+          targetLevel: 3,
+          targetSpawnPosition: { x: 500, y: 4100 },
+          visible: false
+        }),
+        createLevelPortal({
+          id: 'room2-upper-exit',
+          position: { x: 9200, y: 3000},
+          targetLevel: 4,
+          targetSpawnPosition: { x: 160, y: 1000 },
+          visible: false
         })
       ]
 
@@ -221,6 +225,7 @@ let levels = {
   },
 3: {
     tileCount: 77,
+    disableAutoBackPortal: true,
     init: () => {
       
       background = new Sprite({
@@ -255,8 +260,8 @@ let levels = {
       parsedCollisions = level3Collisions.Parse2D(levels[3].tileCount);
       collisionBlocks = parsedCollisions.createObjectsFrom2D(); 
       player.collisionBlocks = collisionBlocks
-      player.position.x = 10
-      player.position.y = 4100
+      player.position.x = 50
+      player.position.y = 4200
       player.levelSpawnPosition = {
         x:50,
         y:350
@@ -268,16 +273,23 @@ let levels = {
 
       
       portals = [
-        new Sprite ({
-          position: {
-            x:930,
-            y:110
-          },
-          imageSrc: '/assets/sprites/other/portal.png',
-          frameRate: 6,
-          frameBuffer: 8,
-          loop:true
-        })
+        
+
+        createLevelPortal({
+          id: 'level3-back-to-room2-right-exit',
+          position: { x: 20, y: 4500 },
+          targetLevel: 2,
+          targetSpawnPosition: { x: 8900, y: 4100 },
+          visible: false
+        }),
+        createLevelPortal({
+          id: 'level3-back-to-room2-right-exit',
+          position: { x: 9200, y: 2600 },
+          targetLevel: 7,
+          targetSpawnPosition: { x: 100, y: 800 },
+          visible: false
+        }),
+        
       ]
 
       enemies = [
@@ -328,7 +340,10 @@ let levels = {
     }
   },
   4: {
+    tileCount: 77,
+    disableAutoBackPortal: true,
     init: () => {
+      
       background = new Sprite({
         position: {
           x: 0,
@@ -337,223 +352,114 @@ let levels = {
       
         
       //obrazok levelu
-        imageSrc: "/assets/sprites/levels/level4.png",
+        imageSrc: "/assets/sprites/levels/room2.5.png",
       });
-      
-      parsedCollisions = level4Collisions.Parse2D();
-      collisionBlocks = parsedCollisions.createObjectsFrom2D(); 
-      player.collisionBlocks = collisionBlocks
-      player.position.x = 50
-      player.position.y = 350
-      portals = [
-        new Sprite ({
-          position: {
-            x:920,
-            y:45
-          },
-          imageSrc: '/assets/sprites/other/portal.png',
-          frameRate: 6,
-          frameBuffer: 8,
-          loop:true
 
-          
-        })
-      ]
-
-      animals = [
-        new Sprite ({
+      foregrounds = [
+        new Sprite({
           position: {
-            x:500,
-            y:324
-          },
-          imageSrc: '/assets/sprites/bird/idle.png',
-          frameRate: 4,
-          frameBuffer: 12,
-          loop:true
-        })
-      ]
-
-      risks = [
-        new Sprite ({
-          position: {
-            x:700,
-            y:400
+            x: 6000,
+            y: 900,
           },
           imageSrc: '',
-          frameRate: 6,
-          frameBuffer: 8,
-          loop:true
-        })
-      ]
-
-      clouds = [
-        new Sprite ({
-          position: {
-            x:500,
-            y:300
-          },
-          imageSrc: '',
-          frameRate: 6,
-          frameBuffer: 8,
-          loop:true
-        })
-      ]
-    }
-  },
-    5: {
-    init: () => {
-      background = new Sprite({
-        position: {
-          x: 0,
-          y: 0,
-        },
-      
-        
-      //obrazok levelu
-        imageSrc: "/assets/sprites/levels/level5.png",
-      });
-      
-      parsedCollisions = level5Collisions.Parse2D();
-      collisionBlocks = parsedCollisions.createObjectsFrom2D(); 
-      player.collisionBlocks = collisionBlocks
-      player.position.x = 50
-      player.position.y = 350
-      portals = [
-        new Sprite ({
-          position: {
-            x:950,
-            y:230
-          },
-          imageSrc: '/assets/sprites/other/portal.png',
-          frameRate: 6,
-          frameBuffer: 8,
-          loop:true
-
-          
-        })
-      ]
-
-      animals = [
-        new Sprite ({
-          position: {
-            x:500,
-            y:324
-          },
-          imageSrc: '',
-          frameRate: 4,
-          frameBuffer: 12,
-          loop:true
-        })
-      ]
-
-      risks = [
-        new Sprite ({
-          position: {
-            x:700,
-            y:400
-          },
-          imageSrc: '',
-          frameRate: 6,
-          frameBuffer: 8,
-          loop:true
-        })
-      ]
-
-      clouds = [
-        new Sprite ({
-          position: {
-            x:200,
-            y:280
-          },
-          imageSrc: '/assets/sprites/other/clouds.png',
-          frameRate: 5,
-          frameBuffer: 13,
-          loop:true
         }),
 
-        
+        new Sprite({
+          position: {
+            x: 1000,
+            y: 900,
+          },
+          imageSrc: '',
+        }),
       ]
-    }
-  },
-  6: {
-    init: () => {
-      background = new Sprite({
-        position: {
-          x: 0,
-          y: 0,
-        },
       
-        
-      //obrazok levelu
-        imageSrc: "/assets/sprites/levels/level6.png",
-      });
-      
-      parsedCollisions = level6Collisions.Parse2D();
+      parsedCollisions = level4Collisions.Parse2D(levels[4].tileCount);
       collisionBlocks = parsedCollisions.createObjectsFrom2D(); 
       player.collisionBlocks = collisionBlocks
-      player.position.x = 40
-      player.position.y = 450
+      player.position.x = 1000
+      player.position.y = 1000
       player.levelSpawnPosition = {
         x:50,
         y:350
       }
-      portals = [
-        new Sprite ({
-          position: {
-            x:950,
-            y:180
-          },
-          imageSrc: '/assets/sprites/other/portal.png',
-          frameRate: 6,
-          frameBuffer: 8,
-          loop:true
 
-          
-        })
+      npcs = [
+        
       ]
 
+      
+      portals = [
+        
+
+        createLevelPortal({
+          id: 'level4-back-to-room2-upper-exit',
+          position: { x: 20, y: 4700},
+          targetLevel: 2,
+          targetSpawnPosition: { x: 8900, y: 3000 },
+          visible: false
+        }),
+        createLevelPortal({
+          id: 'level5',
+          position: { x: 9200, y: 4700},
+          targetLevel: 5,
+          targetSpawnPosition: { x: 100, y: 4400 },
+          visible: false
+        }),
+
+      ]
+
+      enemies = [
+        // createEnemy({
+        //   position: { x: 3100, y: 4500 },
+        //   collisionBlocks: collisionBlocks,
+        //   patrolCenterX: 3040,
+        //   patrolRange: 400, 
+        //   patrolDirection: 1, 
+        //   patrolSpeed: 5,
+        //   health: 3
+        // }),
+
+        // createEnemy({
+        //   position: { x: 4670, y: 1260 },
+        //   collisionBlocks: collisionBlocks,
+        //   patrolCenterX: 4670,
+        //   patrolRange: 400, 
+        //   patrolDirection: 1, 
+        //   patrolSpeed: 5,
+        //   health: 3
+        // }),
+
+        // createEnemy({
+        //   position: { x: 6670, y: 3540 },
+        //   collisionBlocks: collisionBlocks,
+        //   patrolCenterX: 6670,
+        //   patrolRange: 400, 
+        //   patrolDirection: 1, 
+        //   patrolSpeed: 5,
+        //   health: 3
+        // }),
+
+
+      ]
       animals = [
-        new Sprite ({
-          position: {
-            x:500,
-            y:324
-          },
-          imageSrc: '',
-          frameRate: 4,
-          frameBuffer: 12,
-          loop:true
-        })
+        
       ]
 
       risks = [
-        new Sprite ({
-          position: {
-            x:300,
-            y:450
-          },
-          imageSrc: "/assets/sprites/other/sandworm.png",
-          frameRate: 27,
-          frameBuffer: 3,
-          loop:true
-        })
+        
       ]
 
       clouds = [
-        new Sprite ({
-          position: {
-            x:500,
-            y:300
-          },
-          imageSrc: '',
-          frameRate: 6,
-          frameBuffer: 8,
-          loop:true
-        })
+        
       ]
+      
     }
   },
-  7: {
+    5: {
+    tileCount: 77,
+    disableAutoBackPortal: true,
     init: () => {
+      
       background = new Sprite({
         position: {
           x: 0,
@@ -562,94 +468,305 @@ let levels = {
       
         
       //obrazok levelu
-        imageSrc: "/assets/sprites/levels/level7.png",
+        imageSrc: "/assets/sprites/levels/room4.png",
       });
-      
-      parsedCollisions = level7Collisions.Parse2D();
-      collisionBlocks = parsedCollisions.createObjectsFrom2D(); 
-      player.collisionBlocks = collisionBlocks
-      player.position.x = 50
-      player.position.y = 100
-      player.levelSpawnPosition = {
-        x:50,
-        y:50
-      }
-      portals = [
-        new Sprite ({
-          position: {
-            x:950,
-            y:60
-          },
-          imageSrc: '/assets/sprites/other/portal.png',
-          frameRate: 6,
-          frameBuffer: 8,
-          loop:true
 
-          
-        })
-      ]
-
-      animals = [
-        new Sprite ({
+      foregrounds = [
+        new Sprite({
           position: {
-            x:500,
-            y:324
+            x: 6000,
+            y: 900,
           },
           imageSrc: '',
-          frameRate: 4,
-          frameBuffer: 12,
-          loop:true
-        })
+        }),
+
+        new Sprite({
+          position: {
+            x: 1000,
+            y: 900,
+          },
+          imageSrc: '',
+        }),
+      ]
+      
+      parsedCollisions = level5Collisions.Parse2D(levels[5].tileCount);
+      collisionBlocks = parsedCollisions.createObjectsFrom2D(); 
+      player.collisionBlocks = collisionBlocks
+      player.position.x = 100
+      player.position.y = 4300
+      player.levelSpawnPosition = {
+        x:50,
+        y:350
+      }
+
+      npcs = [
+        
+      ]
+
+      
+      portals = [
+        
+
+        createLevelPortal({
+          id: 'level4-back-to-room2-upper-exit',
+          position: { x: 20, y: 4700},
+          targetLevel: 4,
+          targetSpawnPosition: { x: 8900, y: 4400 },
+          visible: false
+        }),
+        createLevelPortal({
+          id: 'level5',
+          position: { x: 5000, y: 4700},
+          targetLevel: 5,
+          targetSpawnPosition: { x: 8900, y: 3000 },
+          visible: false
+        }),
+
+      ]
+
+      enemies = [
+        // createEnemy({
+        //   position: { x: 3100, y: 4500 },
+        //   collisionBlocks: collisionBlocks,
+        //   patrolCenterX: 3040,
+        //   patrolRange: 400, 
+        //   patrolDirection: 1, 
+        //   patrolSpeed: 5,
+        //   health: 3
+        // }),
+
+        // createEnemy({
+        //   position: { x: 4670, y: 1260 },
+        //   collisionBlocks: collisionBlocks,
+        //   patrolCenterX: 4670,
+        //   patrolRange: 400, 
+        //   patrolDirection: 1, 
+        //   patrolSpeed: 5,
+        //   health: 3
+        // }),
+
+        // createEnemy({
+        //   position: { x: 6670, y: 3540 },
+        //   collisionBlocks: collisionBlocks,
+        //   patrolCenterX: 6670,
+        //   patrolRange: 400, 
+        //   patrolDirection: 1, 
+        //   patrolSpeed: 5,
+        //   health: 3
+        // }),
+
+
+      ]
+      animals = [
+        
       ]
 
       risks = [
-        new Sprite ({
-          position: {
-            x:380,
-            y:592
-          },
-          imageSrc: '/assets/sprites/other/sandworm.png',
-          frameRate: 27,
-          frameBuffer: 3,
-          loop:true
-        }),
-        new Sprite ({
-          position: {
-            x:130,
-            y:592
-          },
-          imageSrc: '/assets/sprites/other/sandworm.png',
-          frameRate: 27,
-          frameBuffer: 3,
-          loop:true
-          
-        }),
-        new Sprite ({
-          position: {
-            x:630,
-            y:592
-          },
-          imageSrc: '/assets/sprites/other/sandworm.png',
-          frameRate: 27,
-          frameBuffer: 3,
-          loop:true
-        })
+        
       ]
 
       clouds = [
-        new Sprite ({
-          position: {
-            x:200,
-            y:280
-          },
-          imageSrc: '',
-          frameRate: 5,
-          frameBuffer: 13,
-          loop:true
-        }),
-
         
       ]
+      
+    }
+  },
+  6: {
+    tileCount: 77,
+    disableAutoBackPortal: true,
+    init: () => {
+      
+      background = new Sprite({
+        position: {
+          x: 0,
+          y: 0,
+        },
+      
+        
+      //obrazok levelu
+        imageSrc: "/assets/sprites/levels/room6.png",
+      });
+
+      foregrounds = [
+        new Sprite({
+          position: {
+            x: 6000,
+            y: 900,
+          },
+          imageSrc: '',
+        }),
+
+        new Sprite({
+          position: {
+            x: 1000,
+            y: 900,
+          },
+          imageSrc: '',
+        }),
+      ]
+      
+      parsedCollisions = level6Collisions.Parse2D(levels[6].tileCount);
+      collisionBlocks = parsedCollisions.createObjectsFrom2D(); 
+      player.collisionBlocks = collisionBlocks
+      player.position.x = 100
+      player.position.y = 4300
+      player.levelSpawnPosition = {
+        x:50,
+        y:350
+      }
+
+      npcs = [
+        
+      ]
+
+      
+      portals = [
+        
+
+        createLevelPortal({
+          id: 'level4-back-to-room2-upper-exit',
+          position: { x: 20, y: 4700},
+          targetLevel: 4,
+          targetSpawnPosition: { x: 8900, y: 4400 },
+          visible: false
+        }),
+        createLevelPortal({
+          id: 'level5',
+          position: { x: 5000, y: 4700},
+          targetLevel: 5,
+          targetSpawnPosition: { x: 8900, y: 3000 },
+          visible: false
+        }),
+
+      ]
+
+      enemies = [
+        // createEnemy({
+        //   position: { x: 3100, y: 4500 },
+        //   collisionBlocks: collisionBlocks,
+        //   patrolCenterX: 3040,
+        //   patrolRange: 400, 
+        //   patrolDirection: 1, 
+        //   patrolSpeed: 5,
+        //   health: 3
+        // }),
+
+        // createEnemy({
+        //   position: { x: 4670, y: 1260 },
+        //   collisionBlocks: collisionBlocks,
+        //   patrolCenterX: 4670,
+        //   patrolRange: 400, 
+        //   patrolDirection: 1, 
+        //   patrolSpeed: 5,
+        //   health: 3
+        // }),
+
+        // createEnemy({
+        //   position: { x: 6670, y: 3540 },
+        //   collisionBlocks: collisionBlocks,
+        //   patrolCenterX: 6670,
+        //   patrolRange: 400, 
+        //   patrolDirection: 1, 
+        //   patrolSpeed: 5,
+        //   health: 3
+        // }),
+
+
+      ]
+      animals = [
+        
+      ]
+
+      risks = [
+        
+      ]
+
+      clouds = [
+        
+      ]
+      
+    }
+  },
+  7: {
+    tileCount: 77,
+    disableAutoBackPortal: true,
+    init: () => {
+      
+      background = new Sprite({
+        position: {
+          x: 0,
+          y: 0,
+        },
+      
+        
+      //obrazok levelu
+        imageSrc: "/assets/sprites/levels/room7.png",
+      });
+
+      foregrounds = [
+        new Sprite({
+          position: {
+            x: 6000,
+            y: 900,
+          },
+          imageSrc: '',
+        }),
+
+        new Sprite({
+          position: {
+            x: 1000,
+            y: 900,
+          },
+          imageSrc: '',
+        }),
+      ]
+      
+      parsedCollisions = level7Collisions.Parse2D(levels[7].tileCount);
+      collisionBlocks = parsedCollisions.createObjectsFrom2D(); 
+      player.collisionBlocks = collisionBlocks
+      player.position.x = 100
+      player.position.y = 500
+      player.levelSpawnPosition = {
+        x:50,
+        y:350
+      }
+
+      npcs = [
+        
+      ]
+
+      
+      portals = [
+        
+
+        createLevelPortal({
+          id: 'level3-back-to-room2-',
+          position: { x: 20, y: 800 },
+          targetLevel: 3,
+          targetSpawnPosition: { x: 8900, y: 2400 },
+          visible: false
+        }),
+        
+        
+      ]
+
+      enemies = [
+        
+
+
+      ]
+      animals = [
+        
+      ]
+
+      risks = [
+        
+      ]
+
+      clouds = [
+        
+      ]
+      
     }
   },
   8: {
@@ -986,7 +1103,7 @@ let levels = {
 
 const portalImageSrc = '/assets/sprites/other/portal.png'
 
-function createLevelPortal({ position, targetLevel, targetSpawnPosition }) {
+function createLevelPortal({ id, position, targetLevel, targetSpawnPosition, visible = false }) {
   const portal = new Sprite({
     position,
     imageSrc: portalImageSrc,
@@ -995,9 +1112,10 @@ function createLevelPortal({ position, targetLevel, targetSpawnPosition }) {
     loop: true
   })
 
+  portal.id = id
   portal.targetLevel = targetLevel
   portal.targetSpawnPosition = targetSpawnPosition
-  portal.visible = false
+  portal.visible = visible
 
   return portal
 }
@@ -1069,7 +1187,9 @@ Object.keys(levels).forEach((levelKey) => {
     if (!Array.isArray(portals)) return
 
     portals.forEach((portal) => {
-      portal.visible = false
+      if (portal.visible === undefined) {
+        portal.visible = false
+      }
 
       if (!portal.targetLevel) {
         portal.targetLevel = levelNumber + 1
@@ -1079,6 +1199,8 @@ Object.keys(levels).forEach((levelKey) => {
         portal.targetSpawnPosition = levelPortalTravel[levelNumber]?.forwardSpawn
       }
     })
+
+    if (levels[levelNumber].disableAutoBackPortal) return
 
     const backPosition = levelPortalTravel[levelNumber]?.backPosition
     if (backPosition && levels[levelNumber - 1]) {

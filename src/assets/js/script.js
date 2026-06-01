@@ -8,6 +8,7 @@ var healthBarImages = null;
 var gamePaused = false;
 var overlayTweenFrame = null;
 var hudTotalGoldCollected = 0;
+window.DEBUG_COLLISIONS = false;
 var movementGuide = {
   active: false,
   startedAt: 0,

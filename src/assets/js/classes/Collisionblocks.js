@@ -7,7 +7,7 @@ class CollisionBlock {
 
   draw() {
     if (!window.DEBUG_COLLISIONS) return
-    c.fillStyle = 'rgba(255,0,0,0.35)'
+    c.fillStyle = 'rgba(255,0,0,0.5)'
     c.fillRect(this.position.x, this.position.y, this.width, this.height)
   }
 }

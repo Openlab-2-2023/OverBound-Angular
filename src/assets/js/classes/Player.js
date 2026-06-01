@@ -341,7 +341,7 @@ crouchPlayer() {
 
 
 dash() {
-  player.velocity.x = player.lastDirection === 'right' ? 50 : -50
+  player.velocity.x = player.lastDirection === 'right' ? 70 : -70
   
   setTimeout(() => {
     player.velocity.x = 0;
